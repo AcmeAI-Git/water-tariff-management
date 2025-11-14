@@ -127,3 +127,5 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, loading }) => {
 };
 
 export default SearchBar;
+
+
