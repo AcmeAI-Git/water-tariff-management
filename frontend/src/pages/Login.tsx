@@ -13,8 +13,12 @@ export default function Login() {
 
   const handleDemo = (role: string) => {
     // UI-only demo: navigate to home
-    console.log('Demo login as', role);
-    navigate('/');
+    const routeMap: Record<string, string> = {
+        admin: '/superadmin',
+    }
+    const dest = routeMap[role] ?? '/superadmin';
+    console.log('Demo login as,', role, '->', dest);
+    navigate(dest); 
   };
 
   return (

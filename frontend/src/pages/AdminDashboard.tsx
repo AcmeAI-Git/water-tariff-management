@@ -12,7 +12,7 @@ import {
 import { motion } from 'motion/react';
 import { useState, useEffect } from 'react';
 
-export function AdminDashboard() {
+export default function AdminDashboard() {
   const [animatedConsumers, setAnimatedConsumers] = useState(0);
   const [animatedRevenue, setAnimatedRevenue] = useState(0);
   const [animatedConsumption, setAnimatedConsumption] = useState(0);
@@ -51,37 +51,6 @@ export function AdminDashboard() {
     { consumer: 'Sarah A.', type: 'Commercial', date: 'Nov 22', time: '2 PM - 10 PM', entry: 'Bill Payment', status: 'Confirmed' },
     { consumer: 'Ahmed K.', type: 'Residential', date: 'Nov 22', time: '-', entry: 'Registration', status: 'Pending' },
     { consumer: 'Nadia I.', type: 'Commercial', date: 'Nov 23', time: '10 AM - 6 PM', entry: 'Meter Reading', status: 'Confirmed' },
-  ];
-
-  // Sparkline data for KPIs
-  const consumersSparkline = [
-    { value: 14200 },
-    { value: 14500 },
-    { value: 14800 },
-    { value: 15000 },
-    { value: 14900 },
-    { value: 15200 },
-    { value: 15342 },
-  ];
-
-  const revenueSparkline = [
-    { value: 38 },
-    { value: 40 },
-    { value: 42 },
-    { value: 41 },
-    { value: 43 },
-    { value: 44 },
-    { value: 45.2 },
-  ];
-
-  const consumptionSparkline = [
-    { value: 22 },
-    { value: 23 },
-    { value: 24 },
-    { value: 23.5 },
-    { value: 24.2 },
-    { value: 24.8 },
-    { value: 24.5 },
   ];
 
   return (

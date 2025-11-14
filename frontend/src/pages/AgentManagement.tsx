@@ -2,13 +2,13 @@ import { Button } from '../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Edit2 } from 'lucide-react';
 
-export default function UserManagement() {
+export function AgentManagement() {
   const admins = [
-    { name: 'Sarah Ahmed', email: 'sarah.ahmed@wateraid.org', role: 'Meter Admin' },
-    { name: 'Kamal Hassan', email: 'kamal.hassan@wateraid.org', role: 'Meter Admin' },
-    { name: 'Nadia Chowdhury', email: 'nadia.c@wateraid.org', role: 'Meter Admin' },
+    { name: 'Sarah Ahmed', email: 'sarah.ahmed@wateraid.org', role: 'Super Admin' },
+    { name: 'Kamal Hassan', email: 'kamal.hassan@wateraid.org', role: 'Tariff Admin' },
+    { name: 'Nadia Chowdhury', email: 'nadia.c@wateraid.org', role: 'Customer Admin' },
     { name: 'Rahim Uddin', email: 'rahim.uddin@wateraid.org', role: 'Meter Admin' },
-    { name: 'Ayesha Khan', email: 'ayesha.khan@wateraid.org', role: 'Meter Admin' },
+    { name: 'Ayesha Khan', email: 'ayesha.khan@wateraid.org', role: 'Customer Admin' },
     { name: 'Ibrahim Ali', email: 'ibrahim.ali@wateraid.org', role: 'Meter Admin' },
   ];
 

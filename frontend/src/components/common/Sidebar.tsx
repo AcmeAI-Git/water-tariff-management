@@ -1,14 +1,47 @@
-import { Home, Settings, Users, UserCog, LogOut } from 'lucide-react';
+import { Home, UserCog, Users, Users2, ClipboardList, LogOut } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
-interface SidebarProps {
-  activePage: string;
-  onNavigate: (page: string) => void;
-}
+export type SidebarProps = {
+  activePage?: string;
+  onNavigate?: (page: string) => void;
+};
 
 export function Sidebar({ activePage, onNavigate }: SidebarProps) {
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+
+  const routeMap: Record<string, string> = {
+    dashboard: "/superadmin",
+    user: "/admin/users",
+    agents: "/admin/agents",
+    audit: "/admin/audit",
+  };
+
+  const handleNav = (id: string) => {
+    if (onNavigate) {
+      try { onNavigate(id); } catch { /* ignore handler errors */ }
+    }
+
+    if (id === "logout") {
+      localStorage.removeItem("authToken");
+      sessionStorage.clear();
+      try { qc?.clear?.(); } catch {}
+      toast("Logged out");
+      navigate("/login");
+      return;
+    }
+
+    const path = routeMap[id] ?? "/";
+    navigate(path);
+  };
+
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: Home },
-    { id: 'user', label: 'User Management', icon: UserCog },
+    { id: "dashboard", label: "Dashboard", icon: Home },
+    { id: "user", label: "User Management", icon: Users },
+    { id: "agents", label: "Agent Management", icon: Users2 },
+    { id: "audit", label: "System Audit Log", icon: ClipboardList },
   ];
 
   return (
@@ -28,17 +61,13 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
           return (
             <button
               key={item.id}
-              onClick={() => onNavigate(item.id)}
+              onClick={() => handleNav(item.id)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-1 transition-all ${
-                isActive
-                  ? 'bg-[#4C6EF5] text-white'
-                  : 'text-gray-700 hover:bg-gray-50'
+                isActive ? "bg-[#4C6EF5] text-white" : "text-gray-700 hover:bg-gray-50"
               }`}
             >
               <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-              <span className="text-[15px] font-medium">
-                {item.label}
-              </span>
+              <span className="text-[15px] font-medium">{item.label}</span>
             </button>
           );
         })}
@@ -47,7 +76,7 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
       {/* Bottom Section */}
       <div className="px-4 pb-6 border-t border-gray-200 pt-4">
         <button
-          onClick={() => onNavigate('logout')}
+          onClick={() => handleNav("logout")}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-red-50 hover:text-red-600 transition-all"
         >
           <LogOut size={20} strokeWidth={2} />
