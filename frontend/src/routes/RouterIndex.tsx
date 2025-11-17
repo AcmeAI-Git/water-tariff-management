@@ -1,9 +1,14 @@
 import { Route, Routes, Navigate } from "react-router-dom";
 import Login from "../pages/Login";
-import SuperAdmin from "../pages/AdminDashboard";
+import Dashboard from "../pages/AdminDashboard";
 import UserManagement from "../pages/UserManagement";
 import {AgentManagement} from "../pages/AgentManagement";
 import {SystemAuditLog} from "../pages/SystemAuditLog";
+import { MeterAdminDataEntry } from '../pages/MeterAdminDataEntry';
+import { MeterAdminPendingSubmissions } from '../pages/MeterAdminPendingSubmissions';
+import { MeterAdminSubmittedReadings } from '../pages/MeterAdminSubmittedReadings';
+import { MeterAdminTariffVisualizer } from '../pages/MeterAdminTariffVisualizer';
+import { MeterAdminMetrics } from '../pages/MeterAdminMetrics';
 import Layout from "../components/common/Layout";
 
 const RouterIndex = () => {
@@ -11,11 +16,15 @@ const RouterIndex = () => {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route element={<Layout />}>
-        <Route path="/superadmin" element={<SuperAdmin />} />
+        <Route path="/admin/dashboard" element={<Dashboard />} />
         <Route path="/admin/users" element={<UserManagement />} />
         <Route path="/admin/agents" element={<AgentManagement />} />
         <Route path="/admin/audit" element={<SystemAuditLog />} />
-
+        <Route path="/meter-admin/entry" element={<MeterAdminDataEntry />} />
+        <Route path="/meter-admin/pending" element={<MeterAdminPendingSubmissions />} />
+        <Route path="/meter-admin/submitted" element={<MeterAdminSubmittedReadings />} />
+        <Route path="/meter-admin/visualizer" element={<MeterAdminTariffVisualizer />} />
+        <Route path="/meter-admin/metrics" element={<MeterAdminMetrics />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="*" element={<div>Path not found</div>} />
       </Route>

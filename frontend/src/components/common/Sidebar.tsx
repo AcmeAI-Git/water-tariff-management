@@ -13,7 +13,7 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
   const qc = useQueryClient();
 
   const routeMap: Record<string, string> = {
-    dashboard: "/superadmin",
+    dashboard: "/admin/dashboard",
     user: "/admin/users",
     agents: "/admin/agents",
     audit: "/admin/audit",

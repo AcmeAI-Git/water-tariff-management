@@ -7,18 +7,18 @@ export default function Login() {
   const navigate = useNavigate();
 
   const handleLogin = () => {
-    // UI-only: navigate to home as a demo
     navigate('/');
   };
 
   const handleDemo = (role: string) => {
-    // UI-only demo: navigate to home
     const routeMap: Record<string, string> = {
-        admin: '/superadmin',
-    }
-    const dest = routeMap[role] ?? '/superadmin';
-    console.log('Demo login as,', role, '->', dest);
-    navigate(dest); 
+      admin: '/admin/dashboard',
+      'meter-admin': '/meter-admin/entry',
+    };
+ 
+    const dest = routeMap[role] ?? '/admin/dashboard';
+    console.log('Demo login as', role, '→', dest);
+    navigate(dest);
   };
 
   return (
