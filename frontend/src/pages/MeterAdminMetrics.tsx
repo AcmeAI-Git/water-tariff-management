@@ -17,7 +17,7 @@ export function MeterAdminMetrics() {
       <div className="px-8 py-6">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-[28px] font-semibold text-gray-900 mb-1">My Monthly Metrics</h1>
+          <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">My Monthly Metrics</h1>
           <p className="text-sm text-gray-500">Track your data entry performance</p>
         </div>
 
@@ -128,4 +128,5 @@ export function MeterAdminMetrics() {
     </div>
   );
 }
+
 

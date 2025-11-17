@@ -25,7 +25,7 @@ export function AgentManagement() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-[28px] font-semibold text-gray-900 mb-1">User Management</h1>
+            <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">User Management</h1>
             <p className="text-sm text-gray-500">Manage all system administrators and their permissions</p>
           </div>
           <Button className="bg-primary hover:bg-primary-600 text-white px-6 rounded-lg shadow-sm">
@@ -73,4 +73,5 @@ export function AgentManagement() {
     </div>
   );
 }
+
 

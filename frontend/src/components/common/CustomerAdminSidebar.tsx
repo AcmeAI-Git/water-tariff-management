@@ -38,7 +38,7 @@ export function CustomerAdminSidebar({ activePage, onNavigate }: CustomerAdminSi
               }`}
             >
               <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-              <span className="text-[15px] font-medium">
+              <span className="text-[0.9375rem] font-medium">
                 {item.label}
               </span>
             </button>
@@ -53,10 +53,11 @@ export function CustomerAdminSidebar({ activePage, onNavigate }: CustomerAdminSi
           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-red-50 hover:text-red-600 transition-all"
         >
           <LogOut size={20} strokeWidth={2} />
-          <span className="text-[15px] font-medium">Log Out</span>
+          <span className="text-[0.9375rem] font-medium">Log Out</span>
         </button>
       </div>
     </div>
   );
 }
+
 

@@ -46,7 +46,7 @@ export default function Login() {
                 id="email"
                 type="email"
                 placeholder="Enter your email"
-                className="bg-gray-50 border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                className="bg-gray-50 border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
               />
             </div>
 
@@ -58,16 +58,16 @@ export default function Login() {
                 id="password"
                 type="password"
                 placeholder="Enter your password"
-                className="bg-gray-50 border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                className="bg-gray-50 border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
               />
             </div>
 
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-[#4C6EF5] focus:ring-2 focus:ring-blue-500/20" />
+                <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-2 focus:ring-primary/20" />
                 <span className="text-sm text-gray-600">Remember me</span>
               </label>
-              <button className="text-sm font-medium text-[#4C6EF5] hover:text-[#3B5EE5]">
+              <button className="text-sm font-medium text-primary hover:text-primary-600">
                 Forgot password?
               </button>
             </div>
@@ -124,7 +124,7 @@ export default function Login() {
           <div className="mt-6 pt-6 border-t border-gray-200">
             <p className="text-center text-sm text-gray-600">
               Don't have an account?{' '}
-              <button className="font-medium text-[#4C6EF5] hover:text-[#3B5EE5]">
+              <button className="font-medium text-primary hover:text-primary-600">
                 Contact Administrator
               </button>
             </p>
@@ -138,4 +138,5 @@ export default function Login() {
     </div>
   );
 }
+
 

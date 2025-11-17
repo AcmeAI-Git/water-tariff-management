@@ -12,7 +12,7 @@ export function MeterReadingUpload() {
       <div className="px-8 py-6">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-[28px] font-semibold text-gray-900 mb-1">Meter Data Entry</h1>
+          <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">Meter Data Entry</h1>
           <p className="text-sm text-gray-500">Upload meter readings in batch or enter manually</p>
         </div>
 
@@ -21,9 +21,9 @@ export function MeterReadingUpload() {
           <div className="flex gap-6">
             <button
               onClick={() => setActiveTab('batch')}
-              className={`pb-3 text-[15px] font-medium border-b-2 transition-colors ${
+              className={`pb-3 text-[0.9375rem] font-medium border-b-2 transition-colors ${
                 activeTab === 'batch'
-                  ? 'border-[#4C6EF5] text-[#4C6EF5]'
+                  ? 'border-primary text-primary'
                   : 'border-transparent text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -31,9 +31,9 @@ export function MeterReadingUpload() {
             </button>
             <button
               onClick={() => setActiveTab('manual')}
-              className={`pb-3 text-[15px] font-medium border-b-2 transition-colors ${
+              className={`pb-3 text-[0.9375rem] font-medium border-b-2 transition-colors ${
                 activeTab === 'manual'
-                  ? 'border-[#4C6EF5] text-[#4C6EF5]'
+                  ? 'border-primary text-primary'
                   : 'border-transparent text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -48,10 +48,10 @@ export function MeterReadingUpload() {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Batch Upload</h3>
             
             <div className="bg-white p-6 rounded-xl border border-gray-200 mb-6">
-              <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-[#4C6EF5] transition-colors cursor-pointer mb-6">
+              <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-primary transition-colors cursor-pointer mb-6">
                 <div className="flex flex-col items-center gap-3">
                   <div className="w-14 h-14 bg-blue-50 rounded-full flex items-center justify-center">
-                    <Upload className="text-[#4C6EF5]" size={24} />
+                    <Upload className="text-primary" size={24} />
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-900">Click to upload or drag and drop</p>
@@ -93,7 +93,7 @@ export function MeterReadingUpload() {
                   <Input
                     id="meterNo"
                     placeholder="e.g., MTR-2024-001"
-                    className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                   />
                 </div>
 
@@ -105,7 +105,7 @@ export function MeterReadingUpload() {
                     id="reading"
                     type="number"
                     placeholder="e.g., 245.5"
-                    className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                   />
                 </div>
 
@@ -116,7 +116,7 @@ export function MeterReadingUpload() {
                   <Input
                     id="billMonth"
                     type="month"
-                    className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                   />
                 </div>
               </div>
@@ -134,4 +134,5 @@ export function MeterReadingUpload() {
     </div>
   );
 }
+
 

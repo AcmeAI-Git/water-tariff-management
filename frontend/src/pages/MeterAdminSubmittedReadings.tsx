@@ -122,7 +122,7 @@ export function MeterAdminSubmittedReadings() {
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-[28px] font-semibold text-gray-900 mb-1">Submission History</h1>
+              <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">Submission History</h1>
               <p className="text-sm text-gray-500">View history of all submitted meter readings</p>
             </div>
             <div className="flex items-center gap-6 text-sm">
@@ -185,4 +185,5 @@ export function MeterAdminSubmittedReadings() {
     </div>
   );
 }
+
 

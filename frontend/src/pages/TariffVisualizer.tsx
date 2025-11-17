@@ -70,7 +70,7 @@ export default function TariffVisualizer() {
       <div className="px-8 py-6">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-[28px] font-semibold text-gray-900 mb-1">Tariff Visualizer</h1>
+          <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">Tariff Visualizer</h1>
           <p className="text-sm text-gray-500">Calculate bills based on location and consumption</p>
         </div>
 
@@ -85,7 +85,7 @@ export default function TariffVisualizer() {
               </Label>
               <select 
                 id="city"
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
               >
                 <option>Dhaka</option>
                 <option>Chittagong</option>
@@ -99,7 +99,7 @@ export default function TariffVisualizer() {
               </Label>
               <select 
                 id="zone"
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
               >
                 <option>1</option>
                 <option>2</option>
@@ -113,7 +113,7 @@ export default function TariffVisualizer() {
               </Label>
               <select 
                 id="ward"
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
               >
                 <option>3</option>
                 <option>1</option>
@@ -129,7 +129,7 @@ export default function TariffVisualizer() {
                 id="category"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
               >
                 <option value="residential">Residential</option>
                 <option value="commercial">Commercial</option>
@@ -153,7 +153,7 @@ export default function TariffVisualizer() {
                     type="number"
                     value={consumption}
                     onChange={(e) => setConsumption(Number(e.target.value))}
-                    className="w-24 text-center bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    className="w-24 text-center bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                   />
                 </div>
                 <Slider
@@ -212,7 +212,7 @@ export default function TariffVisualizer() {
               <div className="border-t border-gray-200 pt-2 mt-2"></div>
               <div className="flex items-center justify-between gap-4">
                 <span className="font-semibold text-gray-900">Total</span>
-                <span className="text-xl font-semibold text-[#4C6EF5] whitespace-nowrap">৳{exampleTotal.toFixed(2)}</span>
+                <span className="text-xl font-semibold text-primary whitespace-nowrap">৳{exampleTotal.toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -342,7 +342,7 @@ export default function TariffVisualizer() {
                 {/* Total */}
                 <div className="flex items-center justify-between px-6 py-5 bg-blue-50">
                   <p className="font-semibold text-gray-900">Total Amount</p>
-                  <p className="text-2xl font-semibold text-[#4C6EF5]">৳{total.toFixed(2)}</p>
+                  <p className="text-2xl font-semibold text-primary">৳{total.toFixed(2)}</p>
                 </div>
               </div>
             </div>
@@ -352,4 +352,5 @@ export default function TariffVisualizer() {
     </div>
   );
 }
+
 

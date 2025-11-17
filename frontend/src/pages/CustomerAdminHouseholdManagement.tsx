@@ -183,7 +183,7 @@ export function CustomerAdminHouseholdManagement() {
       <div className="px-8 py-6">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-[28px] font-semibold text-gray-900 mb-1">Household Management</h1>
+          <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">Household Management</h1>
           <p className="text-sm text-gray-500">Your Assigned Ward: Ward 3, Dhaka South</p>
         </div>
 
@@ -215,7 +215,7 @@ export function CustomerAdminHouseholdManagement() {
                       value={formData.fullName}
                       onChange={(e) => handleInputChange('fullName', e.target.value)}
                       placeholder="Enter full name"
-                      className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                     />
                   </div>
 
@@ -228,7 +228,7 @@ export function CustomerAdminHouseholdManagement() {
                       value={formData.meterNo}
                       onChange={(e) => handleInputChange('meterNo', e.target.value)}
                       placeholder="MTR-2024-XXXX"
-                      className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                     />
                   </div>
                 </div>
@@ -243,7 +243,7 @@ export function CustomerAdminHouseholdManagement() {
                       value={formData.phone}
                       onChange={(e) => handleInputChange('phone', e.target.value)}
                       placeholder="+880-XXXX-XXXXXX"
-                      className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                     />
                   </div>
 
@@ -257,7 +257,7 @@ export function CustomerAdminHouseholdManagement() {
                       value={formData.email}
                       onChange={(e) => handleInputChange('email', e.target.value)}
                       placeholder="email@example.com"
-                      className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                     />
                   </div>
                 </div>
@@ -271,7 +271,7 @@ export function CustomerAdminHouseholdManagement() {
                     value={formData.address}
                     onChange={(e) => handleInputChange('address', e.target.value)}
                     placeholder="Enter complete address"
-                    className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 min-h-[80px]"
+                    className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500 min-h-[80px]"
                   />
                 </div>
 
@@ -284,7 +284,7 @@ export function CustomerAdminHouseholdManagement() {
                       value={formData.category}
                       onValueChange={(value) => handleInputChange('category', value)}
                     >
-                      <SelectTrigger className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                      <SelectTrigger className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500">
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent>
@@ -303,7 +303,7 @@ export function CustomerAdminHouseholdManagement() {
                         <Button
                           variant="outline"
                           className={cn(
-                            "w-full justify-start text-left bg-gray-50 border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500",
+                            "w-full justify-start text-left bg-gray-50 border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-primary/20 focus:border-blue-500",
                             !formData.meterInstallDate && "text-gray-500"
                           )}
                         >
@@ -332,7 +332,7 @@ export function CustomerAdminHouseholdManagement() {
                       value={formData.zone}
                       onValueChange={(value) => handleInputChange('zone', value)}
                     >
-                      <SelectTrigger className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                      <SelectTrigger className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500">
                         <SelectValue placeholder="Select zone" />
                       </SelectTrigger>
                       <SelectContent>
@@ -352,7 +352,7 @@ export function CustomerAdminHouseholdManagement() {
                       value={formData.ward}
                       onValueChange={(value) => handleInputChange('ward', value)}
                     >
-                      <SelectTrigger className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                      <SelectTrigger className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500">
                         <SelectValue placeholder="Select ward" />
                       </SelectTrigger>
                       <SelectContent>
@@ -397,14 +397,14 @@ export function CustomerAdminHouseholdManagement() {
                 placeholder="Search by Meter No..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-white border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                className="pl-10 bg-white border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
               />
             </div>
 
             {/* Status Filter Dropdown */}
             <div className="w-48">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="bg-white border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" style={{ height: '44px' }}>
+                <SelectTrigger className="bg-white border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500" style={{ height: '44px' }}>
                   <SelectValue placeholder="Filter by Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -438,7 +438,7 @@ export function CustomerAdminHouseholdManagement() {
                     value={editFormData.fullName}
                     onChange={(e) => handleEditInputChange('fullName', e.target.value)}
                     placeholder="Enter full name"
-                    className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                   />
                 </div>
 
@@ -451,7 +451,7 @@ export function CustomerAdminHouseholdManagement() {
                     value={editFormData.meterNo}
                     onChange={(e) => handleEditInputChange('meterNo', e.target.value)}
                     placeholder="MTR-2024-XXXX"
-                    className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                   />
                 </div>
               </div>
@@ -466,7 +466,7 @@ export function CustomerAdminHouseholdManagement() {
                     value={editFormData.phone}
                     onChange={(e) => handleEditInputChange('phone', e.target.value)}
                     placeholder="+880-XXXX-XXXXXX"
-                    className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                   />
                 </div>
 
@@ -480,7 +480,7 @@ export function CustomerAdminHouseholdManagement() {
                     value={editFormData.email}
                     onChange={(e) => handleEditInputChange('email', e.target.value)}
                     placeholder="email@example.com"
-                    className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                   />
                 </div>
               </div>
@@ -494,7 +494,7 @@ export function CustomerAdminHouseholdManagement() {
                   value={editFormData.address}
                   onChange={(e) => handleEditInputChange('address', e.target.value)}
                   placeholder="Enter complete address"
-                  className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 min-h-[80px]"
+                  className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500 min-h-[80px]"
                 />
               </div>
 
@@ -507,7 +507,7 @@ export function CustomerAdminHouseholdManagement() {
                     value={editFormData.category}
                     onValueChange={(value) => handleEditInputChange('category', value)}
                   >
-                    <SelectTrigger className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                    <SelectTrigger className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500">
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
@@ -526,7 +526,7 @@ export function CustomerAdminHouseholdManagement() {
                       <Button
                         variant="outline"
                         className={cn(
-                          "w-full justify-start text-left bg-gray-50 border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500",
+                          "w-full justify-start text-left bg-gray-50 border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-primary/20 focus:border-blue-500",
                           !editFormData.meterInstallDate && "text-gray-500"
                         )}
                       >
@@ -555,7 +555,7 @@ export function CustomerAdminHouseholdManagement() {
                     value={editFormData.zone}
                     onValueChange={(value) => handleEditInputChange('zone', value)}
                   >
-                    <SelectTrigger className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                    <SelectTrigger className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500">
                       <SelectValue placeholder="Select zone" />
                     </SelectTrigger>
                     <SelectContent>
@@ -575,7 +575,7 @@ export function CustomerAdminHouseholdManagement() {
                     value={editFormData.ward}
                     onValueChange={(value) => handleEditInputChange('ward', value)}
                   >
-                    <SelectTrigger className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                    <SelectTrigger className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500">
                       <SelectValue placeholder="Select ward" />
                     </SelectTrigger>
                     <SelectContent>
@@ -668,4 +668,5 @@ export function CustomerAdminHouseholdManagement() {
     </div>
   );
 }
+
 

@@ -18,7 +18,7 @@ export function MeterAdminPendingSubmissions() {
       <div className="px-8 py-6">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-[28px] font-semibold text-gray-900 mb-1">Pending Submissions</h1>
+          <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">Pending Submissions</h1>
           <p className="text-sm text-gray-500">Review and submit readings for approval</p>
         </div>
 
@@ -81,4 +81,5 @@ export function MeterAdminPendingSubmissions() {
     </div>
   );
 }
+
 

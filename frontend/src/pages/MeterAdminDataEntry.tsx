@@ -48,7 +48,7 @@ export function MeterAdminDataEntry() {
       <div className="px-8 py-6">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-[28px] font-semibold text-gray-900 mb-1">Meter Data Entry</h1>
+          <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">Meter Data Entry</h1>
           <p className="text-sm text-gray-500">Your Assigned Ward: Ward 3 - Dhanmondi</p>
         </div>
 
@@ -67,7 +67,7 @@ export function MeterAdminDataEntry() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 h-11"
+                  className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500 h-11"
                 />
               </div>
               <Button 
@@ -188,7 +188,7 @@ export function MeterAdminDataEntry() {
                   type="number"
                   placeholder="e.g., 245.5"
                   disabled={!verifiedHousehold}
-                  className={`rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 ${
+                  className={`rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500 ${
                     verifiedHousehold 
                       ? 'bg-gray-50 border-gray-300' 
                       : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
@@ -204,7 +204,7 @@ export function MeterAdminDataEntry() {
                   id="billMonth"
                   type="month"
                   disabled={!verifiedHousehold}
-                  className={`rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 ${
+                  className={`rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500 ${
                     verifiedHousehold 
                       ? 'bg-gray-50 border-gray-300' 
                       : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
@@ -234,4 +234,5 @@ export function MeterAdminDataEntry() {
     </div>
   );
 }
+
 
