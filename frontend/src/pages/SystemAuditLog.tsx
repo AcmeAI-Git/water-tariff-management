@@ -1,4 +1,4 @@
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
+﻿import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
 import { Search } from 'lucide-react';
@@ -158,13 +158,13 @@ export function SystemAuditLog() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f9fb]">
+    <div className="min-h-screen bg-app">
       <div className="px-8 py-6">
         {/* Header with inline stats */}
         <div className="mb-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-[28px] font-semibold text-gray-900 mb-1">System Audit Log</h1>
+              <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">System Audit Log</h1>
               <p className="text-sm text-gray-500">A read-only log of all actions taken in the system</p>
             </div>
             <div className="flex items-center gap-6 text-sm">
@@ -200,7 +200,7 @@ export function SystemAuditLog() {
               placeholder="Search logs..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-white border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              className="pl-10 bg-white border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
             />
           </div>
         </div>
@@ -241,3 +241,5 @@ export function SystemAuditLog() {
     </div>
   );
 }
+
+

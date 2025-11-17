@@ -1,4 +1,4 @@
-import { Home, UserCog, Users, Users2, ClipboardList, LogOut } from "lucide-react";
+﻿import { Home, UserCog, Users, Users2, ClipboardList, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -13,7 +13,7 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
   const qc = useQueryClient();
 
   const routeMap: Record<string, string> = {
-    dashboard: "/superadmin",
+    dashboard: "/admin/dashboard",
     user: "/admin/users",
     agents: "/admin/agents",
     audit: "/admin/audit",
@@ -63,11 +63,11 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
               key={item.id}
               onClick={() => handleNav(item.id)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-1 transition-all ${
-                isActive ? "bg-[#4C6EF5] text-white" : "text-gray-700 hover:bg-gray-50"
+                isActive ? "bg-primary text-white" : "text-gray-700 hover:bg-gray-50"
               }`}
             >
               <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-              <span className="text-[15px] font-medium">{item.label}</span>
+              <span className="text-[0.9375rem] font-medium">{item.label}</span>
             </button>
           );
         })}
@@ -80,9 +80,11 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-red-50 hover:text-red-600 transition-all"
         >
           <LogOut size={20} strokeWidth={2} />
-          <span className="text-[15px] font-medium">Log Out</span>
+          <span className="text-[0.9375rem] font-medium">Log Out</span>
         </button>
       </div>
     </div>
   );
 }
+
+

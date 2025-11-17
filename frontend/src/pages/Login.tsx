@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+﻿import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -7,22 +7,22 @@ export default function Login() {
   const navigate = useNavigate();
 
   const handleLogin = () => {
-    // UI-only: navigate to home as a demo
     navigate('/');
   };
 
   const handleDemo = (role: string) => {
-    // UI-only demo: navigate to home
     const routeMap: Record<string, string> = {
-        admin: '/superadmin',
-    }
-    const dest = routeMap[role] ?? '/superadmin';
-    console.log('Demo login as,', role, '->', dest);
-    navigate(dest); 
+      admin: '/admin/dashboard',
+      'meter-admin': '/meter-admin/entry',
+      'customer-admin': '/customer-admin/households',
+    };
+    const dest = routeMap[role] ?? '/admin/dashboard';
+    console.log('[Login.handleDemo] role=', role, '-> dest=', dest);
+    navigate(dest);
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f9fb] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-app flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Title */}
         <div className="text-center mb-8">
@@ -46,7 +46,7 @@ export default function Login() {
                 id="email"
                 type="email"
                 placeholder="Enter your email"
-                className="bg-gray-50 border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                className="bg-gray-50 border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
               />
             </div>
 
@@ -58,23 +58,23 @@ export default function Login() {
                 id="password"
                 type="password"
                 placeholder="Enter your password"
-                className="bg-gray-50 border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                className="bg-gray-50 border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
               />
             </div>
 
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-[#4C6EF5] focus:ring-2 focus:ring-blue-500/20" />
+                <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-2 focus:ring-primary/20" />
                 <span className="text-sm text-gray-600">Remember me</span>
               </label>
-              <button className="text-sm font-medium text-[#4C6EF5] hover:text-[#3B5EE5]">
+              <button className="text-sm font-medium text-primary hover:text-primary-600">
                 Forgot password?
               </button>
             </div>
 
             <Button 
               onClick={handleLogin}
-              className="w-full bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-11 text-base font-medium shadow-sm"
+              className="w-full bg-primary hover:bg-primary-600 text-white rounded-lg h-11 text-base font-medium shadow-sm"
             >
               Login
             </Button>
@@ -124,7 +124,7 @@ export default function Login() {
           <div className="mt-6 pt-6 border-t border-gray-200">
             <p className="text-center text-sm text-gray-600">
               Don't have an account?{' '}
-              <button className="font-medium text-[#4C6EF5] hover:text-[#3B5EE5]">
+              <button className="font-medium text-primary hover:text-primary-600">
                 Contact Administrator
               </button>
             </p>
@@ -138,3 +138,5 @@ export default function Login() {
     </div>
   );
 }
+
+

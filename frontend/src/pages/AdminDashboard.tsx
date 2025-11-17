@@ -1,4 +1,4 @@
-import { Button } from '../components/ui/button';
+﻿import { Button } from '../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { 
   BarChart,
@@ -54,16 +54,16 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#f8f9fb]">
+    <div className="min-h-screen bg-app">
       <div className="px-8 py-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-[28px] font-semibold text-gray-900 mb-1">Welcome back, Admin</h1>
+            <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">Welcome back, Admin</h1>
             <p className="text-sm text-gray-500">Here's what's happening with your water tariff system today.</p>
           </div>
           <div className="flex gap-3">
-            <Button className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white px-6 rounded-lg shadow-sm">
+            <Button className="bg-primary hover:bg-primary-600 text-white px-6 rounded-lg shadow-sm">
               + Generate Report
             </Button>
             <Button variant="outline" className="border-gray-300 text-gray-700 px-6 rounded-lg bg-white">
@@ -250,3 +250,5 @@ export default function AdminDashboard() {
     </div>
   );
 }
+
+

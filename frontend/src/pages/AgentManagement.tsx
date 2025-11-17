@@ -1,4 +1,4 @@
-import { Button } from '../components/ui/button';
+﻿import { Button } from '../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Edit2 } from 'lucide-react';
 
@@ -20,15 +20,15 @@ export function AgentManagement() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f9fb]">
+    <div className="min-h-screen bg-app">
       <div className="px-8 py-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-[28px] font-semibold text-gray-900 mb-1">User Management</h1>
+            <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">User Management</h1>
             <p className="text-sm text-gray-500">Manage all system administrators and their permissions</p>
           </div>
-          <Button className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white px-6 rounded-lg shadow-sm">
+          <Button className="bg-primary hover:bg-primary-600 text-white px-6 rounded-lg shadow-sm">
             + Add New Admin
           </Button>
         </div>
@@ -73,3 +73,5 @@ export function AgentManagement() {
     </div>
   );
 }
+
+
