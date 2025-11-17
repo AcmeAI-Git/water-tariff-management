@@ -14,10 +14,10 @@ export default function Login() {
     const routeMap: Record<string, string> = {
       admin: '/admin/dashboard',
       'meter-admin': '/meter-admin/entry',
+      'customer-admin': '/customer-admin/households',
     };
- 
     const dest = routeMap[role] ?? '/admin/dashboard';
-    console.log('Demo login as', role, '→', dest);
+    console.log('[Login.handleDemo] role=', role, '-> dest=', dest);
     navigate(dest);
   };
 

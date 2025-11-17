@@ -7,8 +7,10 @@ import {SystemAuditLog} from "../pages/SystemAuditLog";
 import { MeterAdminDataEntry } from '../pages/MeterAdminDataEntry';
 import { MeterAdminPendingSubmissions } from '../pages/MeterAdminPendingSubmissions';
 import { MeterAdminSubmittedReadings } from '../pages/MeterAdminSubmittedReadings';
-import { MeterAdminTariffVisualizer } from '../pages/MeterAdminTariffVisualizer';
+import  TariffVisualizer from '../pages/TariffVisualizer';
 import { MeterAdminMetrics } from '../pages/MeterAdminMetrics';
+import { CustomerAdminHouseholdManagement } from "../pages/CustomerAdminHouseholdManagement";
+import { CustomerAdminMetrics } from "../pages/CustomerAdminMetrics";
 import Layout from "../components/common/Layout";
 
 const RouterIndex = () => {
@@ -23,8 +25,11 @@ const RouterIndex = () => {
         <Route path="/meter-admin/entry" element={<MeterAdminDataEntry />} />
         <Route path="/meter-admin/pending" element={<MeterAdminPendingSubmissions />} />
         <Route path="/meter-admin/submitted" element={<MeterAdminSubmittedReadings />} />
-        <Route path="/meter-admin/visualizer" element={<MeterAdminTariffVisualizer />} />
+        <Route path="/meter-admin/visualizer" element={<TariffVisualizer />} />
         <Route path="/meter-admin/metrics" element={<MeterAdminMetrics />} />
+        <Route path="/customer-admin/households" element={<CustomerAdminHouseholdManagement />} />
+        <Route path="/customer-admin/visualizer" element={<TariffVisualizer />} />
+        <Route path="/customer-admin/metrics" element={<CustomerAdminMetrics />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="*" element={<div>Path not found</div>} />
       </Route>

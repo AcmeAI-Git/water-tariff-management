@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Calculator } from 'lucide-react';
 import { useState } from 'react';
 
-export function MeterAdminTariffVisualizer() {
+export default function TariffVisualizer() {
   const [consumption, setConsumption] = useState(60);
   const [category, setCategory] = useState('residential');
   const [calculated, setCalculated] = useState(false);
