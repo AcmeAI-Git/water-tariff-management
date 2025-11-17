@@ -1,4 +1,4 @@
-import { Gauge, BarChart3, TrendingUp, FileCheck, Clock, LogOut } from 'lucide-react';
+﻿import { Gauge, BarChart3, TrendingUp, FileCheck, Clock, LogOut } from 'lucide-react';
 
 interface MeterAdminSidebarProps {
   activePage: string;
@@ -35,7 +35,7 @@ export function MeterAdminSidebar({ activePage, onNavigate }: MeterAdminSidebarP
               onClick={() => onNavigate(item.id)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-1 transition-all ${
                 isActive
-                  ? 'bg-[#4C6EF5] text-white'
+                  ? 'bg-primary text-white'
                   : 'text-gray-700 hover:bg-gray-50'
               }`}
             >
@@ -61,3 +61,4 @@ export function MeterAdminSidebar({ activePage, onNavigate }: MeterAdminSidebarP
     </div>
   );
 }
+

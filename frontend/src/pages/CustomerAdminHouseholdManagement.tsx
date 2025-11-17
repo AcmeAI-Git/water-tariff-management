@@ -1,4 +1,4 @@
-import { Button } from '../components/ui/button';
+﻿import { Button } from '../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
@@ -179,7 +179,7 @@ export function CustomerAdminHouseholdManagement() {
   });
 
   return (
-    <div className="min-h-screen bg-[#f8f9fb]">
+    <div className="min-h-screen bg-app">
       <div className="px-8 py-6">
         {/* Header */}
         <div className="mb-8">
@@ -191,7 +191,7 @@ export function CustomerAdminHouseholdManagement() {
         <div className="mb-6 flex items-center justify-between gap-4">
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-11 px-6 flex items-center gap-2">
+              <Button className="bg-primary hover:bg-primary-600 text-white rounded-lg h-11 px-6 flex items-center gap-2">
                 <Plus size={18} />
                 Add New Household
               </Button>
@@ -380,7 +380,7 @@ export function CustomerAdminHouseholdManagement() {
                   type="submit"
                   onClick={handleSubmit}
                   disabled={!formData.fullName || !formData.meterNo || !formData.phone || !formData.address || !formData.meterInstallDate || !formData.zone || !formData.ward}
-                  className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-10 px-5 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-primary hover:bg-primary-600 text-white rounded-lg h-10 px-5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Add Household
                 </Button>
@@ -603,7 +603,7 @@ export function CustomerAdminHouseholdManagement() {
                 type="submit"
                 onClick={handleEditSubmit}
                 disabled={!editFormData.fullName || !editFormData.meterNo || !editFormData.phone || !editFormData.address || !editFormData.meterInstallDate || !editFormData.zone || !editFormData.ward}
-                className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-10 px-5 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-primary hover:bg-primary-600 text-white rounded-lg h-10 px-5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Save Changes
               </Button>
@@ -668,3 +668,4 @@ export function CustomerAdminHouseholdManagement() {
     </div>
   );
 }
+

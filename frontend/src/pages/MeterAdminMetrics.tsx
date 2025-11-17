@@ -1,4 +1,4 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+﻿import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export function MeterAdminMetrics() {
   const dailyData = [
@@ -13,7 +13,7 @@ export function MeterAdminMetrics() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#f8f9fb]">
+    <div className="min-h-screen bg-app">
       <div className="px-8 py-6">
         {/* Header */}
         <div className="mb-8">
@@ -128,3 +128,4 @@ export function MeterAdminMetrics() {
     </div>
   );
 }
+

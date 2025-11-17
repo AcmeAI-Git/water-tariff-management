@@ -1,4 +1,4 @@
-import { Button } from '../components/ui/button';
+﻿import { Button } from '../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { X } from 'lucide-react';
 import { useState } from 'react';
@@ -14,7 +14,7 @@ export function MeterAdminPendingSubmissions() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f9fb]">
+    <div className="min-h-screen bg-app">
       <div className="px-8 py-6">
         {/* Header */}
         <div className="mb-8">
@@ -72,7 +72,7 @@ export function MeterAdminPendingSubmissions() {
         {/* Final Button */}
         {queuedReadings.length > 0 && (
           <div className="flex justify-center">
-            <Button className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg px-12 py-6">
+            <Button className="bg-primary hover:bg-primary-600 text-white rounded-lg px-12 py-6">
               Send Batch for Approval ({queuedReadings.length} readings)
             </Button>
           </div>
@@ -81,3 +81,4 @@ export function MeterAdminPendingSubmissions() {
     </div>
   );
 }
+

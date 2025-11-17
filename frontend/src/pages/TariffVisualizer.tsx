@@ -1,4 +1,4 @@
-import { Button } from '../components/ui/button';
+﻿import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Slider } from '../components/ui/slider';
@@ -66,7 +66,7 @@ export default function TariffVisualizer() {
   const exampleTotal = exampleSubtotal + exampleVat;
 
   return (
-    <div className="min-h-screen bg-[#f8f9fb]">
+    <div className="min-h-screen bg-app">
       <div className="px-8 py-6">
         {/* Header */}
         <div className="mb-8">
@@ -173,7 +173,7 @@ export default function TariffVisualizer() {
 
             <Button 
               onClick={handleCalculate}
-              className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-11 px-8 flex items-center gap-2"
+              className="bg-primary hover:bg-primary-600 text-white rounded-lg h-11 px-8 flex items-center gap-2"
             >
               <Calculator size={18} />
               Calculate Bill
@@ -352,3 +352,4 @@ export default function TariffVisualizer() {
     </div>
   );
 }
+

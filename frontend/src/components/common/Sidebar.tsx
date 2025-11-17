@@ -1,4 +1,4 @@
-import { Home, UserCog, Users, Users2, ClipboardList, LogOut } from "lucide-react";
+﻿import { Home, UserCog, Users, Users2, ClipboardList, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -63,7 +63,7 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
               key={item.id}
               onClick={() => handleNav(item.id)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-1 transition-all ${
-                isActive ? "bg-[#4C6EF5] text-white" : "text-gray-700 hover:bg-gray-50"
+                isActive ? "bg-primary text-white" : "text-gray-700 hover:bg-gray-50"
               }`}
             >
               <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
@@ -86,3 +86,4 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-import { Button } from '../components/ui/button';
+﻿import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Upload } from 'lucide-react';
@@ -8,7 +8,7 @@ export function MeterReadingUpload() {
   const [activeTab, setActiveTab] = useState<'batch' | 'manual'>('batch');
 
   return (
-    <div className="min-h-screen bg-[#f8f9fb]">
+    <div className="min-h-screen bg-app">
       <div className="px-8 py-6">
         {/* Header */}
         <div className="mb-8">
@@ -60,7 +60,7 @@ export function MeterReadingUpload() {
                 </div>
               </div>
 
-              <Button className="w-full bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg py-6 mb-3">
+              <Button className="w-full bg-primary hover:bg-primary-600 text-white rounded-lg py-6 mb-3">
                 Select File
               </Button>
               <Button variant="outline" className="w-full border-gray-300 text-gray-700 rounded-lg py-6 bg-white">
@@ -121,7 +121,7 @@ export function MeterReadingUpload() {
                 </div>
               </div>
 
-              <Button className="w-full bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg py-6 mb-3">
+              <Button className="w-full bg-primary hover:bg-primary-600 text-white rounded-lg py-6 mb-3">
                 Submit Reading
               </Button>
               <Button variant="outline" className="w-full border-gray-300 text-gray-700 rounded-lg py-6 bg-white">
@@ -134,3 +134,4 @@ export function MeterReadingUpload() {
     </div>
   );
 }
+

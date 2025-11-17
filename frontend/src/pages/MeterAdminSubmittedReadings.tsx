@@ -1,4 +1,4 @@
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
+﻿import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Badge } from '../components/ui/badge';
 import { FileText, CheckCircle, Clock, XCircle } from 'lucide-react';
 
@@ -116,7 +116,7 @@ export function MeterAdminSubmittedReadings() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f9fb]">
+    <div className="min-h-screen bg-app">
       <div className="px-8 py-6">
         {/* Header with inline stats */}
         <div className="mb-8">
@@ -185,3 +185,4 @@ export function MeterAdminSubmittedReadings() {
     </div>
   );
 }
+

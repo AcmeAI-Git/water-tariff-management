@@ -1,4 +1,4 @@
-import { Button } from '../components/ui/button';
+﻿import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Plus, Search } from 'lucide-react';
@@ -44,7 +44,7 @@ export function MeterAdminDataEntry() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f9fb]">
+    <div className="min-h-screen bg-app">
       <div className="px-8 py-6">
         {/* Header */}
         <div className="mb-8">
@@ -72,7 +72,7 @@ export function MeterAdminDataEntry() {
               </div>
               <Button 
                 onClick={handleSearch}
-                className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-11 px-6 flex items-center gap-2"
+                className="bg-primary hover:bg-primary-600 text-white rounded-lg h-11 px-6 flex items-center gap-2"
               >
                 <Search size={18} />
                 Search
@@ -217,7 +217,7 @@ export function MeterAdminDataEntry() {
                   disabled={!verifiedHousehold}
                   className={`w-full rounded-lg h-[42px] flex items-center justify-center gap-2 ${
                     verifiedHousehold
-                      ? 'bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white'
+                      ? 'bg-primary hover:bg-primary-600 text-white'
                       : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                   }`}
                 >
@@ -234,3 +234,4 @@ export function MeterAdminDataEntry() {
     </div>
   );
 }
+

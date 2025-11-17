@@ -1,4 +1,4 @@
-import { Users, TrendingUp, BarChart3, LogOut } from 'lucide-react';
+﻿import { Users, TrendingUp, BarChart3, LogOut } from 'lucide-react';
 
 interface CustomerAdminSidebarProps {
   activePage: string;
@@ -33,7 +33,7 @@ export function CustomerAdminSidebar({ activePage, onNavigate }: CustomerAdminSi
               onClick={() => onNavigate(item.id)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-1 transition-all ${
                 isActive
-                  ? 'bg-[#4C6EF5] text-white'
+                  ? 'bg-primary text-white'
                   : 'text-gray-700 hover:bg-gray-50'
               }`}
             >
@@ -59,3 +59,4 @@ export function CustomerAdminSidebar({ activePage, onNavigate }: CustomerAdminSi
     </div>
   );
 }
+

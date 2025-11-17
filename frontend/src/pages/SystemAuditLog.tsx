@@ -1,4 +1,4 @@
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
+﻿import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
 import { Search } from 'lucide-react';
@@ -158,7 +158,7 @@ export function SystemAuditLog() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f9fb]">
+    <div className="min-h-screen bg-app">
       <div className="px-8 py-6">
         {/* Header with inline stats */}
         <div className="mb-6">
@@ -241,3 +241,4 @@ export function SystemAuditLog() {
     </div>
   );
 }
+

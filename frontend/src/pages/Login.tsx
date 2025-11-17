@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+﻿import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -22,7 +22,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f9fb] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-app flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Title */}
         <div className="text-center mb-8">
@@ -74,7 +74,7 @@ export default function Login() {
 
             <Button 
               onClick={handleLogin}
-              className="w-full bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-11 text-base font-medium shadow-sm"
+              className="w-full bg-primary hover:bg-primary-600 text-white rounded-lg h-11 text-base font-medium shadow-sm"
             >
               Login
             </Button>
@@ -138,3 +138,4 @@ export default function Login() {
     </div>
   );
 }
+
