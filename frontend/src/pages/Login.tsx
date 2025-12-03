@@ -15,6 +15,7 @@ export default function Login() {
       admin: '/admin/dashboard',
       'meter-admin': '/meter-admin/entry',
       'customer-admin': '/customer-admin/households',
+      'tariff-admin': '/tariff-admin/metrics',
     };
     const dest = routeMap[role] ?? '/admin/dashboard';
     console.log('[Login.handleDemo] role=', role, '-> dest=', dest);
