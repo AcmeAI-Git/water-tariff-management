@@ -9,6 +9,7 @@ interface TariffAdminSidebarProps {
 export function TariffAdminSidebar({ currentPage, onNavigate, onLogout }: TariffAdminSidebarProps) {
   const menuItems = [
     { id: 'tariff-config', label: 'Tariff Configuration', icon: BarChart3 },
+    { id: 'tariff-multiplier', label: 'Tariff Multiplier', icon: BarChart3 },
     { id: 'tariff-history', label: 'Tariff History', icon: Clock },
     { id: 'tariff-visualizer', label: 'Tariff Visualizer', icon: TrendingUp },
     { id: 'my-metrics', label: 'My Metrics', icon: BarChart3 },

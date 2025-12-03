@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { Sidebar } from "./Sidebar";
 import { MeterAdminSidebar } from "./MeterAdminSidebar";
 import { CustomerAdminSidebar } from "./CustomerAdminSidebar"; // add import
+import { TariffAdminSidebar } from "./TariffAdminSidebar";
 
 export type LayoutProps = { children?: ReactNode };
 
@@ -13,6 +14,7 @@ export default function Layout({ children }: LayoutProps) {
 
   const isMeterAdmin = pathname.startsWith("/meter-admin");
   const isCustomerAdmin = pathname.startsWith("/customer-admin");
+  const isTariffAdmin = pathname.startsWith("/tariff-admin");
 
   // meter admin helper (already in your code)
   const meterActive = isMeterAdmin
@@ -41,6 +43,42 @@ export default function Layout({ children }: LayoutProps) {
     navigate(path);
   };
 
+  // Tariff admin helpers
+  const tariffRouteMap: Record<string, string> = {
+    "tariff-config": "/tariff-admin/config",
+    "tariff-multiplier": "/tariff-admin/multiplier",
+    "tariff-history": "/tariff-admin/history",
+    "tariff-visualizer": "/tariff-admin/visualizer",
+    "my-metrics": "/tariff-admin/metrics",
+  };
+  // Extract the last part of the path after /tariff-admin/
+  const tariffActive = isTariffAdmin
+    ? (() => {
+        const match = pathname.match(/^\/tariff-admin\/(\w+)/);
+        if (!match) return "tariff-config";
+        switch (match[1]) {
+          case "config": return "tariff-config";
+          case "multiplier": return "tariff-multiplier";
+          case "history": return "tariff-history";
+          case "visualizer": return "tariff-visualizer";
+          case "metrics": return "my-metrics";
+          default: return "tariff-config";
+        }
+      })()
+    : "";
+
+  const handleTariffNavigate = (id: string) => {
+    if (id === "logout") { localStorage.removeItem("authToken"); sessionStorage.clear(); navigate("/login"); return; }
+    const path = tariffRouteMap[id] ?? "/tariff-admin/config";
+    navigate(path);
+  };
+
+  const handleTariffLogout = () => {
+    localStorage.removeItem("authToken");
+    sessionStorage.clear();
+    navigate("/login");
+  };
+
   return (
     <div className="min-h-screen flex">
       <aside className="w-[260px] fixed inset-y-0 left-0 bg-white shadow z-20">
@@ -48,6 +86,8 @@ export default function Layout({ children }: LayoutProps) {
           <MeterAdminSidebar activePage={"meter-admin-" + meterActive} onNavigate={handleMeterNavigate} />
         ) : isCustomerAdmin ? (
           <CustomerAdminSidebar activePage={customerActive ? `customer-admin-${customerActive}` : "customer-admin-households"} onNavigate={handleCustomerNavigate} />
+        ) : isTariffAdmin ? (
+          <TariffAdminSidebar currentPage={tariffActive} onNavigate={handleTariffNavigate} onLogout={handleTariffLogout} />
         ) : (
           <Sidebar activePage={""} onNavigate={() => {}} />
         )}

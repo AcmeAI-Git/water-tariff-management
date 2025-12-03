@@ -12,6 +12,10 @@ import { MeterAdminMetrics } from '../pages/MeterAdminMetrics';
 import { CustomerAdminHouseholdManagement } from "../pages/CustomerAdminHouseholdManagement";
 import { CustomerAdminMetrics } from "../pages/CustomerAdminMetrics";
 import Layout from "../components/common/Layout";
+import { TariffAdminMyMetrics } from '../pages/TariffAdminMyMetrics';
+import { TariffAdminTariffHistory } from '../pages/TariffAdminTariffHistory';
+import TariffAdminMultiplier from '../pages/TariffAdminMultiplier';
+import { TariffConfiguration } from '../pages/TariffConfiguration';
 
 const RouterIndex = () => {
   return (
@@ -30,6 +34,12 @@ const RouterIndex = () => {
         <Route path="/customer-admin/households" element={<CustomerAdminHouseholdManagement />} />
         <Route path="/customer-admin/visualizer" element={<TariffVisualizer />} />
         <Route path="/customer-admin/metrics" element={<CustomerAdminMetrics />} />
+        {/* Tariff Admin routes */}
+        <Route path="/tariff-admin/config" element={<TariffConfiguration />} />
+        <Route path="/tariff-admin/multiplier" element={<TariffAdminMultiplier />} />
+        <Route path="/tariff-admin/history" element={<TariffAdminTariffHistory />} />
+        <Route path="/tariff-admin/visualizer" element={<TariffVisualizer />} />
+        <Route path="/tariff-admin/metrics" element={<TariffAdminMyMetrics />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="*" element={<div>Path not found</div>} />
       </Route>
