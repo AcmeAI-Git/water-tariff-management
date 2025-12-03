@@ -1,5 +1,5 @@
 import { Button } from '../components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { useState } from 'react';
 import { EditRatesModal } from '../components/modals/EditRatesModal';
 import { EditMultipliersModal } from '../components/modals/EditMultipliersModal';
