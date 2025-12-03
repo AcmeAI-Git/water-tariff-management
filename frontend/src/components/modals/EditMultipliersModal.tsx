@@ -7,6 +7,7 @@ import { useState } from 'react';
 interface Multiplier {
   ward: string;
   multiplier: string;
+  city?: 'Dhaka' | 'Chittagong' | 'Khulna';
 }
 
 interface EditMultipliersModalProps {
@@ -17,6 +18,30 @@ interface EditMultipliersModalProps {
 }
 
 export function EditMultipliersModal({ title = 'Edit Multipliers', multipliers, onClose, onSave }: EditMultipliersModalProps) {
+  const [selectedCity, setSelectedCity] = useState<'Dhaka' | 'Chittagong' | 'Khulna'>('Dhaka');
+  const demoWards: Record<'Dhaka' | 'Chittagong' | 'Khulna', Multiplier[]> = {
+    Dhaka: [
+      { ward: 'Ward 1', multiplier: '1.20', city: 'Dhaka' },
+      { ward: 'Ward 2', multiplier: '1.15', city: 'Dhaka' },
+      { ward: 'Ward 3', multiplier: '1.10', city: 'Dhaka' },
+      { ward: 'Ward 4', multiplier: '1.05', city: 'Dhaka' },
+      { ward: 'Ward 5', multiplier: '1.00', city: 'Dhaka' },
+    ],
+    Chittagong: [
+      { ward: 'Ward 1', multiplier: '1.18', city: 'Chittagong' },
+      { ward: 'Ward 2', multiplier: '1.12', city: 'Chittagong' },
+      { ward: 'Ward 3', multiplier: '1.08', city: 'Chittagong' },
+      { ward: 'Ward 4', multiplier: '1.03', city: 'Chittagong' },
+      { ward: 'Ward 5', multiplier: '1.00', city: 'Chittagong' },
+    ],
+    Khulna: [
+      { ward: 'Ward 1', multiplier: '1.10', city: 'Khulna' },
+      { ward: 'Ward 2', multiplier: '1.07', city: 'Khulna' },
+      { ward: 'Ward 3', multiplier: '1.04', city: 'Khulna' },
+      { ward: 'Ward 4', multiplier: '1.01', city: 'Khulna' },
+      { ward: 'Ward 5', multiplier: '1.00', city: 'Khulna' },
+    ],
+  };
   const [local, setLocal] = useState<Multiplier[]>([...multipliers]);
 
   const update = (index: number, field: keyof Multiplier, value: string) => {
@@ -25,8 +50,9 @@ export function EditMultipliersModal({ title = 'Edit Multipliers', multipliers, 
     setLocal(copy);
   };
 
-  const add = () => setLocal([...local, { ward: '', multiplier: '' }]);
+  const add = () => setLocal([...local, { ward: `Ward ${local.length + 1}`, multiplier: '', city: selectedCity }]);
   const remove = (i: number) => setLocal(local.filter((_, idx) => idx !== i));
+  const loadDemo = () => setLocal(demoWards[selectedCity]);
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -37,11 +63,24 @@ export function EditMultipliersModal({ title = 'Edit Multipliers', multipliers, 
         </div>
 
         <div className="p-6 space-y-4">
+          <div className="flex gap-4 mb-2">
+            <select
+              className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              value={selectedCity}
+              onChange={e => setSelectedCity(e.target.value as 'Dhaka' | 'Chittagong' | 'Khulna')}
+            >
+              <option>Dhaka</option>
+              <option>Chittagong</option>
+              <option>Khulna</option>
+            </select>
+            <Button variant="outline" onClick={loadDemo}>Load Demo Wards</Button>
+          </div>
+
           {local.map((m, idx) => (
             <div key={idx} className="grid grid-cols-12 gap-3 items-center">
               <div className="col-span-8">
                 <Label className="text-xs">Ward Name</Label>
-                <Input value={m.ward} onChange={(e) => update(idx, 'ward', e.target.value)} />
+                <Input value={m.ward} placeholder={`Ward ${idx + 1}`} onChange={(e) => update(idx, 'ward', e.target.value)} />
               </div>
               <div className="col-span-4">
                 <Label className="text-xs">Multiplier</Label>

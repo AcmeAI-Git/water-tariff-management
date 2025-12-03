@@ -23,13 +23,32 @@ export function TariffConfiguration() {
     { range: '51+', rate: '70.00' },
   ];
 
-  const wardMultipliers = [
-    { ward: 'Ward 1 - Gulshan', multiplier: '1.2' },
-    { ward: 'Ward 2 - Banani', multiplier: '1.15' },
-    { ward: 'Ward 3 - Dhanmondi', multiplier: '1.1' },
-    { ward: 'Ward 4 - Mirpur', multiplier: '1.0' },
-    { ward: 'Ward 5 - Uttara', multiplier: '1.05' },
-  ];
+  // Demo wards for each city
+  const cityWardMap = {
+    Dhaka: [
+      { ward: 'Ward 1', multiplier: '1.20' },
+      { ward: 'Ward 2', multiplier: '1.15' },
+      { ward: 'Ward 3', multiplier: '1.10' },
+      { ward: 'Ward 4', multiplier: '1.05' },
+      { ward: 'Ward 5', multiplier: '1.00' },
+    ],
+    Chittagong: [
+      { ward: 'Ward 1', multiplier: '1.18' },
+      { ward: 'Ward 2', multiplier: '1.12' },
+      { ward: 'Ward 3', multiplier: '1.08' },
+      { ward: 'Ward 4', multiplier: '1.03' },
+      { ward: 'Ward 5', multiplier: '1.00' },
+    ],
+    Khulna: [
+      { ward: 'Ward 1', multiplier: '1.10' },
+      { ward: 'Ward 2', multiplier: '1.07' },
+      { ward: 'Ward 3', multiplier: '1.04' },
+      { ward: 'Ward 4', multiplier: '1.01' },
+      { ward: 'Ward 5', multiplier: '1.00' },
+    ],
+  };
+  const [selectedCity, setSelectedCity] = useState<'Dhaka' | 'Chittagong' | 'Khulna'>('Dhaka');
+  const wardMultipliers: { ward: string; multiplier: string }[] = cityWardMap[selectedCity];
 
   return (
     <div className="min-h-screen bg-[#f8f9fb]">
@@ -136,8 +155,11 @@ export function TariffConfiguration() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Ward Multipliers by City</h3>
               <div className="flex items-center gap-3">
-                <select className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-                  <option>Select City</option>
+                <select
+                  className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  value={selectedCity}
+                  onChange={e => setSelectedCity(e.target.value as 'Dhaka' | 'Chittagong' | 'Khulna')}
+                >
                   <option>Dhaka</option>
                   <option>Chittagong</option>
                   <option>Khulna</option>
@@ -156,7 +178,7 @@ export function TariffConfiguration() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {wardMultipliers.map((ward, index) => (
+                  {wardMultipliers.map((ward: { ward: string; multiplier: string }, index: number) => (
                     <TableRow key={index} className="border-gray-100">
                       <TableCell className="text-sm text-gray-900 font-medium">{ward.ward}</TableCell>
                       <TableCell className="text-sm text-gray-600 text-center">{ward.multiplier}x</TableCell>
