@@ -1,10 +1,11 @@
-import React from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import type { ReactNode } from "react";
 import { Sidebar } from "./Sidebar";
 import { MeterAdminSidebar } from "./MeterAdminSidebar";
 import { CustomerAdminSidebar } from "./CustomerAdminSidebar";
 import { TariffAdminSidebar } from "./TariffAdminSidebar";
+import { ApprovalAdminSidebar } from "./ApprovalAdminSidebar";
+import { GeneralInfoAdminSidebar } from "./GeneralInfoAdminSidebar";
 
 export type LayoutProps = { children?: ReactNode };
 
@@ -15,6 +16,8 @@ export default function Layout({ children }: LayoutProps) {
   const isMeterAdmin = pathname.startsWith("/meter-admin");
   const isCustomerAdmin = pathname.startsWith("/customer-admin");
   const isTariffAdmin = pathname.startsWith("/tariff-admin");
+  const isApprovalAdmin = pathname.startsWith("/approval-admin");
+  const isGeneralInfoAdmin = pathname.startsWith("/general-info");
 
   // meter admin helper
   const meterActive = isMeterAdmin
@@ -90,6 +93,34 @@ export default function Layout({ children }: LayoutProps) {
     navigate("/login");
   };
 
+  // Approval admin helpers
+  const approvalActive = isApprovalAdmin
+    ? (() => {
+        const match = pathname.match(/^\/approval-admin\/(\w+)/);
+        if (!match) return "approval-queue";
+        switch (match[1]) {
+          case "queue": return "approval-queue";
+          case "history": return "my-history";
+          case "audit": return "system-audit";
+          default: return "approval-queue";
+        }
+      })()
+    : "";
+
+  // General Info admin helpers
+  const generalInfoActive = isGeneralInfoAdmin
+    ? (() => {
+        const match = pathname.match(/^\/general-info\/(\w+)/);
+        if (!match) return "dashboard";
+        switch (match[1]) {
+          case "dashboard": return "dashboard";
+          case "users": return "users";
+          case "audit": return "audit";
+          default: return "dashboard";
+        }
+      })()
+    : "";
+
   return (
     <div className="min-h-screen flex">
       <aside className="w-[260px] fixed inset-y-0 left-0 bg-white shadow z-20">
@@ -99,6 +130,10 @@ export default function Layout({ children }: LayoutProps) {
           <CustomerAdminSidebar activePage={customerActive ? `customer-admin-${customerActive}` : "customer-admin-households"} onNavigate={handleCustomerNavigate} />
         ) : isTariffAdmin ? (
           <TariffAdminSidebar currentPage={tariffActive} onNavigate={handleTariffNavigate} onLogout={handleTariffLogout} />
+        ) : isApprovalAdmin ? (
+          <ApprovalAdminSidebar activePage={approvalActive} />
+        ) : isGeneralInfoAdmin ? (
+          <GeneralInfoAdminSidebar activePage={generalInfoActive} />
         ) : (
           <Sidebar activePage={""} onNavigate={() => {}} />
         )}

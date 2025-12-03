@@ -15,7 +15,9 @@ export default function Login() {
       admin: '/admin/dashboard',
       'meter-admin': '/meter-admin/entry',
       'customer-admin': '/customer-admin/households',
-      'tariff-admin': '/tariff-admin/metrics',
+      'tariff-admin': '/tariff-admin/config',
+      'approval-admin': '/approval-admin/queue',
+      'general-info': '/general-info/dashboard',
     };
     const dest = routeMap[role] ?? '/admin/dashboard';
     console.log('[Login.handleDemo] role=', role, '-> dest=', dest);
@@ -115,9 +117,16 @@ export default function Login() {
               <Button 
                 onClick={() => handleDemo('approval-admin')}
                 variant="outline"
-                className="border-gray-300 text-gray-700 rounded-lg h-10 text-sm hover:bg-gray-50 bg-white col-span-2"
+                className="border-gray-300 text-gray-700 rounded-lg h-10 text-sm hover:bg-gray-50 bg-white"
               >
                 Approval Admin
+              </Button>
+              <Button 
+                onClick={() => handleDemo('general-info')}
+                variant="outline"
+                className="border-gray-300 text-gray-700 rounded-lg h-10 text-sm hover:bg-gray-50 bg-white"
+              >
+                General Info Admin
               </Button>
             </div>
           </div>

@@ -15,6 +15,8 @@ import Layout from "../components/common/Layout";
 import { TariffAdminMyMetrics } from '../pages/TariffAdminMyMetrics';
 import { TariffAdminTariffHistory } from '../pages/TariffAdminTariffHistory';
 import { TariffConfiguration } from '../pages/TariffConfiguration';
+import { ApprovalQueue } from '../pages/ApprovalQueue';
+import { ApprovalHistory } from '../pages/ApprovalHistory';
 
 const RouterIndex = () => {
   return (
@@ -38,6 +40,14 @@ const RouterIndex = () => {
         <Route path="/tariff-admin/history" element={<TariffAdminTariffHistory />} />
         <Route path="/tariff-admin/visualizer" element={<TariffVisualizer />} />
         <Route path="/tariff-admin/metrics" element={<TariffAdminMyMetrics />} />
+        {/* Approval Admin routes */}
+        <Route path="/approval-admin/queue" element={<ApprovalQueue />} />
+        <Route path="/approval-admin/history" element={<ApprovalHistory />} />
+        <Route path="/approval-admin/audit" element={<SystemAuditLog />} />
+        {/* General Info Admin routes */}
+        <Route path="/general-info/dashboard" element={<Dashboard />} />
+        <Route path="/general-info/users" element={<UserManagement />} />
+        <Route path="/general-info/audit" element={<SystemAuditLog />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="*" element={<div>Path not found</div>} />
       </Route>

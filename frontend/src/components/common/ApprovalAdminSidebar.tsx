@@ -1,12 +1,49 @@
 import { FileCheck, History, FileText, LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 interface ApprovalAdminSidebarProps {
-  activePage: string;
-  onNavigate: (page: string) => void;
-  onLogout: () => void;
+  activePage?: string;
+  onNavigate?: (page: string) => void;
 }
 
-export function ApprovalAdminSidebar({ activePage, onNavigate, onLogout }: ApprovalAdminSidebarProps) {
+export function ApprovalAdminSidebar({ activePage, onNavigate }: ApprovalAdminSidebarProps) {
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+
+  const routeMap: Record<string, string> = {
+    'approval-queue': '/approval-admin/queue',
+    'my-history': '/approval-admin/history',
+    'system-audit': '/approval-admin/audit',
+  };
+
+  const handleNav = (id: string) => {
+    if (onNavigate) {
+      try {
+        onNavigate(id);
+      } catch {
+        // Ignore handler errors
+      }
+    }
+
+    if (id === 'logout') {
+      localStorage.removeItem('authToken');
+      sessionStorage.clear();
+      try {
+        qc?.clear?.();
+      } catch {
+        // Ignore query client errors
+      }
+      toast('Logged out');
+      navigate('/login');
+      return;
+    }
+
+    const path = routeMap[id] ?? '/';
+    navigate(path);
+  };
+
   const menuItems = [
     { id: 'approval-queue', label: 'Approval Queue', icon: FileCheck },
     { id: 'my-history', label: 'My History', icon: History },
@@ -37,7 +74,7 @@ export function ApprovalAdminSidebar({ activePage, onNavigate, onLogout }: Appro
             return (
               <button
                 key={item.id}
-                onClick={() => onNavigate(item.id)}
+                onClick={() => handleNav(item.id)}
                 className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors ${
                   isActive
                     ? 'bg-blue-50 text-[#4C6EF5]'
@@ -55,7 +92,7 @@ export function ApprovalAdminSidebar({ activePage, onNavigate, onLogout }: Appro
       {/* Bottom Section */}
       <div className="px-4 pb-6 border-t border-gray-200 pt-4">
         <button
-          onClick={onLogout}
+          onClick={() => handleNav('logout')}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-red-50 hover:text-red-600 transition-all"
         >
           <LogOut size={20} strokeWidth={2} />
