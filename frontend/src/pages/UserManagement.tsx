@@ -116,7 +116,7 @@ export default function UserManagement() {
                 <div className="flex items-center justify-between mb-8">
                     <div>
                         <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">
-                            User Management (Meter Admins)
+                            User Management
                         </h1>
                         <p className="text-sm text-gray-500">
                             Manage all meter admins who handle meter readings

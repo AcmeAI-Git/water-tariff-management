@@ -142,38 +142,36 @@ export default function TariffVisualizer() {
         <div className="bg-white p-6 rounded-xl border border-gray-200 mb-8">
           <h3 className="text-lg font-semibold text-gray-900 mb-5">Set Consumption & Calculate</h3>
           
-          <div className="flex items-end gap-6">
-            <div className="flex-1 space-y-4">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium text-gray-700">
-                    Consumption (m³)
-                  </Label>
-                  <Input
-                    type="number"
-                    value={consumption}
-                    onChange={(e) => setConsumption(Number(e.target.value))}
-                    className="w-24 text-center bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
-                  />
-                </div>
-                <Slider
-                  value={[consumption]}
-                  onValueChange={(values) => setConsumption(values[0])}
-                  min={0}
-                  max={200}
-                  step={1}
-                  className="w-full"
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium text-gray-700">
+                  Consumption (m³)
+                </Label>
+                <Input
+                  type="number"
+                  value={consumption}
+                  onChange={(e) => setConsumption(Number(e.target.value))}
+                  className="w-24 text-center bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                 />
-                <div className="flex justify-between text-xs text-gray-500">
-                  <span>0 m³</span>
-                  <span>200 m³</span>
-                </div>
+              </div>
+              <Slider
+                value={[consumption]}
+                onValueChange={(values) => setConsumption(values[0])}
+                min={0}
+                max={200}
+                step={1}
+                className="w-full py-4"
+              />
+              <div className="flex justify-between text-xs text-gray-500">
+                <span>0 m³</span>
+                <span>200 m³</span>
               </div>
             </div>
 
             <Button 
               onClick={handleCalculate}
-              className="bg-primary hover:bg-primary-600 text-white rounded-lg h-11 px-8 flex items-center gap-2"
+              className="bg-primary hover:bg-primary-600 text-white rounded-lg h-11 px-8 flex items-center gap-2 w-full justify-center"
             >
               <Calculator size={18} />
               Calculate Bill
