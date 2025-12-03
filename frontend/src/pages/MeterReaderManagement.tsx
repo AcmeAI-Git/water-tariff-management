@@ -1,4 +1,4 @@
-﻿import { Dropdown } from "../components/ui/Dropdown";
+﻿import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import {
     Table,
@@ -8,11 +8,11 @@ import {
     TableHeader,
     TableRow,
 } from "../components/ui/table";
-import { Edit2, Search } from "lucide-react";
-import { Input } from "../components/ui/input";
+import { Edit2, Search, Trash } from "lucide-react";
 import { useState } from "react";
+import { Dropdown } from "../components/ui/Dropdown";
 
-export function AgentManagement() {
+export default function MeterReaderManagement() {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedZone, setSelectedZone] = useState("");
     const [selectedWord, setSelectedWord] = useState("");
@@ -20,41 +20,34 @@ export function AgentManagement() {
         {
             name: "Sarah Ahmed",
             email: "sarah.ahmed@wateraid.org",
-            role: "Super Admin",
+            phone: "019378473285",
         },
         {
             name: "Kamal Hassan",
             email: "kamal.hassan@wateraid.org",
-            role: "Tariff Admin",
+            phone: "01712345678",
         },
         {
             name: "Nadia Chowdhury",
             email: "nadia.c@wateraid.org",
-            role: "Customer Admin",
+            phone: "01898765432",
         },
         {
             name: "Rahim Uddin",
             email: "rahim.uddin@wateraid.org",
-            role: "Meter Admin",
+            phone: "01987654321",
         },
         {
             name: "Ayesha Khan",
             email: "ayesha.khan@wateraid.org",
-            role: "Customer Admin",
+            phone: "01612349876",
         },
         {
             name: "Ibrahim Ali",
             email: "ibrahim.ali@wateraid.org",
-            role: "Meter Admin",
+            phone: "01598761234",
         },
     ];
-
-    const getRoleBadgeColor = (role: string) => {
-        if (role === "Super Admin") return "bg-purple-50 text-purple-700";
-        if (role === "Tariff Admin") return "bg-blue-50 text-blue-700";
-        if (role === "Customer Admin") return "bg-green-50 text-green-700";
-        return "bg-amber-50 text-amber-700";
-    };
 
     return (
         <div className="min-h-screen bg-app">
@@ -63,15 +56,14 @@ export function AgentManagement() {
                 <div className="flex items-center justify-between mb-8">
                     <div>
                         <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">
-                            User Management
+                            Meter Reader Management
                         </h1>
                         <p className="text-sm text-gray-500">
-                            Manage all system administrators and their
-                            permissions
+                            Manage all meter readers registered in the system.
                         </p>
                     </div>
                     <Button className="bg-primary hover:bg-primary-600 text-white px-6 rounded-lg shadow-sm">
-                        + Add New Admin
+                        + Add New Meter Reader
                     </Button>
                 </div>
 
@@ -84,7 +76,7 @@ export function AgentManagement() {
                         />
                         <Input
                             type="text"
-                            placeholder="Search Agents..."
+                            placeholder="Search Meter Readers..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="pl-10 bg-white border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
@@ -131,9 +123,9 @@ export function AgentManagement() {
                                     Email
                                 </TableHead>
                                 <TableHead className="text-sm font-semibold text-gray-700">
-                                    Role
+                                    Phone
                                 </TableHead>
-                                <TableHead className="text-sm font-semibold text-gray-700">
+                                <TableHead className="text-sm font-semibold text-gray-700 flex justify-center items-center">
                                     Actions
                                 </TableHead>
                             </TableRow>
@@ -150,16 +142,8 @@ export function AgentManagement() {
                                     <TableCell className="text-sm text-gray-600">
                                         {admin.email}
                                     </TableCell>
-                                    <TableCell>
-                                        <span
-                                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(
-                                                admin.role
-                                            )}`}
-                                        >
-                                            {admin.role}
-                                        </span>
-                                    </TableCell>
-                                    <TableCell>
+                                    <TableCell>{admin.phone}</TableCell>
+                                    <TableCell className="flex justify-center gap-x-4">
                                         <Button
                                             variant="outline"
                                             size="sm"
@@ -170,6 +154,14 @@ export function AgentManagement() {
                                                 className="mr-1.5"
                                             />
                                             Edit
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="border-gray-300 text-red-700 rounded-lg hover:bg-gray-50"
+                                        >
+                                            <Trash size={14} />
+                                            Delete
                                         </Button>
                                     </TableCell>
                                 </TableRow>
