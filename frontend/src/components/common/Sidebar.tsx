@@ -1,6 +1,5 @@
 ﻿import {
     Home,
-    UserCog,
     Users,
     Users2,
     ClipboardList,
@@ -21,7 +20,7 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
 
     const routeMap: Record<string, string> = {
         dashboard: "/admin/dashboard",
-        meterReaders: "/admin/meter-readers",
+        users: "/admin/users",
         agents: "/admin/agents",
         audit: "/admin/audit",
     };
@@ -40,7 +39,9 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
             sessionStorage.clear();
             try {
                 qc?.clear?.();
-            } catch {}
+            } catch {
+                // Ignore query client errors
+            }
             toast("Logged out");
             navigate("/login");
             return;
@@ -52,8 +53,8 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
 
     const menuItems = [
         { id: "dashboard", label: "Dashboard", icon: Home },
-        { id: "meterReaders", label: "Meter Readers", icon: Users },
-        { id: "agents", label: "Agents", icon: Users2 },
+        { id: "users", label: "User Management", icon: Users },
+        { id: "agents", label: "Agent Management", icon: Users2 },
         { id: "audit", label: "System Audit Log", icon: ClipboardList },
     ];
 

@@ -1,4 +1,4 @@
-﻿import { Input } from "../components/ui/input";
+import { Dropdown } from "../components/ui/Dropdown";
 import { Button } from "../components/ui/button";
 import {
     Table,
@@ -8,46 +8,106 @@ import {
     TableHeader,
     TableRow,
 } from "../components/ui/table";
-import { Edit2, Search, Trash } from "lucide-react";
+import { Edit2, Search } from "lucide-react";
+import { Input } from "../components/ui/input";
 import { useState } from "react";
-import { Dropdown } from "../components/ui/Dropdown";
+import { AddAgentModal } from "../components/modals/AddAgentModal";
 
-export default function MeterReaderManagement() {
+interface MeterAdmin {
+    name: string;
+    email: string;
+    role: string;
+    phone?: string;
+}
+
+interface EditingMeterAdmin extends MeterAdmin {
+    index: number;
+}
+
+export default function UserManagement() {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedZone, setSelectedZone] = useState("");
-    const [selectedWord, setSelectedWord] = useState("");
-    const admins = [
+    const [selectedWard, setSelectedWard] = useState("");
+    const [showModal, setShowModal] = useState(false);
+    const [editMode, setEditMode] = useState(false);
+    const [editingAgent, setEditingAgent] = useState<EditingMeterAdmin | null>(null);
+    const [admins, setAdmins] = useState([
+        {
+            name: "Rahim Uddin",
+            email: "rahim.uddin@wateraid.org",
+            role: "Meter Admin",
+            phone: "01987654321",
+        },
+        {
+            name: "Ibrahim Ali",
+            email: "ibrahim.ali@wateraid.org",
+            role: "Meter Admin",
+            phone: "01598761234",
+        },
         {
             name: "Sarah Ahmed",
             email: "sarah.ahmed@wateraid.org",
+            role: "Meter Admin",
             phone: "019378473285",
         },
         {
             name: "Kamal Hassan",
             email: "kamal.hassan@wateraid.org",
+            role: "Meter Admin",
             phone: "01712345678",
         },
-        {
-            name: "Nadia Chowdhury",
-            email: "nadia.c@wateraid.org",
-            phone: "01898765432",
-        },
-        {
-            name: "Rahim Uddin",
-            email: "rahim.uddin@wateraid.org",
-            phone: "01987654321",
-        },
-        {
-            name: "Ayesha Khan",
-            email: "ayesha.khan@wateraid.org",
-            phone: "01612349876",
-        },
-        {
-            name: "Ibrahim Ali",
-            email: "ibrahim.ali@wateraid.org",
-            phone: "01598761234",
-        },
-    ];
+    ]);
+
+    const getRoleBadgeColor = () => {
+        return "bg-amber-50 text-amber-700"; // All Meter Admins have same color
+    };
+
+    const handleAddAgent = (newAgent: { name: string; email: string; role: string; phone?: string }) => {
+        setAdmins([
+            ...admins,
+            { name: newAgent.name, email: newAgent.email, role: "Meter Admin", phone: newAgent.phone || "" },
+        ]);
+        setShowModal(false);
+        setEditMode(false);
+    };
+
+    const handleEditClick = (admin: MeterAdmin, index: number) => {
+        setEditingAgent({ ...admin, index });
+        setEditMode(true);
+        setShowModal(true);
+    };
+
+    const handleEditSave = (updatedAgent: MeterAdmin) => {
+        if (!editingAgent) return;
+        
+        const newAdmins = [...admins];
+        newAdmins[editingAgent.index] = {
+            name: updatedAgent.name,
+            email: updatedAgent.email,
+            role: "Meter Admin",
+            phone: updatedAgent.phone || "",
+        };
+        setAdmins(newAdmins);
+        setShowModal(false);
+        setEditMode(false);
+        setEditingAgent(null);
+    };
+
+    const handleModalClose = () => {
+        setShowModal(false);
+        setEditMode(false);
+        setEditingAgent(null);
+    };
+
+    const handleDelete = () => {
+        if (!editingAgent) return;
+        
+        const newAdmins = admins.filter((_, index) => index !== editingAgent.index);
+        setAdmins(newAdmins);
+        setShowModal(false);
+        setEditMode(false);
+        setEditingAgent(null);
+    };
 
     return (
         <div className="min-h-screen bg-app">
@@ -56,14 +116,17 @@ export default function MeterReaderManagement() {
                 <div className="flex items-center justify-between mb-8">
                     <div>
                         <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">
-                            Meter Reader Management
+                            User Management (Meter Admins)
                         </h1>
                         <p className="text-sm text-gray-500">
-                            Manage all meter readers registered in the system.
+                            Manage all meter admins who handle meter readings
                         </p>
                     </div>
-                    <Button className="bg-primary hover:bg-primary-600 text-white px-6 rounded-lg shadow-sm">
-                        + Add New Meter Reader
+                    <Button
+                        className="bg-primary hover:bg-primary-600 text-white px-6 rounded-lg shadow-sm"
+                        onClick={() => setShowModal(true)}
+                    >
+                        + Add Meter Admin
                     </Button>
                 </div>
 
@@ -76,7 +139,7 @@ export default function MeterReaderManagement() {
                         />
                         <Input
                             type="text"
-                            placeholder="Search Meter Readers..."
+                            placeholder="Search Meter Admins..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="pl-10 bg-white border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
@@ -99,14 +162,14 @@ export default function MeterReaderManagement() {
                     />
                     <Dropdown
                         options={[
-                            { value: "word-1", label: "Word-1" },
-                            { value: "word-2", label: "Word-2" },
-                            { value: "word-3", label: "Word-3" },
-                            { value: "word-4", label: "Word-4" },
+                            { value: "ward-1", label: "Ward-1" },
+                            { value: "ward-2", label: "Ward-2" },
+                            { value: "ward-3", label: "Ward-3" },
+                            { value: "ward-4", label: "Ward-4" },
                         ]}
-                        value={selectedWord}
-                        onChange={setSelectedWord}
-                        placeholder="Select Word"
+                        value={selectedWard}
+                        onChange={setSelectedWard}
+                        placeholder="Select Ward"
                         className="w-48"
                     />
                 </div>
@@ -123,9 +186,9 @@ export default function MeterReaderManagement() {
                                     Email
                                 </TableHead>
                                 <TableHead className="text-sm font-semibold text-gray-700">
-                                    Phone
+                                    Role
                                 </TableHead>
-                                <TableHead className="text-sm font-semibold text-gray-700 flex justify-center items-center">
+                                <TableHead className="text-sm font-semibold text-gray-700">
                                     Actions
                                 </TableHead>
                             </TableRow>
@@ -142,26 +205,25 @@ export default function MeterReaderManagement() {
                                     <TableCell className="text-sm text-gray-600">
                                         {admin.email}
                                     </TableCell>
-                                    <TableCell>{admin.phone}</TableCell>
-                                    <TableCell className="flex justify-center gap-x-4">
+                                    <TableCell>
+                                        <span
+                                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor()}`}
+                                        >
+                                            {admin.role}
+                                        </span>
+                                    </TableCell>
+                                    <TableCell>
                                         <Button
                                             variant="outline"
                                             size="sm"
                                             className="border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                                            onClick={() => handleEditClick(admin, index)}
                                         >
                                             <Edit2
                                                 size={14}
                                                 className="mr-1.5"
                                             />
                                             Edit
-                                        </Button>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="border-gray-300 text-red-700 rounded-lg hover:bg-gray-50"
-                                        >
-                                            <Trash size={14} />
-                                            Delete
                                         </Button>
                                     </TableCell>
                                 </TableRow>
@@ -170,6 +232,15 @@ export default function MeterReaderManagement() {
                     </Table>
                 </div>
             </div>
+            <AddAgentModal
+                open={showModal}
+                onClose={handleModalClose}
+                onSave={editMode ? handleEditSave : handleAddAgent}
+                editMode={editMode}
+                agent={editingAgent}
+                roleFixed="Meter Admin"
+                onDelete={editMode ? handleDelete : undefined}
+            />
         </div>
     );
 }

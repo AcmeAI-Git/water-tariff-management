@@ -2,7 +2,6 @@ import { Route, Routes, Navigate } from "react-router-dom";
 import Login from "../pages/Login";
 import Dashboard from "../pages/AdminDashboard";
 import UserManagement from "../pages/UserManagement";
-import MeterReaderManagement from "../pages/MeterReaderManagement";
 import { AgentManagement } from "../pages/AgentManagement";
 import { SystemAuditLog } from "../pages/SystemAuditLog";
 import { MeterAdminDataEntry } from "../pages/MeterAdminDataEntry";
@@ -24,7 +23,6 @@ const RouterIndex = () => {
       <Route element={<Layout />}>
         <Route path="/admin/dashboard" element={<Dashboard />} />
         <Route path="/admin/users" element={<UserManagement />} />
-        <Route path="/admin/meter-readers" element={<MeterReaderManagement />} />
         <Route path="/admin/agents" element={<AgentManagement />} />
         <Route path="/admin/audit" element={<SystemAuditLog />} />
         <Route path="/meter-admin/entry" element={<MeterAdminDataEntry />} />

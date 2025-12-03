@@ -11,12 +11,26 @@ import {
 import { Edit2, Search } from "lucide-react";
 import { Input } from "../components/ui/input";
 import { useState } from "react";
+import { AddAgentModal } from "../components/modals/AddAgentModal";
+
+interface Admin {
+    name: string;
+    email: string;
+    role: string;
+}
+
+interface EditingAgent extends Admin {
+    index: number;
+}
 
 export function AgentManagement() {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedZone, setSelectedZone] = useState("");
-    const [selectedWord, setSelectedWord] = useState("");
-    const admins = [
+    const [selectedWard, setSelectedWard] = useState("");
+    const [showModal, setShowModal] = useState(false);
+    const [editMode, setEditMode] = useState(false);
+    const [editingAgent, setEditingAgent] = useState<EditingAgent | null>(null);
+    const [admins, setAdmins] = useState([
         {
             name: "Sarah Ahmed",
             email: "sarah.ahmed@wateraid.org",
@@ -33,27 +47,67 @@ export function AgentManagement() {
             role: "Customer Admin",
         },
         {
-            name: "Rahim Uddin",
-            email: "rahim.uddin@wateraid.org",
-            role: "Meter Admin",
-        },
-        {
             name: "Ayesha Khan",
             email: "ayesha.khan@wateraid.org",
             role: "Customer Admin",
         },
-        {
-            name: "Ibrahim Ali",
-            email: "ibrahim.ali@wateraid.org",
-            role: "Meter Admin",
-        },
-    ];
+    ]);
 
     const getRoleBadgeColor = (role: string) => {
         if (role === "Super Admin") return "bg-purple-50 text-purple-700";
         if (role === "Tariff Admin") return "bg-blue-50 text-blue-700";
         if (role === "Customer Admin") return "bg-green-50 text-green-700";
         return "bg-amber-50 text-amber-700";
+    };
+
+    const handleAddAgent = (newAgent: {
+        name: string;
+        email: string;
+        role: string;
+    }) => {
+        setAdmins([
+            ...admins,
+            { name: newAgent.name, email: newAgent.email, role: newAgent.role },
+        ]);
+        setShowModal(false);
+        setEditMode(false);
+    };
+
+    const handleEditClick = (admin: Admin, index: number) => {
+        setEditingAgent({ ...admin, index });
+        setEditMode(true);
+        setShowModal(true);
+    };
+
+    const handleEditSave = (updatedAgent: Admin) => {
+        if (!editingAgent) return;
+        
+        const newAdmins = [...admins];
+        newAdmins[editingAgent.index] = {
+            name: updatedAgent.name,
+            email: updatedAgent.email,
+            role: updatedAgent.role,
+        };
+        setAdmins(newAdmins);
+        setShowModal(false);
+        setEditMode(false);
+        setEditingAgent(null);
+    };
+
+    const handleModalClose = () => {
+        setShowModal(false);
+        setEditMode(false);
+        setEditingAgent(null);
+    };
+
+    const handleDelete = () => {
+        if (!editingAgent) return;
+        
+        const newAdmins = admins.filter((_, index) => index !== editingAgent.index);
+        setAdmins(newAdmins);
+        setShowModal(false);
+        setEditMode(false);
+        setEditingAgent(null);
     };
 
     return (
@@ -63,15 +117,18 @@ export function AgentManagement() {
                 <div className="flex items-center justify-between mb-8">
                     <div>
                         <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">
-                            User Management
+                            Agent Management
                         </h1>
                         <p className="text-sm text-gray-500">
-                            Manage all system administrators and their
-                            permissions
+                            Manage other system administrators (Tariff, Customer,
+                            Super Admins)
                         </p>
                     </div>
-                    <Button className="bg-primary hover:bg-primary-600 text-white px-6 rounded-lg shadow-sm">
-                        + Add New Admin
+                    <Button
+                        className="bg-primary hover:bg-primary-600 text-white px-6 rounded-lg shadow-sm"
+                        onClick={() => setShowModal(true)}
+                    >
+                        + Add New Agent
                     </Button>
                 </div>
 
@@ -107,14 +164,14 @@ export function AgentManagement() {
                     />
                     <Dropdown
                         options={[
-                            { value: "word-1", label: "Word-1" },
-                            { value: "word-2", label: "Word-2" },
-                            { value: "word-3", label: "Word-3" },
-                            { value: "word-4", label: "Word-4" },
+                            { value: "ward-1", label: "Ward-1" },
+                            { value: "ward-2", label: "Ward-2" },
+                            { value: "ward-3", label: "Ward-3" },
+                            { value: "ward-4", label: "Ward-4" },
                         ]}
-                        value={selectedWord}
-                        onChange={setSelectedWord}
-                        placeholder="Select Word"
+                        value={selectedWard}
+                        onChange={setSelectedWard}
+                        placeholder="Select Ward"
                         className="w-48"
                     />
                 </div>
@@ -164,6 +221,7 @@ export function AgentManagement() {
                                             variant="outline"
                                             size="sm"
                                             className="border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                                            onClick={() => handleEditClick(admin, index)}
                                         >
                                             <Edit2
                                                 size={14}
@@ -178,6 +236,14 @@ export function AgentManagement() {
                     </Table>
                 </div>
             </div>
+            <AddAgentModal
+                open={showModal}
+                onClose={handleModalClose}
+                onSave={editMode ? handleEditSave : handleAddAgent}
+                editMode={editMode}
+                agent={editingAgent}
+                onDelete={editMode ? handleDelete : undefined}
+            />
         </div>
     );
 }
