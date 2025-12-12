@@ -18,9 +18,11 @@ interface AddMeterReaderModalProps {
   open: boolean;
   onClose: () => void;
   onSave: (reader: MeterReader) => void;
+  zoneOptions?: Array<{ value: string; label: string }>; // Zone options from API
+  wardOptions?: Array<{ value: string; label: string }>; // Ward options from API
 }
 
-export function AddMeterReaderModal({ open, onClose, onSave }: AddMeterReaderModalProps) {
+export function AddMeterReaderModal({ open, onClose, onSave, zoneOptions = [], wardOptions = [] }: AddMeterReaderModalProps) {
   const [form, setForm] = useState<MeterReader>({
     name: "",
     phone: "",
@@ -52,8 +54,8 @@ export function AddMeterReaderModal({ open, onClose, onSave }: AddMeterReaderMod
           <Input placeholder="Full Name" value={form.name} onChange={e => handleChange("name", e.target.value)} />
           <Input placeholder="Phone Number" value={form.phone} onChange={e => handleChange("phone", e.target.value)} />
           <div className="flex gap-2">
-            <Dropdown options={[{value:"zone-1",label:"Zone-1"},{value:"zone-2",label:"Zone-2"},{value:"zone-3",label:"Zone-3"},{value:"zone-4",label:"Zone-4"}]} value={form.zone} onChange={v => handleChange("zone", v)} placeholder="Select zone" className="w-1/2" />
-            <Dropdown options={[{value:"ward-1",label:"Ward-1"},{value:"ward-2",label:"Ward-2"},{value:"ward-3",label:"Ward-3"},{value:"ward-4",label:"Ward-4"}]} value={form.ward} onChange={v => handleChange("ward", v)} placeholder="Select ward" className="w-1/2" />
+            <Dropdown options={zoneOptions} value={form.zone} onChange={v => handleChange("zone", v)} placeholder="Select zone" className="w-1/2" />
+            <Dropdown options={wardOptions} value={form.ward} onChange={v => handleChange("ward", v)} placeholder="Select ward" className="w-1/2" />
           </div>
           <Input placeholder="Email Address" value={form.email} onChange={e => handleChange("email", e.target.value)} />
           <Input type="password" placeholder="Password" value={form.password} onChange={e => handleChange("password", e.target.value)} />

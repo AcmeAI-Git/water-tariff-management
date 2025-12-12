@@ -52,6 +52,17 @@ export function AgentManagement() {
         () => api.roles.getAll()
     );
 
+    // Fetch zones and wards for dropdowns
+    const { data: zones = [], isLoading: zonesLoading } = useApiQuery(
+        ['zones'],
+        () => api.zones.getAll()
+    );
+
+    const { data: wards = [], isLoading: wardsLoading } = useApiQuery(
+        ['wards'],
+        () => api.wards.getAll()
+    );
+
     // Map admins to display format
     const displayAdmins = useMemo(() => {
         return admins.map((admin) => mapAdminToDisplay(admin, roles));
@@ -174,7 +185,23 @@ export function AgentManagement() {
         label: role.name,
     }));
 
-    if (adminsLoading || rolesLoading) {
+    // Prepare zone options for dropdown
+    const zoneOptions = useMemo(() => {
+        return zones.map((zone) => ({
+            value: zone.id.toString(),
+            label: zone.name || zone.zoneNo,
+        }));
+    }, [zones]);
+
+    // Prepare ward options for dropdown
+    const wardOptions = useMemo(() => {
+        return wards.map((ward) => ({
+            value: ward.id.toString(),
+            label: ward.name || ward.wardNo,
+        }));
+    }, [wards]);
+
+    if (adminsLoading || rolesLoading || zonesLoading || wardsLoading) {
         return (
             <div className="min-h-screen bg-app flex items-center justify-center">
                 <LoadingSpinner />
@@ -223,24 +250,14 @@ export function AgentManagement() {
                 {/* Drop Downs */}
                 <div className="mb-6 flex gap-4">
                     <Dropdown
-                        options={[
-                            { value: "zone-1", label: "Zone-1" },
-                            { value: "zone-2", label: "Zone-2" },
-                            { value: "zone-3", label: "Zone-3" },
-                            { value: "zone-4", label: "Zone-4" },
-                        ]}
+                        options={zoneOptions}
                         value={selectedZone}
                         onChange={setSelectedZone}
                         placeholder="Select Zone"
                         className="w-48"
                     />
                     <Dropdown
-                        options={[
-                            { value: "ward-1", label: "Ward-1" },
-                            { value: "ward-2", label: "Ward-2" },
-                            { value: "ward-3", label: "Ward-3" },
-                            { value: "ward-4", label: "Ward-4" },
-                        ]}
+                        options={wardOptions}
                         value={selectedWard}
                         onChange={setSelectedWard}
                         placeholder="Select Ward"
@@ -328,6 +345,9 @@ export function AgentManagement() {
                     role: editingAgent.role,
                 } : null}
                 onDelete={editMode ? handleDelete : undefined}
+                zoneOptions={zoneOptions}
+                wardOptions={wardOptions}
+                roleOptions={roleOptions}
             />
         </div>
     );

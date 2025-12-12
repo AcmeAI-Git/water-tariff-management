@@ -4,66 +4,194 @@ import { Label } from '../components/ui/label';
 import { Slider } from '../components/ui/slider';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Calculator } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { api } from '../services/api';
+import { useApiQuery, useApiMutation } from '../hooks/useApiQuery';
+import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import type { TariffPlan, CityCorporation, Zone, Ward, BillCalculationResult } from '../types';
 
 export default function TariffVisualizer() {
   const [consumption, setConsumption] = useState(60);
   const [category, setCategory] = useState('residential');
   const [calculated, setCalculated] = useState(false);
+  const [selectedCityId, setSelectedCityId] = useState<number | null>(null);
+  const [selectedZoneId, setSelectedZoneId] = useState<number | null>(null);
+  const [selectedWardId, setSelectedWardId] = useState<number | null>(null);
+  const [calculationResult, setCalculationResult] = useState<BillCalculationResult | null>(null);
 
-  const handleCalculate = () => {
-    setCalculated(true);
+  // Fetch active tariff plans
+  const { data: tariffPlans = [], isLoading: plansLoading } = useApiQuery(
+    ['tariff-plans', 'active'],
+    () => api.tariffPlans.getActive()
+  );
+
+  // Fetch city corporations
+  const { data: cityCorporations = [], isLoading: citiesLoading } = useApiQuery(
+    ['city-corporations'],
+    () => api.cityCorporations.getAll()
+  );
+
+  // Fetch zones filtered by selected city
+  const { data: zones = [], isLoading: zonesLoading } = useApiQuery(
+    ['zones', selectedCityId],
+    () => api.zones.getAll(selectedCityId || undefined),
+    { enabled: !!selectedCityId }
+  );
+
+  // Fetch wards filtered by selected zone
+  const { data: wards = [], isLoading: wardsLoading } = useApiQuery(
+    ['wards', selectedZoneId],
+    () => api.wards.getAll(selectedZoneId || undefined),
+    { enabled: !!selectedZoneId }
+  );
+
+  // Set default city when cities load
+  useMemo(() => {
+    if (cityCorporations.length > 0 && !selectedCityId) {
+      setSelectedCityId(cityCorporations[0].id);
+    }
+  }, [cityCorporations, selectedCityId]);
+
+  // Set default zone when zones load
+  useMemo(() => {
+    if (zones.length > 0 && !selectedZoneId) {
+      setSelectedZoneId(zones[0].id);
+    }
+  }, [zones, selectedZoneId]);
+
+  // Set default ward when wards load
+  useMemo(() => {
+    if (wards.length > 0 && !selectedWardId) {
+      setSelectedWardId(wards[0].id);
+    }
+  }, [wards, selectedWardId]);
+
+  // Filter tariff plans by category
+  const activePlan = useMemo(() => {
+    return tariffPlans.find((plan) => 
+      plan.name.toLowerCase().includes(category) && 
+      (!plan.effectiveTo || new Date(plan.effectiveTo) > new Date())
+    );
+  }, [tariffPlans, category]);
+
+  // Extract tariff slabs from active plan
+  const tariffSlabs = useMemo(() => {
+    if (!activePlan?.slabs) return [];
+    return activePlan.slabs
+      .sort((a, b) => a.slabOrder - b.slabOrder)
+      .map((slab) => {
+        const range = slab.maxConsumption 
+          ? `${slab.minConsumption} - ${slab.maxConsumption} m³`
+          : `${slab.minConsumption}+ m³`;
+        return {
+          range,
+          rate: `৳${parseFloat(slab.ratePerUnit.toString()).toFixed(2)}`,
+        };
+      });
+  }, [activePlan]);
+
+  // Get selected city, zone, and ward objects
+  const selectedCity = useMemo(() => {
+    return cityCorporations.find(c => c.id === selectedCityId);
+  }, [cityCorporations, selectedCityId]);
+
+  const selectedZone = useMemo(() => {
+    return zones.find(z => z.id === selectedZoneId);
+  }, [zones, selectedZoneId]);
+
+  const selectedWard = useMemo(() => {
+    return wards.find(w => w.id === selectedWardId);
+  }, [wards, selectedWardId]);
+
+  // Bill calculation mutation
+  const calculateBillMutation = useApiMutation(
+    (data: { tariffPlanId: number; consumption: number }) => 
+      api.waterBills.calculate(data),
+    {
+      errorMessage: 'Failed to calculate bill',
+    }
+  );
+
+  const handleCalculate = async () => {
+    if (!activePlan || !selectedWardId) {
+      return;
+    }
+
+    try {
+      const result = await calculateBillMutation.mutateAsync({
+        tariffPlanId: activePlan.id,
+        consumption,
+      });
+      setCalculationResult(result);
+      setCalculated(true);
+    } catch (error) {
+      // Error handled by mutation
+    }
   };
 
-  // Tariff rates based on category
-  const rates = category === 'residential' 
-    ? { slab1: 12, slab2: 18, slab3: 25, slab4: 35 }
-    : { slab1: 20, slab2: 28, slab3: 38, slab4: 50 };
-
-  const tariffSlabs = category === 'residential'
-    ? [
-        { range: '0 - 10 m³', rate: '৳12.00' },
-        { range: '11 - 20 m³', rate: '৳18.00' },
-        { range: '21 - 30 m³', rate: '৳25.00' },
-        { range: '31+ m³', rate: '৳35.00' },
-      ]
-    : [
-        { range: '0 - 10 m³', rate: '৳20.00' },
-        { range: '11 - 20 m³', rate: '৳28.00' },
-        { range: '21 - 30 m³', rate: '৳38.00' },
-        { range: '31+ m³', rate: '৳50.00' },
-      ];
-
-  // Mock calculation
-  const consumptionNum = consumption;
-  const slab1 = Math.min(consumptionNum, 10) * rates.slab1;
-  const slab2 = Math.min(Math.max(consumptionNum - 10, 0), 10) * rates.slab2;
-  const slab3 = Math.min(Math.max(consumptionNum - 20, 0), 10) * rates.slab3;
-  const slab4 = Math.max(consumptionNum - 30, 0) * rates.slab4;
-  const baseCharge = slab1 + slab2 + slab3 + slab4;
-  
-  // Multipliers
-  const cityMultiplier = baseCharge * 0.05; // 5% city multiplier
-  const zoneMultiplier = baseCharge * 0.03; // 3% zone multiplier
-  const wardMultiplier = baseCharge * 0.02; // 2% ward multiplier
-  
-  const subtotal = baseCharge + cityMultiplier + zoneMultiplier + wardMultiplier;
-  const vat = subtotal * 0.15;
-  const total = subtotal + vat;
-
-  // Example calculation (60 m³)
+  // Calculate example bill (60 m³) - using same logic but with API data
   const exampleConsumption = 60;
-  const exampleSlab1 = Math.min(exampleConsumption, 10) * rates.slab1;
-  const exampleSlab2 = Math.min(Math.max(exampleConsumption - 10, 0), 10) * rates.slab2;
-  const exampleSlab3 = Math.min(Math.max(exampleConsumption - 20, 0), 10) * rates.slab3;
-  const exampleSlab4 = Math.max(exampleConsumption - 30, 0) * rates.slab4;
-  const exampleBaseCharge = exampleSlab1 + exampleSlab2 + exampleSlab3 + exampleSlab4;
-  const exampleCityMultiplier = exampleBaseCharge * 0.05;
-  const exampleZoneMultiplier = exampleBaseCharge * 0.03;
-  const exampleWardMultiplier = exampleBaseCharge * 0.02;
-  const exampleSubtotal = exampleBaseCharge + exampleCityMultiplier + exampleZoneMultiplier + exampleWardMultiplier;
-  const exampleVat = exampleSubtotal * 0.15;
-  const exampleTotal = exampleSubtotal + exampleVat;
+  const exampleCalculation = useMemo(() => {
+    if (!activePlan?.slabs || !selectedWard) return null;
+    
+    // Calculate base charge from slabs
+    let baseCharge = 0;
+    let remaining = exampleConsumption;
+    
+    activePlan.slabs
+      .sort((a, b) => a.slabOrder - b.slabOrder)
+      .forEach((slab) => {
+        const slabUnits = slab.maxConsumption 
+          ? Math.min(remaining, slab.maxConsumption - slab.minConsumption + 1)
+          : remaining;
+        if (slabUnits > 0) {
+          baseCharge += slabUnits * parseFloat(slab.ratePerUnit.toString());
+          remaining -= slabUnits;
+        }
+      });
+
+    // Apply ward multiplier
+    const wardMultiplier = selectedWard.tariffMultiplier || 1;
+    const subtotal = baseCharge * wardMultiplier;
+    const vat = subtotal * 0.15;
+    const total = subtotal + vat;
+
+    return {
+      baseCharge,
+      wardMultiplier: baseCharge * (wardMultiplier - 1),
+      subtotal,
+      vat,
+      total,
+    };
+  }, [activePlan, selectedWard]);
+
+  // Extract calculation breakdown from API result
+  const calculationBreakdown = useMemo(() => {
+    if (!calculationResult) return null;
+    
+    const baseCharge = calculationResult.breakdown?.reduce((sum, item) => sum + item.amount, 0) || calculationResult.totalAmount;
+    const wardMultiplier = selectedWard ? (selectedWard.tariffMultiplier - 1) * baseCharge : 0;
+    const subtotal = baseCharge + wardMultiplier;
+    const vat = subtotal * 0.15;
+    const total = subtotal + vat;
+
+    return {
+      breakdown: calculationResult.breakdown || [],
+      baseCharge,
+      wardMultiplier,
+      subtotal,
+      vat,
+      total,
+    };
+  }, [calculationResult, selectedWard]);
+
+  if (plansLoading || citiesLoading || zonesLoading || wardsLoading) {
+    return (
+      <div className="min-h-screen bg-app flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-app">
@@ -85,11 +213,21 @@ export default function TariffVisualizer() {
               </Label>
               <select 
                 id="city"
+                value={selectedCityId || ''}
+                onChange={(e) => {
+                  const cityId = parseInt(e.target.value);
+                  setSelectedCityId(cityId);
+                  setSelectedZoneId(null);
+                  setSelectedWardId(null);
+                }}
                 className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
               >
-                <option>Dhaka</option>
-                <option>Chittagong</option>
-                <option>Khulna</option>
+                <option value="">Select City</option>
+                {cityCorporations.map((city) => (
+                  <option key={city.id} value={city.id}>
+                    {city.name}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -99,11 +237,21 @@ export default function TariffVisualizer() {
               </Label>
               <select 
                 id="zone"
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
+                value={selectedZoneId || ''}
+                onChange={(e) => {
+                  const zoneId = parseInt(e.target.value);
+                  setSelectedZoneId(zoneId);
+                  setSelectedWardId(null);
+                }}
+                disabled={!selectedCityId}
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <option>1</option>
-                <option>2</option>
-                <option>3</option>
+                <option value="">Select Zone</option>
+                {zones.map((zone) => (
+                  <option key={zone.id} value={zone.id}>
+                    {zone.name || zone.zoneNo}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -113,11 +261,17 @@ export default function TariffVisualizer() {
               </Label>
               <select 
                 id="ward"
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
+                value={selectedWardId || ''}
+                onChange={(e) => setSelectedWardId(parseInt(e.target.value))}
+                disabled={!selectedZoneId}
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <option>3</option>
-                <option>1</option>
-                <option>2</option>
+                <option value="">Select Ward</option>
+                {wards.map((ward) => (
+                  <option key={ward.id} value={ward.id}>
+                    {ward.name || ward.wardNo}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -171,10 +325,11 @@ export default function TariffVisualizer() {
 
             <Button 
               onClick={handleCalculate}
-              className="bg-primary hover:bg-primary-600 text-white rounded-lg h-11 px-8 flex items-center gap-2 w-full justify-center"
+              disabled={!activePlan || !selectedWardId || calculateBillMutation.isPending}
+              className="bg-primary hover:bg-primary-600 text-white rounded-lg h-11 px-8 flex items-center gap-2 w-full justify-center disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Calculator size={18} />
-              Calculate Bill
+              {calculateBillMutation.isPending ? 'Calculating...' : 'Calculate Bill'}
             </Button>
           </div>
         </div>
@@ -186,33 +341,31 @@ export default function TariffVisualizer() {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Example Bill Calculation</h3>
             <p className="text-sm text-gray-600 mb-4">Example for 60 m³ consumption with current settings:</p>
             
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm gap-4">
-                <span className="text-gray-600">Base Charge (Tiered)</span>
-                <span className="font-semibold text-gray-900 whitespace-nowrap">৳{exampleBaseCharge.toFixed(2)}</span>
+            {exampleCalculation ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm gap-4">
+                  <span className="text-gray-600">Base Charge (Tiered)</span>
+                  <span className="font-semibold text-gray-900 whitespace-nowrap">৳{exampleCalculation.baseCharge.toFixed(2)}</span>
+                </div>
+                {selectedWard && (
+                  <div className="flex items-center justify-between text-sm gap-4">
+                    <span className="text-gray-600">Ward Multiplier ({selectedWard.tariffMultiplier.toFixed(2)}x)</span>
+                    <span className="font-semibold text-gray-900 whitespace-nowrap">৳{exampleCalculation.wardMultiplier.toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between text-sm gap-4">
+                  <span className="text-gray-600">VAT (15%)</span>
+                  <span className="font-semibold text-gray-900 whitespace-nowrap">৳{exampleCalculation.vat.toFixed(2)}</span>
+                </div>
+                <div className="border-t border-gray-200 pt-2 mt-2"></div>
+                <div className="flex items-center justify-between gap-4">
+                  <span className="font-semibold text-gray-900">Total</span>
+                  <span className="text-xl font-semibold text-primary whitespace-nowrap">৳{exampleCalculation.total.toFixed(2)}</span>
+                </div>
               </div>
-              <div className="flex items-center justify-between text-sm gap-4">
-                <span className="text-gray-600">City Multiplier (1.05x)</span>
-                <span className="font-semibold text-gray-900 whitespace-nowrap">৳{exampleCityMultiplier.toFixed(2)}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm gap-4">
-                <span className="text-gray-600">Zone Multiplier (1.03x)</span>
-                <span className="font-semibold text-gray-900 whitespace-nowrap">৳{exampleZoneMultiplier.toFixed(2)}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm gap-4">
-                <span className="text-gray-600">Ward Multiplier (1.02x)</span>
-                <span className="font-semibold text-gray-900 whitespace-nowrap">৳{exampleWardMultiplier.toFixed(2)}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm gap-4">
-                <span className="text-gray-600">VAT (15%)</span>
-                <span className="font-semibold text-gray-900 whitespace-nowrap">৳{exampleVat.toFixed(2)}</span>
-              </div>
-              <div className="border-t border-gray-200 pt-2 mt-2"></div>
-              <div className="flex items-center justify-between gap-4">
-                <span className="font-semibold text-gray-900">Total</span>
-                <span className="text-xl font-semibold text-primary whitespace-nowrap">৳{exampleTotal.toFixed(2)}</span>
-              </div>
-            </div>
+            ) : (
+              <p className="text-sm text-gray-500">Please select location and category to see example calculation</p>
+            )}
           </div>
 
           {/* Right Column - Tariff Rates */}
@@ -228,12 +381,20 @@ export default function TariffVisualizer() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tariffSlabs.map((slab, index) => (
-                  <TableRow key={index} className="border-gray-100">
-                    <TableCell className="text-sm text-gray-900 font-medium">{slab.range}</TableCell>
-                    <TableCell className="text-sm text-gray-600 text-right">{slab.rate}</TableCell>
+                {tariffSlabs.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={2} className="text-center text-gray-500 py-8">
+                      No tariff slabs found for {category} category
+                    </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  tariffSlabs.map((slab, index) => (
+                    <TableRow key={index} className="border-gray-100">
+                      <TableCell className="text-sm text-gray-900 font-medium">{slab.range}</TableCell>
+                      <TableCell className="text-sm text-gray-600 text-right">{slab.rate}</TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
             <p className="text-xs text-gray-500 mt-4">
@@ -243,7 +404,7 @@ export default function TariffVisualizer() {
         </div>
 
         {/* Results */}
-        {calculated && (
+        {calculated && calculationBreakdown && (
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Bill Calculation Breakdown</h3>
             
@@ -256,77 +417,60 @@ export default function TariffVisualizer() {
                     <TableHeader>
                       <TableRow className="border-gray-200 bg-gray-50">
                         <TableHead className="text-sm font-semibold text-gray-700">Slab</TableHead>
+                        <TableHead className="text-sm font-semibold text-gray-700 text-right">Units</TableHead>
                         <TableHead className="text-sm font-semibold text-gray-700 text-right">Rate</TableHead>
                         <TableHead className="text-sm font-semibold text-gray-700 text-right">Amount</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {slab1 > 0 && (
-                        <TableRow className="border-gray-100">
-                          <TableCell className="text-sm text-gray-900">0-10 m³</TableCell>
-                          <TableCell className="text-sm text-gray-600 text-right">৳{rates.slab1.toFixed(2)}/m³</TableCell>
-                          <TableCell className="text-sm font-semibold text-gray-900 text-right">৳{slab1.toFixed(2)}</TableCell>
+                      {calculationBreakdown.breakdown.length > 0 ? (
+                        <>
+                          {calculationBreakdown.breakdown.map((item, index) => (
+                            <TableRow key={index} className="border-gray-100">
+                              <TableCell className="text-sm text-gray-900">{item.slab}</TableCell>
+                              <TableCell className="text-sm text-gray-600 text-right">{item.units}</TableCell>
+                              <TableCell className="text-sm text-gray-600 text-right">৳{item.rate.toFixed(2)}/m³</TableCell>
+                              <TableCell className="text-sm font-semibold text-gray-900 text-right">৳{item.amount.toFixed(2)}</TableCell>
+                            </TableRow>
+                          ))}
+                          <TableRow className="border-gray-200 bg-gray-50">
+                            <TableCell className="text-sm font-semibold text-gray-900" colSpan={3}>Base Charge</TableCell>
+                            <TableCell className="text-sm font-semibold text-gray-900 text-right">৳{calculationBreakdown.baseCharge.toFixed(2)}</TableCell>
+                          </TableRow>
+                        </>
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center text-gray-500 py-8">
+                            No breakdown available
+                          </TableCell>
                         </TableRow>
                       )}
-                      {slab2 > 0 && (
-                        <TableRow className="border-gray-100">
-                          <TableCell className="text-sm text-gray-900">11-20 m³</TableCell>
-                          <TableCell className="text-sm text-gray-600 text-right">৳{rates.slab2.toFixed(2)}/m³</TableCell>
-                          <TableCell className="text-sm font-semibold text-gray-900 text-right">৳{slab2.toFixed(2)}</TableCell>
-                        </TableRow>
-                      )}
-                      {slab3 > 0 && (
-                        <TableRow className="border-gray-100">
-                          <TableCell className="text-sm text-gray-900">21-30 m³</TableCell>
-                          <TableCell className="text-sm text-gray-600 text-right">৳{rates.slab3.toFixed(2)}/m³</TableCell>
-                          <TableCell className="text-sm font-semibold text-gray-900 text-right">৳{slab3.toFixed(2)}</TableCell>
-                        </TableRow>
-                      )}
-                      {slab4 > 0 && (
-                        <TableRow className="border-gray-100">
-                          <TableCell className="text-sm text-gray-900">31+ m³</TableCell>
-                          <TableCell className="text-sm text-gray-600 text-right">৳{rates.slab4.toFixed(2)}/m³</TableCell>
-                          <TableCell className="text-sm font-semibold text-gray-900 text-right">৳{slab4.toFixed(2)}</TableCell>
-                        </TableRow>
-                      )}
-                      <TableRow className="border-gray-200 bg-gray-50">
-                        <TableCell className="text-sm font-semibold text-gray-900" colSpan={2}>Base Charge</TableCell>
-                        <TableCell className="text-sm font-semibold text-gray-900 text-right">৳{baseCharge.toFixed(2)}</TableCell>
-                      </TableRow>
                     </TableBody>
                   </Table>
                 </div>
 
                 {/* Location Multipliers Table */}
-                <div className="px-6 py-4 border-t border-gray-100">
-                  <p className="text-sm font-semibold text-gray-900 mb-3">Location Multipliers</p>
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="border-gray-200 bg-gray-50">
-                        <TableHead className="text-sm font-semibold text-gray-700">Location</TableHead>
-                        <TableHead className="text-sm font-semibold text-gray-700 text-right">Multiplier</TableHead>
-                        <TableHead className="text-sm font-semibold text-gray-700 text-right">Amount</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      <TableRow className="border-gray-100">
-                        <TableCell className="text-sm text-gray-900">Dhaka City Corporation</TableCell>
-                        <TableCell className="text-sm text-gray-600 text-right">1.05x</TableCell>
-                        <TableCell className="text-sm font-semibold text-gray-900 text-right">৳{cityMultiplier.toFixed(2)}</TableCell>
-                      </TableRow>
-                      <TableRow className="border-gray-100">
-                        <TableCell className="text-sm text-gray-900">Zone 1</TableCell>
-                        <TableCell className="text-sm text-gray-600 text-right">1.03x</TableCell>
-                        <TableCell className="text-sm font-semibold text-gray-900 text-right">৳{zoneMultiplier.toFixed(2)}</TableCell>
-                      </TableRow>
-                      <TableRow className="border-gray-100">
-                        <TableCell className="text-sm text-gray-900">Ward 3</TableCell>
-                        <TableCell className="text-sm text-gray-600 text-right">1.02x</TableCell>
-                        <TableCell className="text-sm font-semibold text-gray-900 text-right">৳{wardMultiplier.toFixed(2)}</TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </div>
+                {selectedWard && calculationBreakdown.wardMultiplier > 0 && (
+                  <div className="px-6 py-4 border-t border-gray-100">
+                    <p className="text-sm font-semibold text-gray-900 mb-3">Location Multipliers</p>
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-gray-200 bg-gray-50">
+                          <TableHead className="text-sm font-semibold text-gray-700">Location</TableHead>
+                          <TableHead className="text-sm font-semibold text-gray-700 text-right">Multiplier</TableHead>
+                          <TableHead className="text-sm font-semibold text-gray-700 text-right">Amount</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        <TableRow className="border-gray-100">
+                          <TableCell className="text-sm text-gray-900">{selectedWard.name || selectedWard.wardNo}</TableCell>
+                          <TableCell className="text-sm text-gray-600 text-right">{selectedWard.tariffMultiplier.toFixed(2)}x</TableCell>
+                          <TableCell className="text-sm font-semibold text-gray-900 text-right">৳{calculationBreakdown.wardMultiplier.toFixed(2)}</TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
 
                 {/* VAT */}
                 <div className="flex items-center justify-between px-6 py-4">
@@ -334,13 +478,13 @@ export default function TariffVisualizer() {
                     <p className="text-sm font-medium text-gray-900">VAT</p>
                     <p className="text-xs text-gray-500 mt-0.5">15% tax</p>
                   </div>
-                  <p className="text-base font-semibold text-gray-900">৳{vat.toFixed(2)}</p>
+                  <p className="text-base font-semibold text-gray-900">৳{calculationBreakdown.vat.toFixed(2)}</p>
                 </div>
 
                 {/* Total */}
                 <div className="flex items-center justify-between px-6 py-5 bg-blue-50">
                   <p className="font-semibold text-gray-900">Total Amount</p>
-                  <p className="text-2xl font-semibold text-primary">৳{total.toFixed(2)}</p>
+                  <p className="text-2xl font-semibold text-primary">৳{calculationBreakdown.total.toFixed(2)}</p>
                 </div>
               </div>
             </div>

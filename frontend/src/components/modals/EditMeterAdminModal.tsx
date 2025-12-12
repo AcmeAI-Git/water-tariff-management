@@ -19,9 +19,11 @@ interface EditMeterAdminModalProps {
   onClose: () => void;
   onSave: (admin: MeterAdmin) => void;
   admin: MeterAdmin | null;
+  zoneOptions?: Array<{ value: string; label: string }>; // Zone options from API
+  wardOptions?: Array<{ value: string; label: string }>; // Ward options from API
 }
 
-export function EditMeterAdminModal({ open, onClose, onSave, admin }: EditMeterAdminModalProps) {
+export function EditMeterAdminModal({ open, onClose, onSave, admin, zoneOptions = [], wardOptions = [] }: EditMeterAdminModalProps) {
   const [form, setForm] = useState<MeterAdmin>({
     name: "",
     email: "",
@@ -67,11 +69,11 @@ export function EditMeterAdminModal({ open, onClose, onSave, admin }: EditMeterA
           <div className="flex gap-2">
             <div className="w-1/2">
               <Label className="text-sm">Zone</Label>
-              <Dropdown options={[{value:"zone-1",label:"Zone-1"},{value:"zone-2",label:"Zone-2"},{value:"zone-3",label:"Zone-3"},{value:"zone-4",label:"Zone-4"}]} value={form.zone || ""} onChange={v => handleChange("zone", v)} placeholder="Select zone" className="w-full" />
+              <Dropdown options={zoneOptions} value={form.zone || ""} onChange={v => handleChange("zone", v)} placeholder="Select zone" className="w-full" />
             </div>
             <div className="w-1/2">
               <Label className="text-sm">Ward</Label>
-              <Dropdown options={[{value:"ward-1",label:"Ward-1"},{value:"ward-2",label:"Ward-2"},{value:"ward-3",label:"Ward-3"},{value:"ward-4",label:"Ward-4"}]} value={form.ward || ""} onChange={v => handleChange("ward", v)} placeholder="Select ward" className="w-full" />
+              <Dropdown options={wardOptions} value={form.ward || ""} onChange={v => handleChange("ward", v)} placeholder="Select ward" className="w-full" />
             </div>
           </div>
           <div>

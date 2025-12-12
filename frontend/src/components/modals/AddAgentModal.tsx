@@ -23,9 +23,12 @@ interface AddAgentModalProps {
   agent?: Agent | null;
   roleFixed?: string; // For locking role to specific value (e.g., "Meter Admin")
   onDelete?: () => void; // Optional delete handler for edit mode
+  zoneOptions?: Array<{ value: string; label: string }>; // Zone options from API
+  wardOptions?: Array<{ value: string; label: string }>; // Ward options from API
+  roleOptions?: Array<{ value: string; label: string }>; // Role options from API
 }
 
-export function AddAgentModal({ open, onClose, onSave, editMode = false, agent = null, roleFixed, onDelete }: AddAgentModalProps) {
+export function AddAgentModal({ open, onClose, onSave, editMode = false, agent = null, roleFixed, onDelete, zoneOptions = [], wardOptions = [], roleOptions = [] }: AddAgentModalProps) {
   const [form, setForm] = useState<Agent>({
     name: "",
     phone: "",
@@ -86,11 +89,11 @@ export function AddAgentModal({ open, onClose, onSave, editMode = false, agent =
           <Input placeholder="Full Name" value={form.name} onChange={e => handleChange("name", e.target.value)} />
           <Input placeholder="Phone Number" value={form.phone || ""} onChange={e => handleChange("phone", e.target.value)} />
           <div className="flex gap-2">
-            <Dropdown options={[{value:"zone-1",label:"Zone-1"},{value:"zone-2",label:"Zone-2"},{value:"zone-3",label:"Zone-3"},{value:"zone-4",label:"Zone-4"}]} value={form.zone || ""} onChange={v => handleChange("zone", v)} placeholder="Select zone" className="w-1/2" />
-            <Dropdown options={[{value:"ward-1",label:"Ward-1"},{value:"ward-2",label:"Ward-2"},{value:"ward-3",label:"Ward-3"},{value:"ward-4",label:"Ward-4"}]} value={form.ward || ""} onChange={v => handleChange("ward", v)} placeholder="Select ward" className="w-1/2" />
+            <Dropdown options={zoneOptions} value={form.zone || ""} onChange={v => handleChange("zone", v)} placeholder="Select zone" className="w-1/2" />
+            <Dropdown options={wardOptions} value={form.ward || ""} onChange={v => handleChange("ward", v)} placeholder="Select ward" className="w-1/2" />
           </div>
           <Dropdown 
-            options={[
+            options={roleOptions.length > 0 ? roleOptions : [
               {value:"Super Admin",label:"Super Admin"},
               {value:"Tariff Admin",label:"Tariff Admin"},
               {value:"Customer Admin",label:"Customer Admin"},

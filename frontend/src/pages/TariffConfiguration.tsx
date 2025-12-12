@@ -1,54 +1,137 @@
 import { Button } from '../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { EditRatesModal } from '../components/modals/EditRatesModal';
 import { EditMultipliersModal } from '../components/modals/EditMultipliersModal';
+import { api } from '../services/api';
+import { useApiQuery } from '../hooks/useApiQuery';
+import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import type { TariffPlan, CityCorporation, Zone, Ward } from '../types';
 
 export function TariffConfiguration() {
   const [activeTab, setActiveTab] = useState<'slabs' | 'multipliers'>('slabs');
   const [showEditRates, setShowEditRates] = useState(false);
   const [showEditMultipliers, setShowEditMultipliers] = useState(false);
+  const [selectedCityId, setSelectedCityId] = useState<number | null>(null);
+  const [selectedZoneId, setSelectedZoneId] = useState<number | null>(null);
 
-  const residentialSlabs = [
-    { range: '0 - 10', rate: '12.00' },
-    { range: '11 - 20', rate: '18.00' },
-    { range: '21 - 30', rate: '25.00' },
-    { range: '31+', rate: '35.00' },
-  ];
+  // Fetch tariff plans
+  const { data: tariffPlans = [], isLoading: plansLoading } = useApiQuery(
+    ['tariff-plans'],
+    () => api.tariffPlans.getAll()
+  );
 
-  const commercialSlabs = [
-    { range: '0 - 15', rate: '25.00' },
-    { range: '16 - 30', rate: '40.00' },
-    { range: '31 - 50', rate: '55.00' },
-    { range: '51+', rate: '70.00' },
-  ];
+  // Fetch city corporations
+  const { data: cityCorporations = [], isLoading: citiesLoading } = useApiQuery(
+    ['city-corporations'],
+    () => api.cityCorporations.getAll()
+  );
 
-  // Demo wards for each city
-  const cityWardMap = {
-    Dhaka: [
-      { ward: 'Ward 1', multiplier: '1.20' },
-      { ward: 'Ward 2', multiplier: '1.15' },
-      { ward: 'Ward 3', multiplier: '1.10' },
-      { ward: 'Ward 4', multiplier: '1.05' },
-      { ward: 'Ward 5', multiplier: '1.00' },
-    ],
-    Chittagong: [
-      { ward: 'Ward 1', multiplier: '1.18' },
-      { ward: 'Ward 2', multiplier: '1.12' },
-      { ward: 'Ward 3', multiplier: '1.08' },
-      { ward: 'Ward 4', multiplier: '1.03' },
-      { ward: 'Ward 5', multiplier: '1.00' },
-    ],
-    Khulna: [
-      { ward: 'Ward 1', multiplier: '1.10' },
-      { ward: 'Ward 2', multiplier: '1.07' },
-      { ward: 'Ward 3', multiplier: '1.04' },
-      { ward: 'Ward 4', multiplier: '1.01' },
-      { ward: 'Ward 5', multiplier: '1.00' },
-    ],
-  };
-  const [selectedCity, setSelectedCity] = useState<'Dhaka' | 'Chittagong' | 'Khulna'>('Dhaka');
-  const wardMultipliers: { ward: string; multiplier: string }[] = cityWardMap[selectedCity];
+  // Fetch zones filtered by selected city
+  const { data: zones = [], isLoading: zonesLoading } = useApiQuery(
+    ['zones', selectedCityId],
+    () => api.zones.getAll(selectedCityId || undefined),
+    { enabled: !!selectedCityId }
+  );
+
+  // Fetch wards filtered by selected zone
+  const { data: wards = [], isLoading: wardsLoading } = useApiQuery(
+    ['wards', selectedZoneId],
+    () => api.wards.getAll(selectedZoneId || undefined),
+    { enabled: !!selectedZoneId }
+  );
+
+  // Set default city when cities load
+  useMemo(() => {
+    if (cityCorporations.length > 0 && !selectedCityId) {
+      setSelectedCityId(cityCorporations[0].id);
+    }
+  }, [cityCorporations, selectedCityId]);
+
+  // Set default zone when zones load
+  useMemo(() => {
+    if (zones.length > 0 && !selectedZoneId) {
+      setSelectedZoneId(zones[0].id);
+    }
+  }, [zones, selectedZoneId]);
+
+  // Filter active tariff plans by type
+  const residentialPlans = useMemo(() => {
+    return tariffPlans.filter((plan) => 
+      plan.name.toLowerCase().includes('residential') && 
+      (!plan.effectiveTo || new Date(plan.effectiveTo) > new Date())
+    );
+  }, [tariffPlans]);
+
+  const commercialPlans = useMemo(() => {
+    return tariffPlans.filter((plan) => 
+      plan.name.toLowerCase().includes('commercial') && 
+      (!plan.effectiveTo || new Date(plan.effectiveTo) > new Date())
+    );
+  }, [tariffPlans]);
+
+  // Extract residential slabs from active plans
+  const residentialSlabs = useMemo(() => {
+    const allSlabs: Array<{ range: string; rate: string }> = [];
+    residentialPlans.forEach((plan) => {
+      if (plan.slabs) {
+        plan.slabs
+          .sort((a, b) => a.slabOrder - b.slabOrder)
+          .forEach((slab) => {
+            const range = slab.maxConsumption 
+              ? `${slab.minConsumption} - ${slab.maxConsumption}`
+              : `${slab.minConsumption}+`;
+            allSlabs.push({
+              range,
+              rate: parseFloat(slab.ratePerUnit.toString()).toFixed(2),
+            });
+          });
+      }
+    });
+    return allSlabs;
+  }, [residentialPlans]);
+
+  // Extract commercial slabs from active plans
+  const commercialSlabs = useMemo(() => {
+    const allSlabs: Array<{ range: string; rate: string }> = [];
+    commercialPlans.forEach((plan) => {
+      if (plan.slabs) {
+        plan.slabs
+          .sort((a, b) => a.slabOrder - b.slabOrder)
+          .forEach((slab) => {
+            const range = slab.maxConsumption 
+              ? `${slab.minConsumption} - ${slab.maxConsumption}`
+              : `${slab.minConsumption}+`;
+            allSlabs.push({
+              range,
+              rate: parseFloat(slab.ratePerUnit.toString()).toFixed(2),
+            });
+          });
+      }
+    });
+    return allSlabs;
+  }, [commercialPlans]);
+
+  // Prepare ward multipliers from API data
+  const wardMultipliers = useMemo(() => {
+    return wards.map((ward) => ({
+      ward: ward.name || ward.wardNo,
+      multiplier: ward.tariffMultiplier.toFixed(2),
+    }));
+  }, [wards]);
+
+  // Get selected city name
+  const selectedCity = useMemo(() => {
+    return cityCorporations.find(c => c.id === selectedCityId)?.name || '';
+  }, [cityCorporations, selectedCityId]);
+
+  if (plansLoading || citiesLoading || zonesLoading || wardsLoading) {
+    return (
+      <div className="min-h-screen bg-[#f8f9fb] flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f8f9fb]">
@@ -105,12 +188,20 @@ export function TariffConfiguration() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {residentialSlabs.map((slab, index) => (
-                      <TableRow key={index} className="border-gray-100">
-                        <TableCell className="text-sm text-gray-900 font-medium">{slab.range}</TableCell>
-                        <TableCell className="text-sm text-gray-600 text-center">৳{slab.rate}</TableCell>
+                    {residentialSlabs.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={2} className="text-center text-gray-500 py-8">
+                          No residential tariff slabs found
+                        </TableCell>
                       </TableRow>
-                    ))}
+                    ) : (
+                      residentialSlabs.map((slab, index) => (
+                        <TableRow key={index} className="border-gray-100">
+                          <TableCell className="text-sm text-gray-900 font-medium">{slab.range}</TableCell>
+                          <TableCell className="text-sm text-gray-600 text-center">৳{slab.rate}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </div>
@@ -136,12 +227,20 @@ export function TariffConfiguration() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {commercialSlabs.map((slab, index) => (
-                      <TableRow key={index} className="border-gray-100">
-                        <TableCell className="text-sm text-gray-900 font-medium">{slab.range}</TableCell>
-                        <TableCell className="text-sm text-gray-600 text-center">৳{slab.rate}</TableCell>
+                    {commercialSlabs.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={2} className="text-center text-gray-500 py-8">
+                          No commercial tariff slabs found
+                        </TableCell>
                       </TableRow>
-                    ))}
+                    ) : (
+                      commercialSlabs.map((slab, index) => (
+                        <TableRow key={index} className="border-gray-100">
+                          <TableCell className="text-sm text-gray-900 font-medium">{slab.range}</TableCell>
+                          <TableCell className="text-sm text-gray-600 text-center">৳{slab.rate}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </div>
@@ -157,13 +256,37 @@ export function TariffConfiguration() {
               <div className="flex items-center gap-3">
                 <select
                   className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                  value={selectedCity}
-                  onChange={e => setSelectedCity(e.target.value as 'Dhaka' | 'Chittagong' | 'Khulna')}
+                  value={selectedCityId || ''}
+                  onChange={e => {
+                    const cityId = parseInt(e.target.value);
+                    setSelectedCityId(cityId);
+                    setSelectedZoneId(null); // Reset zone when city changes
+                  }}
                 >
-                  <option>Dhaka</option>
-                  <option>Chittagong</option>
-                  <option>Khulna</option>
+                  <option value="">Select City</option>
+                  {cityCorporations.map((city) => (
+                    <option key={city.id} value={city.id}>
+                      {city.name}
+                    </option>
+                  ))}
                 </select>
+                {selectedCityId && (
+                  <select
+                    className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    value={selectedZoneId || ''}
+                    onChange={e => {
+                      const zoneId = parseInt(e.target.value);
+                      setSelectedZoneId(zoneId);
+                    }}
+                  >
+                    <option value="">Select Zone</option>
+                    {zones.map((zone) => (
+                      <option key={zone.id} value={zone.id}>
+                        {zone.name || zone.zoneNo}
+                      </option>
+                    ))}
+                  </select>
+                )}
                 <Button className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white px-5 py-2 rounded-lg" onClick={() => setShowEditMultipliers(true)}>
                   Edit Multipliers
                 </Button>
@@ -178,12 +301,20 @@ export function TariffConfiguration() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {wardMultipliers.map((ward: { ward: string; multiplier: string }, index: number) => (
-                    <TableRow key={index} className="border-gray-100">
-                      <TableCell className="text-sm text-gray-900 font-medium">{ward.ward}</TableCell>
-                      <TableCell className="text-sm text-gray-600 text-center">{ward.multiplier}x</TableCell>
+                  {wardMultipliers.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={2} className="text-center text-gray-500 py-8">
+                        {selectedZoneId ? 'No wards found for selected zone' : 'Please select a city and zone'}
+                      </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    wardMultipliers.map((ward, index) => (
+                      <TableRow key={index} className="border-gray-100">
+                        <TableCell className="text-sm text-gray-900 font-medium">{ward.ward}</TableCell>
+                        <TableCell className="text-sm text-gray-600 text-center">{ward.multiplier}x</TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>

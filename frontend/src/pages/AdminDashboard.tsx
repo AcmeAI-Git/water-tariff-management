@@ -48,16 +48,45 @@ export default function AdminDashboard() {
         () => api.auditLogs.getAll()
     );
 
+    // Fetch water bills for revenue calculations
+    const { data: waterBills = [], isLoading: waterBillsLoading } = useApiQuery(
+        ['water-bills'],
+        () => api.waterBills.getAll()
+    );
+
+    // Fetch consumption data for average consumption calculation
+    const { data: consumptions = [], isLoading: consumptionsLoading } = useApiQuery(
+        ['consumption'],
+        () => api.consumption.getAll()
+    );
+
     // Calculate metrics
     const totalConsumers = users.length;
     const totalAdmins = admins.length;
     const pendingCount = pendingApprovals.length;
     
-    // Calculate average consumption (simplified - would need water bills data)
-    const avgConsumption = 24.5; // Placeholder - would calculate from consumption data
+    // Calculate average consumption from consumption data
+    const avgConsumption = useMemo(() => {
+        if (consumptions.length === 0) return 0;
+        const totalConsumption = consumptions.reduce((sum, c) => {
+            const consumption = c.currentReading - (c.previousReading || 0);
+            return sum + Math.max(0, consumption); // Ensure non-negative
+        }, 0);
+        return parseFloat((totalConsumption / consumptions.length).toFixed(1));
+    }, [consumptions]);
 
-    // Calculate revenue (simplified - would need water bills data)
-    const totalRevenue = 45.2; // Placeholder - would calculate from water bills
+    // Calculate total revenue (current month) in millions
+    const totalRevenue = useMemo(() => {
+        const currentMonth = new Date().getMonth();
+        const currentYear = new Date().getFullYear();
+        const monthlyRevenue = waterBills
+            .filter(bill => {
+                const billDate = new Date(bill.billMonth);
+                return billDate.getMonth() === currentMonth && billDate.getFullYear() === currentYear;
+            })
+            .reduce((sum, bill) => sum + (bill.totalBill || 0), 0);
+        return parseFloat((monthlyRevenue / 1000000).toFixed(1)); // Convert to millions
+    }, [waterBills]);
 
     useEffect(() => {
         if (!usersLoading && totalConsumers > 0) {
@@ -83,13 +112,32 @@ export default function AdminDashboard() {
         }
     }, [usersLoading, totalConsumers, totalRevenue, avgConsumption]);
 
-    // Prepare revenue data (simplified - would use actual water bills data)
-    const revenueData = [
-        { month: "Jan", revenue: 35000 },
-        { month: "Feb", revenue: 42000 },
-        { month: "Mar", revenue: 48000 },
-        { month: "Apr", revenue: 38000 },
-    ];
+    // Prepare revenue data grouped by month from water bills
+    const revenueData = useMemo(() => {
+        const monthlyRevenue: Record<string, number> = {};
+        waterBills.forEach(bill => {
+            try {
+                const billDate = new Date(bill.billMonth);
+                const month = billDate.toLocaleDateString('en-US', { month: 'short' });
+                monthlyRevenue[month] = (monthlyRevenue[month] || 0) + (bill.totalBill || 0);
+            } catch (e) {
+                // Skip invalid dates
+            }
+        });
+        
+        // Convert to array and sort by date
+        const entries = Object.entries(monthlyRevenue).map(([month, revenue]) => ({ month, revenue }));
+        
+        // Sort by date (most recent first, limited to last 12 months)
+        return entries
+            .sort((a, b) => {
+                const dateA = new Date(a.month + ' 1, 2024');
+                const dateB = new Date(b.month + ' 1, 2024');
+                return dateB.getTime() - dateA.getTime();
+            })
+            .slice(0, 12)
+            .reverse(); // Show oldest to newest
+    }, [waterBills]);
 
     // Map pending approvals to display format
     const pendingData = useMemo(() => {
@@ -108,7 +156,7 @@ export default function AdminDashboard() {
         });
     }, [pendingApprovals]);
 
-    if (usersLoading || adminsLoading || approvalsLoading || auditLogsLoading) {
+    if (usersLoading || adminsLoading || approvalsLoading || auditLogsLoading || waterBillsLoading || consumptionsLoading) {
         return (
             <div className="min-h-screen bg-app flex items-center justify-center">
                 <LoadingSpinner />
