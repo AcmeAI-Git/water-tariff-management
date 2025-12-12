@@ -1,4 +1,4 @@
-﻿import { Dropdown } from "../components/ui/Dropdown";
+import { Dropdown } from "../components/ui/Dropdown";
 import { Button } from "../components/ui/button";
 import {
     Table,
@@ -68,17 +68,25 @@ export function AgentManagement() {
         return admins.map((admin) => mapAdminToDisplay(admin, roles));
     }, [admins, roles]);
 
+    // Filter out meter admins (Agent Management is for all other admins, NOT meter admins)
+    const nonMeterAdmins = useMemo(() => {
+        return displayAdmins.filter((admin) => {
+            const roleName = admin.role.toLowerCase();
+            return !roleName.includes('meter');
+        });
+    }, [displayAdmins]);
+
     // Filter admins by search term
     const filteredAdmins = useMemo(() => {
-        if (!searchTerm) return displayAdmins;
+        if (!searchTerm) return nonMeterAdmins;
         const term = searchTerm.toLowerCase();
-        return displayAdmins.filter(
+        return nonMeterAdmins.filter(
             (admin) =>
                 admin.name.toLowerCase().includes(term) ||
                 admin.email.toLowerCase().includes(term) ||
                 admin.role.toLowerCase().includes(term)
         );
-    }, [displayAdmins, searchTerm]);
+    }, [nonMeterAdmins, searchTerm]);
 
     // Create admin mutation
     const createMutation = useApiMutation(

@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient, UseQueryOptions, UseMutationOptions } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 /**
@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 export function useApiQuery<TData = unknown, TError = Error>(
   queryKey: (string | number)[],
   queryFn: () => Promise<TData>,
-  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>
+  options?: Omit<Parameters<typeof useQuery<TData, TError>>[0], 'queryKey' | 'queryFn'>
 ) {
   return useQuery<TData, TError>({
     queryKey,
@@ -26,7 +26,7 @@ export function useApiQuery<TData = unknown, TError = Error>(
  */
 export function useApiMutation<TData = unknown, TVariables = void, TError = Error>(
   mutationFn: (variables: TVariables) => Promise<TData>,
-  options?: Omit<UseMutationOptions<TData, TError, TVariables>, 'mutationFn'> & {
+  options?: Omit<Parameters<typeof useMutation<TData, TError, TVariables>>[0], 'mutationFn'> & {
     successMessage?: string;
     errorMessage?: string;
     invalidateQueries?: (string | number)[][];

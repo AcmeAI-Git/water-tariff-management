@@ -1,18 +1,38 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { api } from '../services/api';
 import { toast } from 'sonner';
-import type { Admin } from '../types';
 
 export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState<string | null>(null);
   const [error, setError] = useState('');
+
+  // Demo account credentials mapping
+  const demoCredentials: Record<string, { email: string; password: string }> = {
+    admin: { email: 'admin@demo.com', password: 'demo123' },
+    'meter-admin': { email: 'meter-admin@demo.com', password: 'demo123' },
+    'customer-admin': { email: 'customer-admin@demo.com', password: 'demo123' },
+    'tariff-admin': { email: 'tariff-admin@demo.com', password: 'demo123' },
+    'approval-admin': { email: 'approval-admin@demo.com', password: 'demo123' },
+    'general-info': { email: 'general-info@demo.com', password: 'demo123' },
+  };
+
+  // Route mapping for navigation after login
+  const routeMap: Record<string, string> = {
+    admin: '/admin/dashboard',
+    'meter-admin': '/meter-admin/entry',
+    'customer-admin': '/customer-admin/households',
+    'tariff-admin': '/tariff-admin/config',
+    'approval-admin': '/approval-admin/queue',
+    'general-info': '/general-info/dashboard',
+  };
 
   const handleLogin = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -49,18 +69,41 @@ export default function Login() {
     }
   };
 
-  const handleDemo = (role: string) => {
-    const routeMap: Record<string, string> = {
-      admin: '/admin/dashboard',
-      'meter-admin': '/meter-admin/entry',
-      'customer-admin': '/customer-admin/households',
-      'tariff-admin': '/tariff-admin/config',
-      'approval-admin': '/approval-admin/queue',
-      'general-info': '/general-info/dashboard',
-    };
-    const dest = routeMap[role] ?? '/admin/dashboard';
-    console.log('[Login.handleDemo] role=', role, '-> dest=', dest);
-    navigate(dest);
+  const handleDemo = async (role: string) => {
+    const credentials = demoCredentials[role];
+    if (!credentials) {
+      toast.error('Invalid demo role');
+      return;
+    }
+
+    try {
+      setDemoLoading(role);
+      setError('');
+      
+      // Call login API with demo credentials
+      const admin = await api.admins.login({
+        email: credentials.email,
+        password: credentials.password,
+      });
+      
+      // Store admin data in localStorage
+      localStorage.setItem('admin', JSON.stringify(admin));
+      localStorage.setItem('isAuthenticated', 'true');
+      
+      toast.success('Demo login successful!');
+      
+      // Navigate to the appropriate route for this role
+      const dest = routeMap[role] ?? '/admin/dashboard';
+      navigate(dest);
+    } catch (err) {
+      const errorMessage = err instanceof Error 
+        ? err.message 
+        : 'Demo login failed. Please ensure demo accounts are set up in the database.';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setDemoLoading(null);
+    }
   };
 
   return (
@@ -96,7 +139,7 @@ export default function Login() {
                 placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                disabled={loading}
+                disabled={loading || demoLoading !== null}
                 className="bg-gray-50 border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                 required
               />
@@ -112,7 +155,7 @@ export default function Login() {
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                disabled={loading}
+                disabled={loading || demoLoading !== null}
                 className="bg-gray-50 border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                 required
               />
@@ -120,17 +163,17 @@ export default function Login() {
 
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-2 focus:ring-primary/20" />
+                <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-2 focus:ring-primary/20" disabled={loading || demoLoading !== null} />
                 <span className="text-sm text-gray-600">Remember me</span>
               </label>
-              <button className="text-sm font-medium text-primary hover:text-primary-600">
+              <button className="text-sm font-medium text-primary hover:text-primary-600" disabled={loading || demoLoading !== null}>
                 Forgot password?
               </button>
             </div>
 
             <Button 
               type="submit"
-              disabled={loading}
+              disabled={loading || demoLoading !== null}
               className="w-full bg-primary hover:bg-primary-600 text-white rounded-lg h-11 text-base font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Logging in...' : 'Login'}
@@ -143,44 +186,50 @@ export default function Login() {
               <Button 
                 onClick={() => handleDemo('admin')}
                 variant="outline"
-                className="border-gray-300 text-gray-700 rounded-lg h-10 text-sm hover:bg-gray-50 bg-white"
+                disabled={loading || demoLoading !== null}
+                className="border-gray-300 text-gray-700 rounded-lg h-10 text-sm hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Super Admin
+                {demoLoading === 'admin' ? 'Logging in...' : 'Super Admin'}
               </Button>
               <Button 
                 onClick={() => handleDemo('meter-admin')}
                 variant="outline"
-                className="border-gray-300 text-gray-700 rounded-lg h-10 text-sm hover:bg-gray-50 bg-white"
+                disabled={loading || demoLoading !== null}
+                className="border-gray-300 text-gray-700 rounded-lg h-10 text-sm hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Meter Admin
+                {demoLoading === 'meter-admin' ? 'Logging in...' : 'Meter Admin'}
               </Button>
               <Button 
                 onClick={() => handleDemo('customer-admin')}
                 variant="outline"
-                className="border-gray-300 text-gray-700 rounded-lg h-10 text-sm hover:bg-gray-50 bg-white"
+                disabled={loading || demoLoading !== null}
+                className="border-gray-300 text-gray-700 rounded-lg h-10 text-sm hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Customer Admin
+                {demoLoading === 'customer-admin' ? 'Logging in...' : 'Customer Admin'}
               </Button>
               <Button 
                 onClick={() => handleDemo('tariff-admin')}
                 variant="outline"
-                className="border-gray-300 text-gray-700 rounded-lg h-10 text-sm hover:bg-gray-50 bg-white"
+                disabled={loading || demoLoading !== null}
+                className="border-gray-300 text-gray-700 rounded-lg h-10 text-sm hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Tariff Admin
+                {demoLoading === 'tariff-admin' ? 'Logging in...' : 'Tariff Admin'}
               </Button>
               <Button 
                 onClick={() => handleDemo('approval-admin')}
                 variant="outline"
-                className="border-gray-300 text-gray-700 rounded-lg h-10 text-sm hover:bg-gray-50 bg-white"
+                disabled={loading || demoLoading !== null}
+                className="border-gray-300 text-gray-700 rounded-lg h-10 text-sm hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Approval Admin
+                {demoLoading === 'approval-admin' ? 'Logging in...' : 'Approval Admin'}
               </Button>
               <Button 
                 onClick={() => handleDemo('general-info')}
                 variant="outline"
-                className="border-gray-300 text-gray-700 rounded-lg h-10 text-sm hover:bg-gray-50 bg-white"
+                disabled={loading || demoLoading !== null}
+                className="border-gray-300 text-gray-700 rounded-lg h-10 text-sm hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                General Info Admin
+                {demoLoading === 'general-info' ? 'Logging in...' : 'General Info Admin'}
               </Button>
             </div>
           </div>
