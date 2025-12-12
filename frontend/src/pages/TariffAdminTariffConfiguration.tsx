@@ -10,10 +10,10 @@ import { Calendar } from '../components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
 import { api } from '../services/api';
 import { useApiQuery, useApiMutation, useAdminId } from '../hooks/useApiQuery';
-import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import LoadingSpinner from '../components/common/LoadingSpinner';
 import { format } from 'date-fns';
 import { cn } from '../utils/utils';
-import type { TariffPlan, TariffSlab, Ward, Zone } from '../types';
+import type { TariffPlan, Ward, Zone } from '../types';
 
 export function TariffAdminTariffConfiguration() {
   const [activeTab, setActiveTab] = useState<'residential' | 'commercial' | 'ward-multipliers' | 'zone-categories'>('residential');
@@ -38,22 +38,25 @@ export function TariffAdminTariffConfiguration() {
   const [newCategory, setNewCategory] = useState('');
 
   // Fetch tariff plans
-  const { data: tariffPlans = [], isLoading: plansLoading } = useApiQuery(
+  const { data: tariffPlansData, isLoading: plansLoading } = useApiQuery<TariffPlan[]>(
     ['tariff-plans'],
     () => api.tariffPlans.getAll()
   );
+  const tariffPlans: TariffPlan[] = (tariffPlansData ?? []) as TariffPlan[];
 
   // Fetch wards
-  const { data: wards = [], isLoading: wardsLoading } = useApiQuery(
+  const { data: wardsData, isLoading: wardsLoading } = useApiQuery<Ward[]>(
     ['wards'],
     () => api.wards.getAll()
   );
+  const wards: Ward[] = (wardsData ?? []) as Ward[];
 
   // Fetch zones
-  const { data: zones = [], isLoading: zonesLoading } = useApiQuery(
+  const { data: zonesData, isLoading: zonesLoading } = useApiQuery<Zone[]>(
     ['zones'],
     () => api.zones.getAll()
   );
+  const zones: Zone[] = (zonesData ?? []) as Zone[];
 
   // Create tariff plan mutation
   const createTariffPlanMutation = useApiMutation(
@@ -87,14 +90,14 @@ export function TariffAdminTariffConfiguration() {
 
   // Filter active tariff plans by type
   const residentialPlans = useMemo(() => {
-    return tariffPlans.filter((plan) => 
+    return tariffPlans.filter((plan: TariffPlan) => 
       plan.name.toLowerCase().includes('residential') && 
       (!plan.effectiveTo || new Date(plan.effectiveTo) > new Date())
     );
   }, [tariffPlans]);
 
   const commercialPlans = useMemo(() => {
-    return tariffPlans.filter((plan) => 
+    return tariffPlans.filter((plan: TariffPlan) => 
       plan.name.toLowerCase().includes('commercial') && 
       (!plan.effectiveTo || new Date(plan.effectiveTo) > new Date())
     );
@@ -103,7 +106,7 @@ export function TariffAdminTariffConfiguration() {
   // Extract slabs from plans
   const residentialSlabs = useMemo(() => {
     const allSlabs: Array<{ id: string; minConsumption: number; maxConsumption: number | null; baseRate: number; effectiveFrom: string; planId: number }> = [];
-    residentialPlans.forEach((plan) => {
+    residentialPlans.forEach((plan: TariffPlan) => {
       if (plan.slabs) {
         plan.slabs.forEach((slab) => {
           allSlabs.push({
@@ -122,7 +125,7 @@ export function TariffAdminTariffConfiguration() {
 
   const commercialSlabs = useMemo(() => {
     const allSlabs: Array<{ id: string; minConsumption: number; maxConsumption: number | null; baseRate: number; effectiveFrom: string; planId: number }> = [];
-    commercialPlans.forEach((plan) => {
+    commercialPlans.forEach((plan: TariffPlan) => {
       if (plan.slabs) {
         plan.slabs.forEach((slab) => {
           allSlabs.push({
@@ -250,15 +253,6 @@ export function TariffAdminTariffConfiguration() {
     handleModalClose();
   };
 
-  const formatDate = (date: Date | undefined) => {
-    if (!date) return null;
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    });
-  };
-
   const formatRange = (min: number, max: number | null) => {
     if (max === null) {
       return `${min}+ m³`;
@@ -307,7 +301,7 @@ export function TariffAdminTariffConfiguration() {
                 <Label htmlFor="rule-type" className="text-sm font-medium text-gray-700">
                   Select Rule Type
                 </Label>
-                <Select value={ruleType} onValueChange={(value: any) => setRuleType(value)}>
+                <Select value={ruleType} onValueChange={(value: 'tariff-slab' | 'ward-multiplier' | 'zone-category') => setRuleType(value)}>
                   <SelectTrigger className="w-full border-gray-300 rounded-lg h-11">
                     <SelectValue placeholder="Select rule type" />
                   </SelectTrigger>
@@ -493,7 +487,7 @@ export function TariffAdminTariffConfiguration() {
                         <SelectValue placeholder="Select ward" />
                       </SelectTrigger>
                       <SelectContent>
-                        {wards.map((ward) => (
+                        {wards.map((ward: Ward) => (
                           <SelectItem key={ward.id} value={ward.id.toString()}>
                             {ward.name || ward.wardNo}
                           </SelectItem>
@@ -531,7 +525,7 @@ export function TariffAdminTariffConfiguration() {
                         <SelectValue placeholder="Select zone" />
                       </SelectTrigger>
                       <SelectContent>
-                        {zones.map((zone) => (
+                        {zones.map((zone: Zone) => (
                           <SelectItem key={zone.id} value={zone.id.toString()}>
                             {zone.name || zone.zoneNo}
                           </SelectItem>
@@ -752,7 +746,7 @@ export function TariffAdminTariffConfiguration() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  wards.map((ward) => (
+                  wards.map((ward: Ward) => (
                     <TableRow key={ward.id} className="border-gray-100">
                       <TableCell className="text-sm font-medium text-gray-900">
                         {ward.name || ward.wardNo}
@@ -807,7 +801,7 @@ export function TariffAdminTariffConfiguration() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  zones.map((zone) => (
+                  zones.map((zone: Zone) => (
                     <TableRow key={zone.id} className="border-gray-100">
                       <TableCell className="text-sm font-medium text-gray-900">
                         {zone.name || zone.zoneNo}
