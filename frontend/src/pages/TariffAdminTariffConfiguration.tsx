@@ -5,22 +5,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Plus, Edit, Calendar as CalendarIcon } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Calendar } from '../components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
+import { api } from '../services/api';
+import { useApiQuery, useApiMutation, useAdminId } from '../hooks/useApiQuery';
+import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import { format } from 'date-fns';
+import { cn } from '../utils/utils';
+import type { TariffPlan, TariffSlab, Ward, Zone } from '../types';
 
 export function TariffAdminTariffConfiguration() {
   const [activeTab, setActiveTab] = useState<'residential' | 'commercial' | 'ward-multipliers' | 'zone-categories'>('residential');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [ruleType, setRuleType] = useState<'tariff-slab' | 'ward-multiplier' | 'zone-category'>('tariff-slab');
+  const adminId = useAdminId();
   
-  // Form states for Tariff Slab
+  // Form states for Tariff Plan (multiple slabs)
+  const [planName, setPlanName] = useState('');
+  const [planDescription, setPlanDescription] = useState('');
   const [slabType, setSlabType] = useState('residential');
-  const [minConsumption, setMinConsumption] = useState('');
-  const [maxConsumption, setMaxConsumption] = useState('');
-  const [baseRate, setBaseRate] = useState('');
-  const [vatPercentage, setVatPercentage] = useState('');
+  const [slabs, setSlabs] = useState<Array<{ minConsumption: string; maxConsumption: string; ratePerUnit: string; slabOrder: number }>>([]);
   const [effectiveFrom, setEffectiveFrom] = useState<Date | undefined>(undefined);
+  const [effectiveTo, setEffectiveTo] = useState<Date | undefined>(undefined);
   
   // Form states for Ward Multiplier
   const [selectedWard, setSelectedWard] = useState('');
@@ -30,29 +37,216 @@ export function TariffAdminTariffConfiguration() {
   const [selectedZone, setSelectedZone] = useState('');
   const [newCategory, setNewCategory] = useState('');
 
+  // Fetch tariff plans
+  const { data: tariffPlans = [], isLoading: plansLoading } = useApiQuery(
+    ['tariff-plans'],
+    () => api.tariffPlans.getAll()
+  );
+
+  // Fetch wards
+  const { data: wards = [], isLoading: wardsLoading } = useApiQuery(
+    ['wards'],
+    () => api.wards.getAll()
+  );
+
+  // Fetch zones
+  const { data: zones = [], isLoading: zonesLoading } = useApiQuery(
+    ['zones'],
+    () => api.zones.getAll()
+  );
+
+  // Create tariff plan mutation
+  const createTariffPlanMutation = useApiMutation(
+    (data: Parameters<typeof api.tariffPlans.create>[0]) => api.tariffPlans.create(data),
+    {
+      successMessage: 'Tariff plan created successfully',
+      errorMessage: 'Failed to create tariff plan',
+      invalidateQueries: [['tariff-plans']],
+    }
+  );
+
+  // Update ward mutation
+  const updateWardMutation = useApiMutation(
+    ({ id, data }: { id: number; data: Parameters<typeof api.wards.update>[1] }) => api.wards.update(id, data),
+    {
+      successMessage: 'Ward multiplier updated successfully',
+      errorMessage: 'Failed to update ward multiplier',
+      invalidateQueries: [['wards']],
+    }
+  );
+
+  // Update zone mutation
+  const updateZoneMutation = useApiMutation(
+    ({ id, data }: { id: number; data: Parameters<typeof api.zones.update>[1] }) => api.zones.update(id, data),
+    {
+      successMessage: 'Zone category updated successfully',
+      errorMessage: 'Failed to update zone category',
+      invalidateQueries: [['zones']],
+    }
+  );
+
+  // Filter active tariff plans by type
+  const residentialPlans = useMemo(() => {
+    return tariffPlans.filter((plan) => 
+      plan.name.toLowerCase().includes('residential') && 
+      (!plan.effectiveTo || new Date(plan.effectiveTo) > new Date())
+    );
+  }, [tariffPlans]);
+
+  const commercialPlans = useMemo(() => {
+    return tariffPlans.filter((plan) => 
+      plan.name.toLowerCase().includes('commercial') && 
+      (!plan.effectiveTo || new Date(plan.effectiveTo) > new Date())
+    );
+  }, [tariffPlans]);
+
+  // Extract slabs from plans
+  const residentialSlabs = useMemo(() => {
+    const allSlabs: Array<{ id: string; minConsumption: number; maxConsumption: number | null; baseRate: number; effectiveFrom: string; planId: number }> = [];
+    residentialPlans.forEach((plan) => {
+      if (plan.slabs) {
+        plan.slabs.forEach((slab) => {
+          allSlabs.push({
+            id: `${plan.id}-${slab.id}`,
+            minConsumption: slab.minConsumption,
+            maxConsumption: slab.maxConsumption,
+            baseRate: parseFloat(slab.ratePerUnit.toString()),
+            effectiveFrom: plan.effectiveFrom,
+            planId: plan.id,
+          });
+        });
+      }
+    });
+    return allSlabs.sort((a, b) => a.minConsumption - b.minConsumption);
+  }, [residentialPlans]);
+
+  const commercialSlabs = useMemo(() => {
+    const allSlabs: Array<{ id: string; minConsumption: number; maxConsumption: number | null; baseRate: number; effectiveFrom: string; planId: number }> = [];
+    commercialPlans.forEach((plan) => {
+      if (plan.slabs) {
+        plan.slabs.forEach((slab) => {
+          allSlabs.push({
+            id: `${plan.id}-${slab.id}`,
+            minConsumption: slab.minConsumption,
+            maxConsumption: slab.maxConsumption,
+            baseRate: parseFloat(slab.ratePerUnit.toString()),
+            effectiveFrom: plan.effectiveFrom,
+            planId: plan.id,
+          });
+        });
+      }
+    });
+    return allSlabs.sort((a, b) => a.minConsumption - b.minConsumption);
+  }, [commercialPlans]);
+
   const handleModalOpen = () => {
     setIsModalOpen(true);
   };
 
   const handleModalClose = () => {
     setIsModalOpen(false);
-    // Reset form fields
     setRuleType('tariff-slab');
     setSlabType('residential');
-    setMinConsumption('');
-    setMaxConsumption('');
-    setBaseRate('');
-    setVatPercentage('');
+    setPlanName('');
+    setPlanDescription('');
+    setSlabs([]);
     setEffectiveFrom(undefined);
+    setEffectiveTo(undefined);
     setSelectedWard('');
     setNewMultiplier('');
     setSelectedZone('');
     setNewCategory('');
   };
 
-  const handleSubmit = () => {
-    // Handle form submission based on rule type
-    console.log('Submitting:', { ruleType, slabType, minConsumption, maxConsumption, baseRate, vatPercentage, effectiveFrom });
+  const addSlab = () => {
+    setSlabs([...slabs, { minConsumption: '', maxConsumption: '', ratePerUnit: '', slabOrder: slabs.length + 1 }]);
+  };
+
+  const removeSlab = (index: number) => {
+    setSlabs(slabs.filter((_, i) => i !== index).map((slab, i) => ({ ...slab, slabOrder: i + 1 })));
+  };
+
+  const updateSlab = (index: number, field: string, value: string) => {
+    const updated = [...slabs];
+    updated[index] = { ...updated[index], [field]: value };
+    setSlabs(updated);
+  };
+
+  const handleSubmit = async () => {
+    if (!adminId) {
+      alert('Admin ID not found. Please log in again.');
+      return;
+    }
+
+    if (ruleType === 'tariff-slab') {
+      if (!planName || !effectiveFrom || slabs.length === 0) {
+        alert('Please fill in plan name, effective date, and add at least one slab');
+        return;
+      }
+
+      // Validate slabs
+      const validatedSlabs = slabs.map((slab, index) => {
+        const min = parseInt(slab.minConsumption);
+        const max = slab.maxConsumption ? parseInt(slab.maxConsumption) : null;
+        const rate = parseFloat(slab.ratePerUnit);
+
+        if (isNaN(min) || isNaN(rate) || rate <= 0) {
+          throw new Error(`Invalid slab ${index + 1} data`);
+        }
+
+        return {
+          minConsumption: min,
+          maxConsumption: max,
+          ratePerUnit: rate,
+          slabOrder: index + 1,
+        };
+      });
+
+      await createTariffPlanMutation.mutateAsync({
+        name: `${slabType === 'residential' ? 'Residential' : 'Commercial'} ${planName}`,
+        description: planDescription || undefined,
+        createdBy: adminId,
+        effectiveFrom: format(effectiveFrom, 'yyyy-MM-dd'),
+        effectiveTo: effectiveTo ? format(effectiveTo, 'yyyy-MM-dd') : undefined,
+        slabs: validatedSlabs,
+      });
+    } else if (ruleType === 'ward-multiplier') {
+      if (!selectedWard || !newMultiplier) {
+        alert('Please select a ward and enter a multiplier');
+        return;
+      }
+
+      const wardId = parseInt(selectedWard);
+      const multiplier = parseFloat(newMultiplier);
+
+      if (isNaN(wardId) || isNaN(multiplier) || multiplier <= 0) {
+        alert('Invalid multiplier value');
+        return;
+      }
+
+      await updateWardMutation.mutateAsync({
+        id: wardId,
+        data: { tariffMultiplier: multiplier },
+      });
+    } else if (ruleType === 'zone-category') {
+      if (!selectedZone || !newCategory) {
+        alert('Please select a zone and enter a category');
+        return;
+      }
+
+      const zoneId = parseInt(selectedZone);
+
+      if (isNaN(zoneId)) {
+        alert('Invalid zone selection');
+        return;
+      }
+
+      await updateZoneMutation.mutateAsync({
+        id: zoneId,
+        data: { tariffCategory: newCategory },
+      });
+    }
+
     handleModalClose();
   };
 
@@ -65,82 +259,20 @@ export function TariffAdminTariffConfiguration() {
     });
   };
 
-  const residentialSlabs = [
-    {
-      id: 1,
-      minConsumption: 0,
-      maxConsumption: 10,
-      baseRate: 8.5,
-      effectiveFrom: '2024-01-01'
-    },
-    {
-      id: 2,
-      minConsumption: 11,
-      maxConsumption: 20,
-      baseRate: 12.0,
-      effectiveFrom: '2024-01-01'
-    },
-    {
-      id: 3,
-      minConsumption: 21,
-      maxConsumption: 50,
-      baseRate: 18.5,
-      effectiveFrom: '2024-01-01'
-    },
-    {
-      id: 4,
-      minConsumption: 51,
-      maxConsumption: null,
-      baseRate: 25.0,
-      effectiveFrom: '2024-01-01'
-    },
-  ];
-
-  const commercialSlabs = [
-    {
-      id: 1,
-      minConsumption: 0,
-      maxConsumption: 10,
-      baseRate: 15.0,
-      effectiveFrom: '2024-01-01'
-    },
-    {
-      id: 2,
-      minConsumption: 11,
-      maxConsumption: 30,
-      baseRate: 22.5,
-      effectiveFrom: '2024-01-01'
-    },
-    {
-      id: 3,
-      minConsumption: 31,
-      maxConsumption: null,
-      baseRate: 35.0,
-      effectiveFrom: '2024-01-01'
-    },
-  ];
-
-  const wardMultipliers = [
-    { id: 1, wardName: 'Ward 1', multiplier: 1.0 },
-    { id: 2, wardName: 'Ward 2', multiplier: 1.05 },
-    { id: 3, wardName: 'Ward 3', multiplier: 0.95 },
-    { id: 4, wardName: 'Ward 4', multiplier: 1.10 },
-    { id: 5, wardName: 'Ward 5', multiplier: 1.02 },
-  ];
-
-  const zoneCategories = [
-    { id: 1, zoneName: 'Zone A', category: 'Urban High' },
-    { id: 2, zoneName: 'Zone B', category: 'Urban Standard' },
-    { id: 3, zoneName: 'Zone C', category: 'Suburban' },
-    { id: 4, zoneName: 'Zone D', category: 'Rural' },
-  ];
-
   const formatRange = (min: number, max: number | null) => {
     if (max === null) {
       return `${min}+ m³`;
     }
     return `${min}-${max} m³`;
   };
+
+  if (plansLoading || wardsLoading || zonesLoading) {
+    return (
+      <div className="min-h-screen bg-[#f8f9fb] flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f8f9fb]">
@@ -164,13 +296,13 @@ export function TariffAdminTariffConfiguration() {
 
         {/* Add New Tariff Rule Modal */}
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-3xl">
+          <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-xl font-semibold text-gray-900">Add New Tariff Rule</DialogTitle>
             </DialogHeader>
 
             <div className="py-4">
-              {/* Rule Type Selector - Full Width */}
+              {/* Rule Type Selector */}
               <div className="space-y-2 mb-6">
                 <Label htmlFor="rule-type" className="text-sm font-medium text-gray-700">
                   Select Rule Type
@@ -180,240 +312,245 @@ export function TariffAdminTariffConfiguration() {
                     <SelectValue placeholder="Select rule type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="tariff-slab">Tariff Slab</SelectItem>
+                    <SelectItem value="tariff-slab">Tariff Plan with Slabs</SelectItem>
                     <SelectItem value="ward-multiplier">Ward Multiplier</SelectItem>
                     <SelectItem value="zone-category">Zone Category</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Dynamic Form Fields Based on Rule Type */}
-              
-              {/* Tariff Slab Fields - Two Column Grid */}
+              {/* Tariff Plan with Slabs */}
               {ruleType === 'tariff-slab' && (
-                <div className="grid grid-cols-2 gap-5">
-                  <div className="space-y-2">
-                    <Label htmlFor="slab-type" className="text-sm font-medium text-gray-700">
-                      Slab Type
-                    </Label>
-                    <Select value={slabType} onValueChange={setSlabType}>
-                      <SelectTrigger className="w-full border-gray-300 rounded-lg h-11">
-                        <SelectValue placeholder="Select slab type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="residential">Residential</SelectItem>
-                        <SelectItem value="commercial">Commercial</SelectItem>
-                      </SelectContent>
-                    </Select>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="plan-name" className="text-sm font-medium text-gray-700">
+                        Plan Name *
+                      </Label>
+                      <Input
+                        id="plan-name"
+                        placeholder="e.g., Tariff 2025"
+                        value={planName}
+                        onChange={(e) => setPlanName(e.target.value)}
+                        className="border-gray-300 rounded-lg h-11"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="slab-type" className="text-sm font-medium text-gray-700">
+                        Plan Type *
+                      </Label>
+                      <Select value={slabType} onValueChange={setSlabType}>
+                        <SelectTrigger className="w-full border-gray-300 rounded-lg h-11">
+                          <SelectValue placeholder="Select plan type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="residential">Residential</SelectItem>
+                          <SelectItem value="commercial">Commercial</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="vat" className="text-sm font-medium text-gray-700">
-                      VAT (%)
+                    <Label htmlFor="plan-description" className="text-sm font-medium text-gray-700">
+                      Description
                     </Label>
                     <Input
-                      id="vat"
-                      type="number"
-                      step="0.01"
-                      placeholder="Enter VAT percentage"
-                      value={vatPercentage}
-                      onChange={(e) => setVatPercentage(e.target.value)}
+                      id="plan-description"
+                      placeholder="Optional description"
+                      value={planDescription}
+                      onChange={(e) => setPlanDescription(e.target.value)}
                       className="border-gray-300 rounded-lg h-11"
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="min-consumption" className="text-sm font-medium text-gray-700">
-                      Min Consumption (m³)
-                    </Label>
-                    <Input
-                      id="min-consumption"
-                      type="number"
-                      placeholder="Enter minimum consumption"
-                      value={minConsumption}
-                      onChange={(e) => setMinConsumption(e.target.value)}
-                      className="border-gray-300 rounded-lg h-11"
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">
+                        Effective From *
+                      </Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left border-gray-300 rounded-lg h-11 bg-white hover:bg-gray-50",
+                              !effectiveFrom && "text-gray-500"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {effectiveFrom ? format(effectiveFrom, "PPP") : "Pick a date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={effectiveFrom}
+                            onSelect={setEffectiveFrom}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">
+                        Effective To (Optional)
+                      </Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left border-gray-300 rounded-lg h-11 bg-white hover:bg-gray-50",
+                              !effectiveTo && "text-gray-500"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {effectiveTo ? format(effectiveTo, "PPP") : "Pick a date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={effectiveTo}
+                            onSelect={setEffectiveTo}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
                   </div>
 
+                  {/* Slabs Management */}
                   <div className="space-y-2">
-                    <Label htmlFor="max-consumption" className="text-sm font-medium text-gray-700">
-                      Max Consumption (m³)
-                    </Label>
-                    <Input
-                      id="max-consumption"
-                      type="number"
-                      placeholder="Enter maximum consumption"
-                      value={maxConsumption}
-                      onChange={(e) => setMaxConsumption(e.target.value)}
-                      className="border-gray-300 rounded-lg h-11"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="base-rate" className="text-sm font-medium text-gray-700">
-                      Base Rate (BDT/m³)
-                    </Label>
-                    <Input
-                      id="base-rate"
-                      type="number"
-                      step="0.01"
-                      placeholder="Enter base rate"
-                      value={baseRate}
-                      onChange={(e) => setBaseRate(e.target.value)}
-                      className="border-gray-300 rounded-lg h-11"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-700">
-                      Effective From
-                    </Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="w-full justify-start text-left border-gray-300 rounded-lg h-11 bg-white hover:bg-gray-50"
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {effectiveFrom ? formatDate(effectiveFrom) : <span className="text-gray-500">Pick a date</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={effectiveFrom}
-                          onSelect={setEffectiveFrom}
-                          initialFocus
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium text-gray-700">
+                        Tariff Slabs *
+                      </Label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addSlab}
+                        className="h-8"
+                      >
+                        <Plus size={14} className="mr-1" />
+                        Add Slab
+                      </Button>
+                    </div>
+                    {slabs.map((slab, index) => (
+                      <div key={index} className="grid grid-cols-4 gap-2 p-3 bg-gray-50 rounded-lg">
+                        <Input
+                          placeholder="Min (m³)"
+                          type="number"
+                          value={slab.minConsumption}
+                          onChange={(e) => updateSlab(index, 'minConsumption', e.target.value)}
+                          className="h-9"
                         />
-                      </PopoverContent>
-                    </Popover>
+                        <Input
+                          placeholder="Max (m³)"
+                          type="number"
+                          value={slab.maxConsumption}
+                          onChange={(e) => updateSlab(index, 'maxConsumption', e.target.value)}
+                          className="h-9"
+                        />
+                        <Input
+                          placeholder="Rate (BDT/m³)"
+                          type="number"
+                          step="0.01"
+                          value={slab.ratePerUnit}
+                          onChange={(e) => updateSlab(index, 'ratePerUnit', e.target.value)}
+                          className="h-9"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => removeSlab(index)}
+                          className="h-9 text-red-600 hover:text-red-700"
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    ))}
+                    {slabs.length === 0 && (
+                      <p className="text-sm text-gray-500">Click "Add Slab" to add tariff slabs</p>
+                    )}
                   </div>
                 </div>
               )}
 
-              {/* Ward Multiplier Fields - Two Column Grid */}
+              {/* Ward Multiplier */}
               {ruleType === 'ward-multiplier' && (
                 <div className="grid grid-cols-2 gap-5">
                   <div className="space-y-2">
                     <Label htmlFor="select-ward" className="text-sm font-medium text-gray-700">
-                      Select Ward
+                      Select Ward *
                     </Label>
                     <Select value={selectedWard} onValueChange={setSelectedWard}>
                       <SelectTrigger className="w-full border-gray-300 rounded-lg h-11">
                         <SelectValue placeholder="Select ward" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="ward-1">Ward 1</SelectItem>
-                        <SelectItem value="ward-2">Ward 2</SelectItem>
-                        <SelectItem value="ward-3">Ward 3</SelectItem>
-                        <SelectItem value="ward-4">Ward 4</SelectItem>
-                        <SelectItem value="ward-5">Ward 5</SelectItem>
+                        {wards.map((ward) => (
+                          <SelectItem key={ward.id} value={ward.id.toString()}>
+                            {ward.name || ward.wardNo}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="new-multiplier" className="text-sm font-medium text-gray-700">
-                      New Multiplier
+                      New Multiplier *
                     </Label>
                     <Input
                       id="new-multiplier"
                       type="number"
                       step="0.01"
-                      placeholder="Enter multiplier (e.g., 1.05)"
+                      placeholder="e.g., 1.05"
                       value={newMultiplier}
                       onChange={(e) => setNewMultiplier(e.target.value)}
                       className="border-gray-300 rounded-lg h-11"
                     />
                   </div>
-
-                  <div className="space-y-2 col-span-2">
-                    <Label className="text-sm font-medium text-gray-700">
-                      Effective From
-                    </Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="w-full justify-start text-left border-gray-300 rounded-lg h-11 bg-white hover:bg-gray-50"
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {effectiveFrom ? formatDate(effectiveFrom) : <span className="text-gray-500">Pick a date</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={effectiveFrom}
-                          onSelect={setEffectiveFrom}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
                 </div>
               )}
 
-              {/* Zone Category Fields - Two Column Grid */}
+              {/* Zone Category */}
               {ruleType === 'zone-category' && (
                 <div className="grid grid-cols-2 gap-5">
                   <div className="space-y-2">
                     <Label htmlFor="select-zone" className="text-sm font-medium text-gray-700">
-                      Select Zone
+                      Select Zone *
                     </Label>
                     <Select value={selectedZone} onValueChange={setSelectedZone}>
                       <SelectTrigger className="w-full border-gray-300 rounded-lg h-11">
                         <SelectValue placeholder="Select zone" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="zone-a">Zone A</SelectItem>
-                        <SelectItem value="zone-b">Zone B</SelectItem>
-                        <SelectItem value="zone-c">Zone C</SelectItem>
-                        <SelectItem value="zone-d">Zone D</SelectItem>
+                        {zones.map((zone) => (
+                          <SelectItem key={zone.id} value={zone.id.toString()}>
+                            {zone.name || zone.zoneNo}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="new-category" className="text-sm font-medium text-gray-700">
-                      New Category
+                      New Category *
                     </Label>
-                    <Select value={newCategory} onValueChange={setNewCategory}>
-                      <SelectTrigger className="w-full border-gray-300 rounded-lg h-11">
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="high">High</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="low">Low</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2 col-span-2">
-                    <Label className="text-sm font-medium text-gray-700">
-                      Effective From
-                    </Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="w-full justify-start text-left border-gray-300 rounded-lg h-11 bg-white hover:bg-gray-50"
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {effectiveFrom ? formatDate(effectiveFrom) : <span className="text-gray-500">Pick a date</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={effectiveFrom}
-                          onSelect={setEffectiveFrom}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <Input
+                      id="new-category"
+                      placeholder="e.g., Urban High"
+                      value={newCategory}
+                      onChange={(e) => setNewCategory(e.target.value)}
+                      className="border-gray-300 rounded-lg h-11"
+                    />
                   </div>
                 </div>
               )}
@@ -429,9 +566,16 @@ export function TariffAdminTariffConfiguration() {
               </Button>
               <Button
                 onClick={handleSubmit}
-                className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-10 px-6"
+                disabled={
+                  createTariffPlanMutation.isPending ||
+                  updateWardMutation.isPending ||
+                  updateZoneMutation.isPending
+                }
+                className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-10 px-6 disabled:opacity-50"
               >
-                Add Rule
+                {createTariffPlanMutation.isPending || updateWardMutation.isPending || updateZoneMutation.isPending
+                  ? 'Saving...'
+                  : 'Add Rule'}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -483,30 +627,39 @@ export function TariffAdminTariffConfiguration() {
           </div>
         </div>
 
-          {/* Residential Slabs */}
-          {activeTab === 'residential' && (
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">Current Residential Tariff Slabs</h3>
-              </div>
+        {/* Residential Slabs */}
+        {activeTab === 'residential' && (
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Current Residential Tariff Slabs</h3>
+            </div>
 
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-gray-200 bg-gray-50">
-                    <TableHead className="text-sm font-semibold text-gray-700">Range (m³)</TableHead>
-                    <TableHead className="text-sm font-semibold text-gray-700">Base Rate (BDT/m³)</TableHead>
-                    <TableHead className="text-sm font-semibold text-gray-700">Effective From</TableHead>
-                    <TableHead className="text-sm font-semibold text-gray-700 text-center">Action</TableHead>
+            <Table>
+              <TableHeader>
+                <TableRow className="border-gray-200 bg-gray-50">
+                  <TableHead className="text-sm font-semibold text-gray-700">Range (m³)</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">Base Rate (BDT/m³)</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">Effective From</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700 text-center">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {residentialSlabs.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-gray-500 py-8">
+                      No residential tariff slabs found
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {residentialSlabs.map((slab) => (
+                ) : (
+                  residentialSlabs.map((slab) => (
                     <TableRow key={slab.id} className="border-gray-100">
                       <TableCell className="text-sm font-medium text-gray-900">
                         {formatRange(slab.minConsumption, slab.maxConsumption)}
                       </TableCell>
                       <TableCell className="text-sm text-gray-600">৳{slab.baseRate.toFixed(2)}</TableCell>
-                      <TableCell className="text-sm text-gray-600">{slab.effectiveFrom}</TableCell>
+                      <TableCell className="text-sm text-gray-600">
+                        {new Date(slab.effectiveFrom).toLocaleDateString('en-US')}
+                      </TableCell>
                       <TableCell className="text-center">
                         <Button 
                           variant="outline" 
@@ -518,36 +671,46 @@ export function TariffAdminTariffConfiguration() {
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+
+        {/* Commercial Slabs */}
+        {activeTab === 'commercial' && (
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Current Commercial Tariff Slabs</h3>
             </div>
-          )}
 
-          {/* Commercial Slabs */}
-          {activeTab === 'commercial' && (
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">Current Commercial Tariff Slabs</h3>
-              </div>
-
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-gray-200 bg-gray-50">
-                    <TableHead className="text-sm font-semibold text-gray-700">Range (m³)</TableHead>
-                    <TableHead className="text-sm font-semibold text-gray-700">Base Rate (BDT/m³)</TableHead>
-                    <TableHead className="text-sm font-semibold text-gray-700">Effective From</TableHead>
-                    <TableHead className="text-sm font-semibold text-gray-700 text-center">Action</TableHead>
+            <Table>
+              <TableHeader>
+                <TableRow className="border-gray-200 bg-gray-50">
+                  <TableHead className="text-sm font-semibold text-gray-700">Range (m³)</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">Base Rate (BDT/m³)</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">Effective From</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700 text-center">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {commercialSlabs.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-gray-500 py-8">
+                      No commercial tariff slabs found
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {commercialSlabs.map((slab) => (
+                ) : (
+                  commercialSlabs.map((slab) => (
                     <TableRow key={slab.id} className="border-gray-100">
                       <TableCell className="text-sm font-medium text-gray-900">
                         {formatRange(slab.minConsumption, slab.maxConsumption)}
                       </TableCell>
                       <TableCell className="text-sm text-gray-600">৳{slab.baseRate.toFixed(2)}</TableCell>
-                      <TableCell className="text-sm text-gray-600">{slab.effectiveFrom}</TableCell>
+                      <TableCell className="text-sm text-gray-600">
+                        {new Date(slab.effectiveFrom).toLocaleDateString('en-US')}
+                      </TableCell>
                       <TableCell className="text-center">
                         <Button 
                           variant="outline" 
@@ -559,36 +722,54 @@ export function TariffAdminTariffConfiguration() {
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+
+        {/* Ward Multipliers */}
+        {activeTab === 'ward-multipliers' && (
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Current Ward Multipliers</h3>
             </div>
-          )}
 
-          {/* Ward Multipliers */}
-          {activeTab === 'ward-multipliers' && (
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">Current Ward Multipliers</h3>
-              </div>
-
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-gray-200 bg-gray-50">
-                    <TableHead className="text-sm font-semibold text-gray-700">Ward Name</TableHead>
-                    <TableHead className="text-sm font-semibold text-gray-700">Multiplier</TableHead>
-                    <TableHead className="text-sm font-semibold text-gray-700 text-center">Action</TableHead>
+            <Table>
+              <TableHeader>
+                <TableRow className="border-gray-200 bg-gray-50">
+                  <TableHead className="text-sm font-semibold text-gray-700">Ward Name</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">Multiplier</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700 text-center">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {wards.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center text-gray-500 py-8">
+                      No wards found
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {wardMultipliers.map((ward) => (
+                ) : (
+                  wards.map((ward) => (
                     <TableRow key={ward.id} className="border-gray-100">
-                      <TableCell className="text-sm font-medium text-gray-900">{ward.wardName}</TableCell>
-                      <TableCell className="text-sm text-gray-600">{ward.multiplier.toFixed(2)}x</TableCell>
+                      <TableCell className="text-sm font-medium text-gray-900">
+                        {ward.name || ward.wardNo}
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-600">
+                        {ward.tariffMultiplier ? ward.tariffMultiplier.toFixed(2) : '1.00'}x
+                      </TableCell>
                       <TableCell className="text-center">
                         <Button 
                           variant="outline" 
                           size="sm"
+                          onClick={() => {
+                            setSelectedWard(ward.id.toString());
+                            setNewMultiplier(ward.tariffMultiplier?.toString() || '1.0');
+                            setRuleType('ward-multiplier');
+                            setIsModalOpen(true);
+                          }}
                           className="border-gray-300 text-gray-700 rounded-lg h-8 px-3 bg-white hover:bg-gray-50 inline-flex items-center gap-1.5"
                         >
                           <Edit size={14} />
@@ -596,36 +777,54 @@ export function TariffAdminTariffConfiguration() {
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+
+        {/* Zone Categories */}
+        {activeTab === 'zone-categories' && (
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Current Zone Categories</h3>
             </div>
-          )}
 
-          {/* Zone Categories */}
-          {activeTab === 'zone-categories' && (
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">Current Zone Categories</h3>
-              </div>
-
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-gray-200 bg-gray-50">
-                    <TableHead className="text-sm font-semibold text-gray-700">Zone Name</TableHead>
-                    <TableHead className="text-sm font-semibold text-gray-700">Category</TableHead>
-                    <TableHead className="text-sm font-semibold text-gray-700 text-center">Action</TableHead>
+            <Table>
+              <TableHeader>
+                <TableRow className="border-gray-200 bg-gray-50">
+                  <TableHead className="text-sm font-semibold text-gray-700">Zone Name</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">Category</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700 text-center">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {zones.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center text-gray-500 py-8">
+                      No zones found
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {zoneCategories.map((zone) => (
+                ) : (
+                  zones.map((zone) => (
                     <TableRow key={zone.id} className="border-gray-100">
-                      <TableCell className="text-sm font-medium text-gray-900">{zone.zoneName}</TableCell>
-                      <TableCell className="text-sm text-gray-600">{zone.category}</TableCell>
+                      <TableCell className="text-sm font-medium text-gray-900">
+                        {zone.name || zone.zoneNo}
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-600">
+                        {zone.tariffCategory || 'Not set'}
+                      </TableCell>
                       <TableCell className="text-center">
                         <Button 
                           variant="outline" 
                           size="sm"
+                          onClick={() => {
+                            setSelectedZone(zone.id.toString());
+                            setNewCategory(zone.tariffCategory || '');
+                            setRuleType('zone-category');
+                            setIsModalOpen(true);
+                          }}
                           className="border-gray-300 text-gray-700 rounded-lg h-8 px-3 bg-white hover:bg-gray-50 inline-flex items-center gap-1.5"
                         >
                           <Edit size={14} />
@@ -633,11 +832,12 @@ export function TariffAdminTariffConfiguration() {
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </div>
     </div>
   );

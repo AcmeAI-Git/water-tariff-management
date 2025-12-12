@@ -1,119 +1,88 @@
 ﻿import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Badge } from '../components/ui/badge';
-import { FileText, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { useMemo } from 'react';
+import { api } from '../services/api';
+import { useApiQuery } from '../hooks/useApiQuery';
+import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import type { Consumption, User } from '../types';
 
 export function MeterAdminSubmittedReadings() {
-  const submittedReadings = [
-    {
-      id: 1,
-      batchId: 'BATCH-2025-001',
-      householdName: 'Ahmed Residence',
-      meterNo: 'MTR-2024-001',
-      reading: '245.5',
-      month: 'January 2025',
-      submittedDate: '2025-01-15',
-      status: 'Approved',
-    },
-    {
-      id: 2,
-      batchId: 'BATCH-2025-001',
-      householdName: 'Rahman Villa',
-      meterNo: 'MTR-2024-002',
-      reading: '189.2',
-      month: 'January 2025',
-      submittedDate: '2025-01-15',
-      status: 'Approved',
-    },
-    {
-      id: 3,
-      batchId: 'BATCH-2025-002',
-      householdName: 'Sarah Khan',
-      meterNo: 'MTR-2024-003',
-      reading: '312.8',
-      month: 'January 2025',
-      submittedDate: '2025-01-20',
-      status: 'Pending',
-    },
-    {
-      id: 4,
-      batchId: 'BATCH-2025-002',
-      householdName: 'Karim Enterprises',
-      meterNo: 'MTR-2024-004',
-      reading: '567.4',
-      month: 'January 2025',
-      submittedDate: '2025-01-20',
-      status: 'Pending',
-    },
-    {
-      id: 5,
-      batchId: 'BATCH-2025-003',
-      householdName: 'Hossain Apartment',
-      meterNo: 'MTR-2024-005',
-      reading: '198.1',
-      month: 'December 2024',
-      submittedDate: '2025-01-05',
-      status: 'Rejected',
-    },
-    {
-      id: 6,
-      batchId: 'BATCH-2024-128',
-      householdName: 'Ali Trading Co.',
-      meterNo: 'MTR-2024-006',
-      reading: '423.7',
-      month: 'December 2024',
-      submittedDate: '2024-12-28',
-      status: 'Approved',
-    },
-    {
-      id: 7,
-      batchId: 'BATCH-2024-128',
-      householdName: 'Fatima Residence',
-      meterNo: 'MTR-2024-007',
-      reading: '156.9',
-      month: 'December 2024',
-      submittedDate: '2024-12-28',
-      status: 'Approved',
-    },
-    {
-      id: 8,
-      batchId: 'BATCH-2025-004',
-      householdName: 'Rahim Plaza',
-      meterNo: 'MTR-2024-008',
-      reading: '678.3',
-      month: 'January 2025',
-      submittedDate: '2025-01-22',
-      status: 'Pending',
-    },
-  ];
+  // Fetch all consumption entries
+  const { data: consumptions = [], isLoading: consumptionsLoading } = useApiQuery(
+    ['consumption'],
+    () => api.consumption.getAll()
+  );
+
+  // Fetch all users to map userId to user details
+  const { data: users = [], isLoading: usersLoading } = useApiQuery(
+    ['users'],
+    () => api.users.getAll()
+  );
+
+  // Map consumption to display format with user details
+  const submittedReadings = useMemo(() => {
+    return consumptions.map((consumption) => {
+      const user = users.find((u) => u.id === consumption.userId);
+      const billMonthDate = new Date(consumption.billMonth);
+      // Note: Backend may not have explicit approval status for consumption
+      // You may need to check approvalStatusId or similar field
+      const status = 'Pending'; // Default - adjust based on your backend structure
+      
+      return {
+        id: consumption.id,
+        batchId: `BATCH-${consumption.id}`,
+        householdName: user?.fullName || 'Unknown',
+        meterNo: user?.meterNo || 'N/A',
+        reading: consumption.currentReading.toFixed(2),
+        month: billMonthDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' }),
+        submittedDate: consumption.createdAt 
+          ? new Date(consumption.createdAt).toLocaleDateString('en-US')
+          : billMonthDate.toLocaleDateString('en-US'),
+        status,
+      };
+    }).reverse(); // Show most recent first
+  }, [consumptions, users]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Approved':
         return (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+          <Badge className="bg-green-50 text-green-700 border-green-200">
             Approved
-          </span>
+          </Badge>
         );
       case 'Rejected':
         return (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200">
+          <Badge className="bg-red-50 text-red-700 border-red-200">
             Rejected
-          </span>
+          </Badge>
         );
       case 'Pending':
         return (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-200">
+          <Badge className="bg-yellow-50 text-yellow-700 border-yellow-200">
             Pending
-          </span>
+          </Badge>
         );
       default:
         return (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-700 border border-gray-200">
+          <Badge className="bg-gray-50 text-gray-700 border-gray-200">
             {status}
-          </span>
+          </Badge>
         );
     }
   };
+
+  if (consumptionsLoading || usersLoading) {
+    return (
+      <div className="min-h-screen bg-app flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  const approvedCount = submittedReadings.filter(r => r.status === 'Approved').length;
+  const pendingCount = submittedReadings.filter(r => r.status === 'Pending').length;
+  const rejectedCount = submittedReadings.filter(r => r.status === 'Rejected').length;
 
   return (
     <div className="min-h-screen bg-app">
@@ -133,17 +102,17 @@ export function MeterAdminSubmittedReadings() {
               <span className="text-gray-300">|</span>
               <div className="flex items-center gap-2">
                 <span className="text-gray-600">Approved:</span>
-                <span className="font-semibold text-green-600">{submittedReadings.filter(r => r.status === 'Approved').length}</span>
+                <span className="font-semibold text-green-600">{approvedCount}</span>
               </div>
               <span className="text-gray-300">|</span>
               <div className="flex items-center gap-2">
                 <span className="text-gray-600">Pending:</span>
-                <span className="font-semibold text-yellow-600">{submittedReadings.filter(r => r.status === 'Pending').length}</span>
+                <span className="font-semibold text-yellow-600">{pendingCount}</span>
               </div>
               <span className="text-gray-300">|</span>
               <div className="flex items-center gap-2">
                 <span className="text-gray-600">Rejected:</span>
-                <span className="font-semibold text-red-600">{submittedReadings.filter(r => r.status === 'Rejected').length}</span>
+                <span className="font-semibold text-red-600">{rejectedCount}</span>
               </div>
             </div>
           </div>
@@ -151,7 +120,6 @@ export function MeterAdminSubmittedReadings() {
 
         {/* Table */}
         <div>
-          
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             <Table>
               <TableHeader>
@@ -166,17 +134,25 @@ export function MeterAdminSubmittedReadings() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {submittedReadings.map((reading) => (
-                  <TableRow key={reading.id} className="border-gray-100">
-                    <TableCell className="text-sm text-gray-600 font-mono">{reading.batchId}</TableCell>
-                    <TableCell className="text-sm text-gray-900 font-medium">{reading.householdName}</TableCell>
-                    <TableCell className="text-sm text-gray-600 font-mono">{reading.meterNo}</TableCell>
-                    <TableCell className="text-sm text-gray-600">{reading.reading}</TableCell>
-                    <TableCell className="text-sm text-gray-600">{reading.month}</TableCell>
-                    <TableCell className="text-sm text-gray-600">{reading.submittedDate}</TableCell>
-                    <TableCell>{getStatusBadge(reading.status)}</TableCell>
+                {submittedReadings.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center text-gray-500 py-8">
+                      No submitted readings found
+                    </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  submittedReadings.map((reading) => (
+                    <TableRow key={reading.id} className="border-gray-100">
+                      <TableCell className="text-sm text-gray-600 font-mono">{reading.batchId}</TableCell>
+                      <TableCell className="text-sm text-gray-900 font-medium">{reading.householdName}</TableCell>
+                      <TableCell className="text-sm text-gray-600 font-mono">{reading.meterNo}</TableCell>
+                      <TableCell className="text-sm text-gray-600">{reading.reading}</TableCell>
+                      <TableCell className="text-sm text-gray-600">{reading.month}</TableCell>
+                      <TableCell className="text-sm text-gray-600">{reading.submittedDate}</TableCell>
+                      <TableCell>{getStatusBadge(reading.status)}</TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
@@ -185,5 +161,3 @@ export function MeterAdminSubmittedReadings() {
     </div>
   );
 }
-
-

@@ -1,95 +1,63 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Badge } from '../components/ui/badge';
+import { useMemo } from 'react';
+import { api } from '../services/api';
+import { useApiQuery, useAdminId } from '../hooks/useApiQuery';
+import { mapApprovalRequestToDisplay, type DisplayApprovalRequest } from '../utils/dataMappers';
+import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import type { ApprovalRequest } from '../types';
 
 export function ApprovalHistory() {
-  // Mock data for approval history
-  const approvalHistory = [
-    {
-      id: 'REQ-097',
-      module: 'Household Registration',
-      requestedBy: 'Rahim Ahmed',
-      requestDate: '2025-11-05 14:30',
-      decision: 'Approved',
-      reviewedDate: '2025-11-05 16:45',
-    },
-    {
-      id: 'REQ-096',
-      module: 'Tariff Configuration',
-      requestedBy: 'Karim Hassan',
-      requestDate: '2025-11-04 11:20',
-      decision: 'Rejected',
-      reviewedDate: '2025-11-04 15:10',
-    },
-    {
-      id: 'REQ-095',
-      module: 'Meter Reading',
-      requestedBy: 'Nasrin Khan',
-      requestDate: '2025-11-04 09:15',
-      decision: 'Approved',
-      reviewedDate: '2025-11-04 11:30',
-    },
-    {
-      id: 'REQ-094',
-      module: 'Household Registration',
-      requestedBy: 'Salma Akter',
-      requestDate: '2025-11-03 16:45',
-      decision: 'Approved',
-      reviewedDate: '2025-11-03 17:20',
-    },
-    {
-      id: 'REQ-093',
-      module: 'Tariff Configuration',
-      requestedBy: 'Karim Hassan',
-      requestDate: '2025-11-03 10:30',
-      decision: 'Approved',
-      reviewedDate: '2025-11-03 14:15',
-    },
-    {
-      id: 'REQ-092',
-      module: 'Meter Reading',
-      requestedBy: 'Nasrin Khan',
-      requestDate: '2025-11-02 13:20',
-      decision: 'Rejected',
-      reviewedDate: '2025-11-02 15:40',
-    },
-    {
-      id: 'REQ-091',
-      module: 'Household Registration',
-      requestedBy: 'Rahim Ahmed',
-      requestDate: '2025-11-02 08:45',
-      decision: 'Approved',
-      reviewedDate: '2025-11-02 10:30',
-    },
-    {
-      id: 'REQ-090',
-      module: 'Tariff Configuration',
-      requestedBy: 'Karim Hassan',
-      requestDate: '2025-11-01 15:10',
-      decision: 'Approved',
-      reviewedDate: '2025-11-01 16:50',
-    },
-    {
-      id: 'REQ-089',
-      module: 'Meter Reading',
-      requestedBy: 'Nasrin Khan',
-      requestDate: '2025-11-01 11:30',
-      decision: 'Approved',
-      reviewedDate: '2025-11-01 13:15',
-    },
-    {
-      id: 'REQ-088',
-      module: 'Household Registration',
-      requestedBy: 'Salma Akter',
-      requestDate: '2025-10-31 14:20',
-      decision: 'Rejected',
-      reviewedDate: '2025-10-31 16:00',
-    },
-  ];
+  const adminId = useAdminId();
 
-  // Stats
-  const totalReviewed = approvalHistory.length;
-  const approved = approvalHistory.filter(item => item.decision === 'Approved').length;
-  const rejected = approvalHistory.filter(item => item.decision === 'Rejected').length;
+  // Fetch all approval requests
+  const { data: approvalRequests = [], isLoading } = useApiQuery(
+    ['approval-requests', 'all'],
+    () => api.approvalRequests.getAll()
+  );
+
+  // Fetch all admins to map requestedBy IDs to names
+  const { data: admins = [] } = useApiQuery(
+    ['admins'],
+    () => api.admins.getAll()
+  );
+
+  // Filter to show only reviewed requests (not pending)
+  const reviewedRequests = useMemo(() => {
+    return approvalRequests.filter((request) => {
+      // Check if request has been reviewed (has reviewedBy and reviewedAt)
+      return request.reviewedBy !== null && request.reviewedBy !== undefined && 
+             request.reviewedAt !== null && request.reviewedAt !== undefined;
+    });
+  }, [approvalRequests]);
+
+  // Map approval requests to display format
+  const displayRequests = useMemo(() => {
+    return reviewedRequests.map((request) => {
+      const requester = admins.find((a) => a.id === request.requestedBy);
+      const reviewer = request.reviewer ? admins.find((a) => a.id === request.reviewedBy) : null;
+      const mapped = mapApprovalRequestToDisplay(request, requester?.fullName);
+      return {
+        ...mapped,
+        reviewedBy: reviewer?.fullName || mapped.reviewedBy,
+        reviewedDate: mapped.reviewedDate || '',
+        decision: request.approvalStatus?.name || 'Unknown',
+      };
+    });
+  }, [reviewedRequests, admins]);
+
+  // Calculate stats
+  const totalReviewed = displayRequests.length;
+  const approved = displayRequests.filter(item => item.decision === 'Approved').length;
+  const rejected = displayRequests.filter(item => item.decision === 'Rejected').length;
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#f8f9fb] flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f8f9fb]">
@@ -133,26 +101,34 @@ export function ApprovalHistory() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {approvalHistory.map((item) => (
-                <TableRow key={item.id} className="border-gray-100">
-                  <TableCell className="font-medium text-gray-900">{item.module}</TableCell>
-                  <TableCell className="text-gray-600">{item.requestedBy}</TableCell>
-                  <TableCell className="text-gray-600">{item.requestDate}</TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant="secondary" 
-                      className={
-                        item.decision === 'Approved'
-                          ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-50'
-                          : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-50'
-                      }
-                    >
-                      {item.decision}
-                    </Badge>
+              {displayRequests.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                    No approval history found
                   </TableCell>
-                  <TableCell className="text-gray-600">{item.reviewedDate}</TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                displayRequests.map((item) => (
+                  <TableRow key={item.id} className="border-gray-100">
+                    <TableCell className="font-medium text-gray-900">{item.module}</TableCell>
+                    <TableCell className="text-gray-600">{item.requestedBy}</TableCell>
+                    <TableCell className="text-gray-600">{item.requestDate}</TableCell>
+                    <TableCell>
+                      <Badge 
+                        variant="secondary" 
+                        className={
+                          item.decision === 'Approved'
+                            ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-50'
+                            : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-50'
+                        }
+                      >
+                        {item.decision}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-gray-600">{item.reviewedDate}</TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </div>

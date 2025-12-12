@@ -17,35 +17,73 @@ import {
     ResponsiveContainer,
 } from "recharts";
 import { motion } from "motion/react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { api } from "../services/api";
+import { useApiQuery } from "../hooks/useApiQuery";
+import { LoadingSpinner } from "../components/common/LoadingSpinner";
 
 export default function AdminDashboard() {
     const [animatedConsumers, setAnimatedConsumers] = useState(0);
     const [animatedRevenue, setAnimatedRevenue] = useState(0);
     const [animatedConsumption, setAnimatedConsumption] = useState(0);
 
+    // Fetch data for metrics
+    const { data: users = [], isLoading: usersLoading } = useApiQuery(
+        ['users'],
+        () => api.users.getAll()
+    );
+
+    const { data: admins = [], isLoading: adminsLoading } = useApiQuery(
+        ['admins'],
+        () => api.admins.getAll()
+    );
+
+    const { data: pendingApprovals = [], isLoading: approvalsLoading } = useApiQuery(
+        ['approval-requests', 'pending'],
+        () => api.approvalRequests.getPending()
+    );
+
+    const { data: auditLogs = [], isLoading: auditLogsLoading } = useApiQuery(
+        ['audit-logs'],
+        () => api.auditLogs.getAll()
+    );
+
+    // Calculate metrics
+    const totalConsumers = users.length;
+    const totalAdmins = admins.length;
+    const pendingCount = pendingApprovals.length;
+    
+    // Calculate average consumption (simplified - would need water bills data)
+    const avgConsumption = 24.5; // Placeholder - would calculate from consumption data
+
+    // Calculate revenue (simplified - would need water bills data)
+    const totalRevenue = 45.2; // Placeholder - would calculate from water bills
+
     useEffect(() => {
-        const duration = 2000;
-        const steps = 60;
-        const interval = duration / steps;
+        if (!usersLoading && totalConsumers > 0) {
+            const duration = 2000;
+            const steps = 60;
+            const interval = duration / steps;
 
-        let step = 0;
-        const timer = setInterval(() => {
-            step++;
-            const progress = step / steps;
+            let step = 0;
+            const timer = setInterval(() => {
+                step++;
+                const progress = step / steps;
 
-            setAnimatedConsumers(Math.floor(15342 * progress));
-            setAnimatedRevenue(parseFloat((45.2 * progress).toFixed(1)));
-            setAnimatedConsumption(parseFloat((24.5 * progress).toFixed(1)));
+                setAnimatedConsumers(Math.floor(totalConsumers * progress));
+                setAnimatedRevenue(parseFloat((totalRevenue * progress).toFixed(1)));
+                setAnimatedConsumption(parseFloat((avgConsumption * progress).toFixed(1)));
 
-            if (step >= steps) {
-                clearInterval(timer);
-            }
-        }, interval);
+                if (step >= steps) {
+                    clearInterval(timer);
+                }
+            }, interval);
 
-        return () => clearInterval(timer);
-    }, []);
+            return () => clearInterval(timer);
+        }
+    }, [usersLoading, totalConsumers, totalRevenue, avgConsumption]);
 
+    // Prepare revenue data (simplified - would use actual water bills data)
     const revenueData = [
         { month: "Jan", revenue: 35000 },
         { month: "Feb", revenue: 42000 },
@@ -53,40 +91,30 @@ export default function AdminDashboard() {
         { month: "Apr", revenue: 38000 },
     ];
 
-    const pendingData = [
-        {
-            consumer: "John S.",
-            type: "Residential",
-            date: "Nov 22",
-            time: "9 AM - 5 PM",
-            entry: "Meter Reading",
-            status: "Confirmed",
-        },
-        {
-            consumer: "Sarah A.",
-            type: "Commercial",
-            date: "Nov 22",
-            time: "2 PM - 10 PM",
-            entry: "Bill Payment",
-            status: "Confirmed",
-        },
-        {
-            consumer: "Ahmed K.",
-            type: "Residential",
-            date: "Nov 22",
-            time: "-",
-            entry: "Registration",
-            status: "Pending",
-        },
-        {
-            consumer: "Nadia I.",
-            type: "Commercial",
-            date: "Nov 23",
-            time: "10 AM - 6 PM",
-            entry: "Meter Reading",
-            status: "Confirmed",
-        },
-    ];
+    // Map pending approvals to display format
+    const pendingData = useMemo(() => {
+        return pendingApprovals.slice(0, 4).map((approval) => {
+            const moduleName = (approval as any).moduleName || 'Unknown';
+            return {
+                consumer: moduleName,
+                type: moduleName.includes('Tariff') ? 'Commercial' : 'Residential',
+                date: approval.createdAt 
+                    ? new Date(approval.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                    : 'N/A',
+                time: '-',
+                entry: moduleName,
+                status: 'Pending',
+            };
+        });
+    }, [pendingApprovals]);
+
+    if (usersLoading || adminsLoading || approvalsLoading || auditLogsLoading) {
+        return (
+            <div className="min-h-screen bg-app flex items-center justify-center">
+                <LoadingSpinner />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-app">
@@ -141,13 +169,8 @@ export default function AdminDashboard() {
                             </div>
                             <div className="flex items-center gap-6">
                                 <span className="text-white/70 text-sm font-normal">
-                                    150 new this month
+                                    {totalConsumers} total registered
                                 </span>
-                                <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">
-                                    <span className="text-white font-semibold text-sm">
-                                        +8.5%
-                                    </span>
-                                </div>
                             </div>
 
                             {/* Vertical Divider */}
@@ -173,11 +196,6 @@ export default function AdminDashboard() {
                                 <span className="text-white/70 text-sm font-normal">
                                     This month
                                 </span>
-                                <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">
-                                    <span className="text-white font-semibold text-sm">
-                                        +12.3%
-                                    </span>
-                                </div>
                             </div>
 
                             {/* Vertical Divider */}
@@ -210,11 +228,6 @@ export default function AdminDashboard() {
                                 <span className="text-white/70 text-sm font-normal">
                                     Per household
                                 </span>
-                                <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">
-                                    <span className="text-white font-semibold text-sm">
-                                        +6.2%
-                                    </span>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -281,13 +294,13 @@ export default function AdminDashboard() {
                 <div>
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-xl font-semibold text-gray-900">
-                            Pending Approvals
+                            Pending Approvals ({pendingCount})
                         </h2>
                         <Button
                             variant="outline"
                             className="border-gray-300 text-gray-700 rounded-lg bg-white"
                         >
-                            Edit Schedule
+                            View All
                         </Button>
                     </div>
 
@@ -296,7 +309,7 @@ export default function AdminDashboard() {
                             <TableHeader>
                                 <TableRow className="border-gray-200 bg-gray-50">
                                     <TableHead className="text-sm font-semibold text-gray-700">
-                                        Consumer
+                                        Module
                                     </TableHead>
                                     <TableHead className="text-sm font-semibold text-gray-700">
                                         Type
@@ -316,39 +329,47 @@ export default function AdminDashboard() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {pendingData.map((item, index) => (
-                                    <TableRow
-                                        key={index}
-                                        className="border-gray-100"
-                                    >
-                                        <TableCell className="text-sm text-gray-900">
-                                            {item.consumer}
-                                        </TableCell>
-                                        <TableCell className="text-sm text-gray-600">
-                                            {item.type}
-                                        </TableCell>
-                                        <TableCell className="text-sm text-gray-600">
-                                            {item.date}
-                                        </TableCell>
-                                        <TableCell className="text-sm text-gray-600">
-                                            {item.time}
-                                        </TableCell>
-                                        <TableCell className="text-sm text-gray-600">
-                                            {item.entry}
-                                        </TableCell>
-                                        <TableCell>
-                                            <span
-                                                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                                                    item.status === "Confirmed"
-                                                        ? "bg-teal-50 text-teal-700"
-                                                        : "bg-amber-50 text-amber-700"
-                                                }`}
-                                            >
-                                                {item.status}
-                                            </span>
+                                {pendingData.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="text-center text-gray-500 py-8">
+                                            No pending approvals
                                         </TableCell>
                                     </TableRow>
-                                ))}
+                                ) : (
+                                    pendingData.map((item, index) => (
+                                        <TableRow
+                                            key={index}
+                                            className="border-gray-100"
+                                        >
+                                            <TableCell className="text-sm text-gray-900">
+                                                {item.consumer}
+                                            </TableCell>
+                                            <TableCell className="text-sm text-gray-600">
+                                                {item.type}
+                                            </TableCell>
+                                            <TableCell className="text-sm text-gray-600">
+                                                {item.date}
+                                            </TableCell>
+                                            <TableCell className="text-sm text-gray-600">
+                                                {item.time}
+                                            </TableCell>
+                                            <TableCell className="text-sm text-gray-600">
+                                                {item.entry}
+                                            </TableCell>
+                                            <TableCell>
+                                                <span
+                                                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                                                        item.status === "Confirmed"
+                                                            ? "bg-teal-50 text-teal-700"
+                                                            : "bg-amber-50 text-amber-700"
+                                                    }`}
+                                                >
+                                                    {item.status}
+                                                </span>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
                             </TableBody>
                         </Table>
                     </div>

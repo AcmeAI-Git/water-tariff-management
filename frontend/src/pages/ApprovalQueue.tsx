@@ -2,134 +2,56 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Eye } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { ReviewChangeModal } from './ReviewChangeModal';
-
-interface ApprovalRequest {
-  id: string;
-  module: string;
-  requestedBy: string;
-  requestDate: string;
-  status: string;
-  oldData: any;
-  newData: any;
-}
+import { api } from '../services/api';
+import { useApiQuery, useApiMutation, useAdminId } from '../hooks/useApiQuery';
+import { mapApprovalRequestToDisplay, type DisplayApprovalRequest } from '../utils/dataMappers';
+import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import type { ApprovalRequest } from '../types';
 
 export function ApprovalQueue() {
-  const [selectedRequest, setSelectedRequest] = useState<ApprovalRequest | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<DisplayApprovalRequest | null>(null);
+  const adminId = useAdminId();
 
-  // Mock data for approval requests
-  const approvalRequests: ApprovalRequest[] = [
-    {
-      id: 'REQ-001',
-      module: 'Household Registration',
-      requestedBy: 'Rahim Ahmed',
-      requestDate: '2025-11-08 14:30',
-      status: 'Pending',
-      oldData: null,
-      newData: {
-        householdId: 'HH-2891',
-        ownerName: 'Fatima Begum',
-        meterNumber: 'MTR-10456',
-        category: 'Residential',
-        address: '23/A, Block C, Dhanmondi, Dhaka',
-        phone: '+880-1712-345678',
-      },
-    },
-    {
-      id: 'REQ-002',
-      module: 'Tariff Configuration',
-      requestedBy: 'Karim Hassan',
-      requestDate: '2025-11-08 11:20',
-      status: 'Pending',
-      oldData: {
-        slabRange: '0-10 m³',
-        rate: '৳12.00',
-        category: 'Residential',
-      },
-      newData: {
-        slabRange: '0-10 m³',
-        rate: '৳15.00',
-        category: 'Residential',
-      },
-    },
-    {
-      id: 'REQ-003',
-      module: 'Meter Reading',
-      requestedBy: 'Nasrin Khan',
-      requestDate: '2025-11-07 16:45',
-      status: 'Pending',
-      oldData: {
-        meterNumber: 'MTR-10456',
-        previousReading: '245',
-        currentReading: '315',
-        consumption: '70 m³',
-      },
-      newData: {
-        meterNumber: 'MTR-10456',
-        previousReading: '245',
-        currentReading: '320',
-        consumption: '75 m³',
-      },
-    },
-    {
-      id: 'REQ-004',
-      module: 'Household Registration',
-      requestedBy: 'Salma Akter',
-      requestDate: '2025-11-07 10:15',
-      status: 'Pending',
-      oldData: {
-        householdId: 'HH-1523',
-        ownerName: 'Abdul Malik',
-        category: 'Residential',
-        status: 'Active',
-      },
-      newData: {
-        householdId: 'HH-1523',
-        ownerName: 'Abdul Malik',
-        category: 'Commercial',
-        status: 'Active',
-      },
-    },
-    {
-      id: 'REQ-005',
-      module: 'Tariff Configuration',
-      requestedBy: 'Karim Hassan',
-      requestDate: '2025-11-06 15:30',
-      status: 'Pending',
-      oldData: {
-        slabRange: '11-20 m³',
-        rate: '৳18.00',
-        category: 'Residential',
-      },
-      newData: {
-        slabRange: '11-20 m³',
-        rate: '৳20.00',
-        category: 'Residential',
-      },
-    },
-    {
-      id: 'REQ-006',
-      module: 'Meter Reading',
-      requestedBy: 'Nasrin Khan',
-      requestDate: '2025-11-06 09:20',
-      status: 'Pending',
-      oldData: {
-        meterNumber: 'MTR-11234',
-        previousReading: '180',
-        currentReading: '235',
-        consumption: '55 m³',
-      },
-      newData: {
-        meterNumber: 'MTR-11234',
-        previousReading: '180',
-        currentReading: '240',
-        consumption: '60 m³',
-      },
-    },
-  ];
+  // Fetch pending approval requests
+  const { data: approvalRequests = [], isLoading } = useApiQuery(
+    ['approval-requests', 'pending'],
+    () => api.approvalRequests.getPending()
+  );
 
-  const handleReview = (request: ApprovalRequest) => {
+  // Fetch all admins to map requestedBy IDs to names
+  const { data: admins = [] } = useApiQuery(
+    ['admins'],
+    () => api.admins.getAll()
+  );
+
+  // Map approval requests to display format
+  const displayRequests = useMemo(() => {
+    return approvalRequests.map((request) => {
+      const requester = admins.find((a) => a.id === request.requestedBy);
+      return mapApprovalRequestToDisplay(request, requester?.fullName);
+    });
+  }, [approvalRequests, admins]);
+
+  // Review mutation
+  const reviewMutation = useApiMutation(
+    ({ id, status, comments }: { id: number; status: 'Approved' | 'Rejected'; comments?: string }) => {
+      if (!adminId) throw new Error('Admin ID not found');
+      return api.approvalRequests.review(id, {
+        reviewedBy: adminId,
+        status,
+        comments,
+      });
+    },
+    {
+      successMessage: 'Approval request reviewed successfully',
+      errorMessage: 'Failed to review approval request',
+      invalidateQueries: [['approval-requests']],
+    }
+  );
+
+  const handleReview = (request: DisplayApprovalRequest) => {
     setSelectedRequest(request);
   };
 
@@ -137,17 +59,35 @@ export function ApprovalQueue() {
     setSelectedRequest(null);
   };
 
-  const handleApprove = (requestId: string, comments: string) => {
-    console.log('Approved:', requestId, comments);
+  const handleApprove = async (requestId: string, comments: string) => {
+    // Extract numeric ID from "REQ-001" format
+    const numericId = parseInt(requestId.replace('REQ-', ''));
+    await reviewMutation.mutateAsync({
+      id: numericId,
+      status: 'Approved',
+      comments: comments || undefined,
+    });
     setSelectedRequest(null);
-    // In real app, would update the backend
   };
 
-  const handleReject = (requestId: string, comments: string) => {
-    console.log('Rejected:', requestId, comments);
+  const handleReject = async (requestId: string, comments: string) => {
+    // Extract numeric ID from "REQ-001" format
+    const numericId = parseInt(requestId.replace('REQ-', ''));
+    await reviewMutation.mutateAsync({
+      id: numericId,
+      status: 'Rejected',
+      comments: comments || undefined,
+    });
     setSelectedRequest(null);
-    // In real app, would update the backend
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#f8f9fb] flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f8f9fb]">
@@ -162,12 +102,12 @@ export function ApprovalQueue() {
             <div className="flex items-center gap-6 text-sm">
               <div className="flex items-center gap-2">
                 <span className="text-gray-600">Total:</span>
-                <span className="font-semibold text-gray-900">6</span>
+                <span className="font-semibold text-gray-900">{displayRequests.length}</span>
               </div>
               <span className="text-gray-300">|</span>
               <div className="flex items-center gap-2">
                 <span className="text-gray-600">Pending:</span>
-                <span className="font-semibold text-yellow-600">{approvalRequests.length}</span>
+                <span className="font-semibold text-yellow-600">{displayRequests.length}</span>
               </div>
             </div>
           </div>
@@ -186,30 +126,39 @@ export function ApprovalQueue() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {approvalRequests.map((request) => (
-                <TableRow key={request.id} className="border-gray-100">
-                  <TableCell className="font-medium text-gray-900">{request.module}</TableCell>
-                  <TableCell className="text-gray-600">{request.requestedBy}</TableCell>
-                  <TableCell className="text-gray-600">{request.requestDate}</TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant="secondary" 
-                      className="bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-50"
-                    >
-                      {request.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      onClick={() => handleReview(request)}
-                      className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-9 px-4 flex items-center gap-2 ml-auto"
-                    >
-                      <Eye size={16} />
-                      Review
-                    </Button>
+              {displayRequests.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                    No pending approval requests
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                displayRequests.map((request) => (
+                  <TableRow key={request.id} className="border-gray-100">
+                    <TableCell className="font-medium text-gray-900">{request.module}</TableCell>
+                    <TableCell className="text-gray-600">{request.requestedBy}</TableCell>
+                    <TableCell className="text-gray-600">{request.requestDate}</TableCell>
+                    <TableCell>
+                      <Badge 
+                        variant="secondary" 
+                        className="bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-50"
+                      >
+                        {request.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        onClick={() => handleReview(request)}
+                        className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-9 px-4 flex items-center gap-2 ml-auto"
+                        disabled={reviewMutation.isPending}
+                      >
+                        <Eye size={16} />
+                        Review
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </div>

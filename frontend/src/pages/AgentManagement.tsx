@@ -10,16 +10,25 @@ import {
 } from "../components/ui/table";
 import { Edit2, Search } from "lucide-react";
 import { Input } from "../components/ui/input";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { AddAgentModal } from "../components/modals/AddAgentModal";
+import { api } from "../services/api";
+import { useApiQuery, useApiMutation, useAdminId } from "../hooks/useApiQuery";
+import { mapAdminToDisplay, type DisplayAdmin } from "../utils/dataMappers";
+import { LoadingSpinner } from "../components/common/LoadingSpinner";
 
-interface Admin {
+interface Agent {
     name: string;
+    phone?: string;
     email: string;
+    password?: string;
+    confirm?: string;
+    zone?: string;
+    ward?: string;
     role: string;
 }
 
-interface EditingAgent extends Admin {
+interface EditingAgent extends DisplayAdmin {
     index: number;
 }
 
@@ -30,28 +39,67 @@ export function AgentManagement() {
     const [showModal, setShowModal] = useState(false);
     const [editMode, setEditMode] = useState(false);
     const [editingAgent, setEditingAgent] = useState<EditingAgent | null>(null);
-    const [admins, setAdmins] = useState([
+    const adminId = useAdminId();
+
+    // Fetch admins and roles
+    const { data: admins = [], isLoading: adminsLoading } = useApiQuery(
+        ['admins'],
+        () => api.admins.getAll()
+    );
+
+    const { data: roles = [], isLoading: rolesLoading } = useApiQuery(
+        ['roles'],
+        () => api.roles.getAll()
+    );
+
+    // Map admins to display format
+    const displayAdmins = useMemo(() => {
+        return admins.map((admin) => mapAdminToDisplay(admin, roles));
+    }, [admins, roles]);
+
+    // Filter admins by search term
+    const filteredAdmins = useMemo(() => {
+        if (!searchTerm) return displayAdmins;
+        const term = searchTerm.toLowerCase();
+        return displayAdmins.filter(
+            (admin) =>
+                admin.name.toLowerCase().includes(term) ||
+                admin.email.toLowerCase().includes(term) ||
+                admin.role.toLowerCase().includes(term)
+        );
+    }, [displayAdmins, searchTerm]);
+
+    // Create admin mutation
+    const createMutation = useApiMutation(
+        (data: { fullName: string; email: string; phone: string; password: string; roleId: number }) =>
+            api.admins.create(data),
         {
-            name: "Sarah Ahmed",
-            email: "sarah.ahmed@wateraid.org",
-            role: "Super Admin",
-        },
+            successMessage: 'Agent created successfully',
+            errorMessage: 'Failed to create agent',
+            invalidateQueries: [['admins']],
+        }
+    );
+
+    // Update admin mutation
+    const updateMutation = useApiMutation(
+        ({ id, data }: { id: number; data: { fullName?: string; email?: string; phone?: string } }) =>
+            api.admins.update(id, data),
         {
-            name: "Kamal Hassan",
-            email: "kamal.hassan@wateraid.org",
-            role: "Tariff Admin",
-        },
+            successMessage: 'Agent updated successfully',
+            errorMessage: 'Failed to update agent',
+            invalidateQueries: [['admins']],
+        }
+    );
+
+    // Delete admin mutation
+    const deleteMutation = useApiMutation(
+        (id: number) => api.admins.delete(id),
         {
-            name: "Nadia Chowdhury",
-            email: "nadia.c@wateraid.org",
-            role: "Customer Admin",
-        },
-        {
-            name: "Ayesha Khan",
-            email: "ayesha.khan@wateraid.org",
-            role: "Customer Admin",
-        },
-    ]);
+            successMessage: 'Agent deleted successfully',
+            errorMessage: 'Failed to delete agent',
+            invalidateQueries: [['admins']],
+        }
+    );
 
     const getRoleBadgeColor = (role: string) => {
         if (role === "Super Admin") return "bg-purple-50 text-purple-700";
@@ -60,35 +108,46 @@ export function AgentManagement() {
         return "bg-amber-50 text-amber-700";
     };
 
-    const handleAddAgent = (newAgent: {
-        name: string;
-        email: string;
-        role: string;
-    }) => {
-        setAdmins([
-            ...admins,
-            { name: newAgent.name, email: newAgent.email, role: newAgent.role },
-        ]);
+    // Find roleId by role name
+    const getRoleIdByName = (roleName: string): number | null => {
+        const role = roles.find((r) => r.name === roleName);
+        return role?.id || null;
+    };
+
+    const handleAddAgent = async (newAgent: Agent) => {
+        const roleId = getRoleIdByName(newAgent.role);
+        if (!roleId || !newAgent.password) {
+            return;
+        }
+
+        await createMutation.mutateAsync({
+            fullName: newAgent.name,
+            email: newAgent.email,
+            phone: newAgent.phone || '',
+            password: newAgent.password,
+            roleId,
+        });
         setShowModal(false);
         setEditMode(false);
     };
 
-    const handleEditClick = (admin: Admin, index: number) => {
+    const handleEditClick = (admin: DisplayAdmin, index: number) => {
         setEditingAgent({ ...admin, index });
         setEditMode(true);
         setShowModal(true);
     };
 
-    const handleEditSave = (updatedAgent: Admin) => {
+    const handleEditSave = async (updatedAgent: Agent) => {
         if (!editingAgent) return;
-        
-        const newAdmins = [...admins];
-        newAdmins[editingAgent.index] = {
-            name: updatedAgent.name,
-            email: updatedAgent.email,
-            role: updatedAgent.role,
-        };
-        setAdmins(newAdmins);
+
+        await updateMutation.mutateAsync({
+            id: editingAgent.id,
+            data: {
+                fullName: updatedAgent.name,
+                email: updatedAgent.email,
+                phone: updatedAgent.phone,
+            },
+        });
         setShowModal(false);
         setEditMode(false);
         setEditingAgent(null);
@@ -100,15 +159,28 @@ export function AgentManagement() {
         setEditingAgent(null);
     };
 
-    const handleDelete = () => {
+    const handleDelete = async () => {
         if (!editingAgent) return;
-        
-        const newAdmins = admins.filter((_, index) => index !== editingAgent.index);
-        setAdmins(newAdmins);
+
+        await deleteMutation.mutateAsync(editingAgent.id);
         setShowModal(false);
         setEditMode(false);
         setEditingAgent(null);
     };
+
+    // Prepare role options for dropdown
+    const roleOptions = roles.map((role) => ({
+        value: role.name,
+        label: role.name,
+    }));
+
+    if (adminsLoading || rolesLoading) {
+        return (
+            <div className="min-h-screen bg-app flex items-center justify-center">
+                <LoadingSpinner />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-app">
@@ -196,42 +268,50 @@ export function AgentManagement() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {admins.map((admin, index) => (
-                                <TableRow
-                                    key={index}
-                                    className="border-gray-100"
-                                >
-                                    <TableCell className="text-sm text-gray-900 font-medium">
-                                        {admin.name}
-                                    </TableCell>
-                                    <TableCell className="text-sm text-gray-600">
-                                        {admin.email}
-                                    </TableCell>
-                                    <TableCell>
-                                        <span
-                                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(
-                                                admin.role
-                                            )}`}
-                                        >
-                                            {admin.role}
-                                        </span>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                                            onClick={() => handleEditClick(admin, index)}
-                                        >
-                                            <Edit2
-                                                size={14}
-                                                className="mr-1.5"
-                                            />
-                                            Edit
-                                        </Button>
+                            {filteredAdmins.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={4} className="text-center text-gray-500 py-8">
+                                        No agents found
                                     </TableCell>
                                 </TableRow>
-                            ))}
+                            ) : (
+                                filteredAdmins.map((admin, index) => (
+                                    <TableRow
+                                        key={admin.id}
+                                        className="border-gray-100"
+                                    >
+                                        <TableCell className="text-sm text-gray-900 font-medium">
+                                            {admin.name}
+                                        </TableCell>
+                                        <TableCell className="text-sm text-gray-600">
+                                            {admin.email}
+                                        </TableCell>
+                                        <TableCell>
+                                            <span
+                                                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(
+                                                    admin.role
+                                                )}`}
+                                            >
+                                                {admin.role}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                                                onClick={() => handleEditClick(admin, index)}
+                                            >
+                                                <Edit2
+                                                    size={14}
+                                                    className="mr-1.5"
+                                                />
+                                                Edit
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
                         </TableBody>
                     </Table>
                 </div>
@@ -241,7 +321,12 @@ export function AgentManagement() {
                 onClose={handleModalClose}
                 onSave={editMode ? handleEditSave : handleAddAgent}
                 editMode={editMode}
-                agent={editingAgent}
+                agent={editingAgent ? {
+                    name: editingAgent.name,
+                    email: editingAgent.email,
+                    phone: editingAgent.phone,
+                    role: editingAgent.role,
+                } : null}
                 onDelete={editMode ? handleDelete : undefined}
             />
         </div>

@@ -1,48 +1,109 @@
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { useMemo } from 'react';
+import { api } from '../services/api';
+import { useApiQuery, useAdminId } from '../hooks/useApiQuery';
+import { LoadingSpinner } from '../components/common/LoadingSpinner';
 
 export function TariffAdminMyMetrics() {
-  const tariffChangesData = [
-    { month: 'Feb 2024', changes: 2 },
-    { month: 'Mar 2024', changes: 1 },
-    { month: 'Apr 2024', changes: 3 },
-    { month: 'May 2024', changes: 2 },
-    { month: 'Jun 2024', changes: 4 },
-    { month: 'Jul 2024', changes: 1 },
-    { month: 'Aug 2024', changes: 5 },
-    { month: 'Sep 2024', changes: 3 },
-    { month: 'Oct 2024', changes: 2 },
-    { month: 'Nov 2024', changes: 6 },
-  ];
+  const adminId = useAdminId();
 
-  const residentialTariffData = [
-    { range: '0-10 m³', rate: 8.5 },
-    { range: '11-20 m³', rate: 12.0 },
-    { range: '21-50 m³', rate: 18.5 },
-    { range: '51+ m³', rate: 25.0 },
-  ];
+  // Fetch tariff plans
+  const { data: tariffPlans = [], isLoading: plansLoading } = useApiQuery(
+    ['tariff-plans'],
+    () => api.tariffPlans.getAll()
+  );
 
-  const commercialTariffData = [
-    { range: '0-10 m³', rate: 15.0 },
-    { range: '11-30 m³', rate: 22.5 },
-    { range: '31+ m³', rate: 35.0 },
-  ];
+  // Fetch approval requests
+  const { data: approvalRequests = [], isLoading: approvalsLoading } = useApiQuery(
+    ['approval-requests'],
+    () => api.approvalRequests.getAll()
+  );
 
-  const wardMultiplierData = [
-    { ward: 'Ward 1', multiplier: 1.0 },
-    { ward: 'Ward 2', multiplier: 1.05 },
-    { ward: 'Ward 3', multiplier: 0.95 },
-    { ward: 'Ward 4', multiplier: 1.10 },
-    { ward: 'Ward 5', multiplier: 1.02 },
-  ];
+  // Filter to current admin's submissions
+  const myPendingSubmissions = useMemo(() => {
+    if (!adminId) return [];
+    return approvalRequests.filter((req: any) => 
+      req.requestedBy === adminId && 
+      (!req.reviewedBy || req.reviewedBy === null)
+    );
+  }, [approvalRequests, adminId]);
 
-  const historicalRateData = [
-    { month: 'Jan 2023', residential: 8.0, commercial: 14.0 },
-    { month: 'Apr 2023', residential: 8.0, commercial: 14.5 },
-    { month: 'Jul 2023', residential: 8.2, commercial: 14.5 },
-    { month: 'Oct 2023', residential: 8.2, commercial: 15.0 },
-    { month: 'Jan 2024', residential: 8.5, commercial: 15.0 },
-    { month: 'Apr 2024', residential: 8.5, commercial: 15.0 },
-  ];
+  // Calculate active rules (active tariff plans)
+  const activePlans = tariffPlans.filter((plan) => {
+    if (plan.effectiveTo) {
+      return new Date(plan.effectiveTo) > new Date();
+    }
+    return true;
+  });
+
+  // Prepare tariff changes data
+  const tariffChangesData = useMemo(() => {
+    const changesByMonth: Record<string, number> = {};
+    
+    tariffPlans.forEach((plan) => {
+      if (plan.createdAt) {
+        const date = new Date(plan.createdAt);
+        const monthKey = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        changesByMonth[monthKey] = (changesByMonth[monthKey] || 0) + 1;
+      }
+    });
+
+    return Object.entries(changesByMonth)
+      .map(([month, changes]) => ({ month, changes }))
+      .sort((a, b) => {
+        const dateA = new Date(a.month);
+        const dateB = new Date(b.month);
+        return dateA.getTime() - dateB.getTime();
+      })
+      .slice(-10); // Last 10 months
+  }, [tariffPlans]);
+
+  // Prepare residential and commercial tariff data from active plans
+  const residentialTariffData = useMemo(() => {
+    const residentialPlan = activePlans.find((plan) => 
+      plan.name.toLowerCase().includes('residential')
+    );
+    
+    if (!residentialPlan?.slabs) return [];
+    
+    return residentialPlan.slabs
+      .sort((a, b) => a.slabOrder - b.slabOrder)
+      .map((slab) => ({
+        range: slab.maxConsumption 
+          ? `${slab.minConsumption}-${slab.maxConsumption} m³`
+          : `${slab.minConsumption}+ m³`,
+        rate: parseFloat(slab.ratePerUnit.toString()),
+      }));
+  }, [activePlans]);
+
+  const commercialTariffData = useMemo(() => {
+    const commercialPlan = activePlans.find((plan) => 
+      plan.name.toLowerCase().includes('commercial')
+    );
+    
+    if (!commercialPlan?.slabs) return [];
+    
+    return commercialPlan.slabs
+      .sort((a, b) => a.slabOrder - b.slabOrder)
+      .map((slab) => ({
+        range: slab.maxConsumption 
+          ? `${slab.minConsumption}-${slab.maxConsumption} m³`
+          : `${slab.minConsumption}+ m³`,
+        rate: parseFloat(slab.ratePerUnit.toString()),
+      }));
+  }, [activePlans]);
+
+  if (plansLoading || approvalsLoading) {
+    return (
+      <div className="min-h-screen bg-[#f8f9fb] flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  const totalActiveRules = activePlans.reduce((sum, plan) => 
+    sum + (plan.slabs?.length || 0), 0
+  );
 
   return (
     <div className="min-h-screen bg-[#f8f9fb]">
@@ -59,15 +120,15 @@ export function TariffAdminMyMetrics() {
           <div className="grid grid-cols-3 gap-6">
             <div className="space-y-1">
               <p className="text-sm text-gray-500">My Submissions Pending Approval</p>
-              <p className="text-[32px] font-semibold text-gray-900">3</p>
+              <p className="text-[32px] font-semibold text-gray-900">{myPendingSubmissions.length}</p>
             </div>
             <div className="space-y-1">
               <p className="text-sm text-gray-500">Total Active Rules</p>
-              <p className="text-[32px] font-semibold text-gray-900">24</p>
+              <p className="text-[32px] font-semibold text-gray-900">{totalActiveRules}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-sm text-gray-500">Total Rules Changed (Last 90 Days)</p>
-              <p className="text-[32px] font-semibold text-gray-900">29</p>
+              <p className="text-sm text-gray-500">Total Plans Created</p>
+              <p className="text-[32px] font-semibold text-gray-900">{tariffPlans.length}</p>
             </div>
           </div>
         </div>
@@ -109,151 +170,73 @@ export function TariffAdminMyMetrics() {
           </div>
         </div>
 
-        {/* Additional Metrics */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Performance Summary</h2>
-          <div className="grid grid-cols-2 gap-6">
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <p className="text-sm text-gray-500 mb-2">Average Review Time</p>
-              <p className="text-[28px] font-semibold text-gray-900">2.4 days</p>
-              <p className="text-sm text-green-600 mt-1">↓ 15% from last month</p>
-            </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <p className="text-sm text-gray-500 mb-2">Approval Rate</p>
-              <p className="text-[28px] font-semibold text-gray-900">94.2%</p>
-              <p className="text-sm text-green-600 mt-1">↑ 3% from last month</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div className="border-t border-gray-200 mb-8"></div>
-
         {/* Tariff Structure Overview */}
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Current Tariff Structure Overview</h2>
-          
-          {/* Charts Grid */}
-          <div className="grid grid-cols-2 gap-6 mb-6">
-            {/* Residential Tariff Structure */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="text-base font-semibold text-gray-900 mb-1">Residential Tariff Structure</h3>
-              <p className="text-sm text-gray-500 mb-4">Current base rates by consumption range</p>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={residentialTariffData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis 
-                    dataKey="range" 
-                    tick={{ fontSize: 12 }}
-                    stroke="#6b7280"
-                  />
-                  <YAxis 
-                    tick={{ fontSize: 12 }}
-                    stroke="#6b7280"
-                    label={{ value: 'Rate (BDT/m³)', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
-                  />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '8px' }}
-                  />
-                  <Bar dataKey="rate" fill="#4C6EF5" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+        {residentialTariffData.length > 0 || commercialTariffData.length > 0 ? (
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Current Tariff Structure Overview</h2>
+            
+            {/* Charts Grid */}
+            <div className="grid grid-cols-2 gap-6 mb-6">
+              {/* Residential Tariff Structure */}
+              {residentialTariffData.length > 0 && (
+                <div className="bg-white rounded-xl border border-gray-200 p-6">
+                  <h3 className="text-base font-semibold text-gray-900 mb-1">Residential Tariff Structure</h3>
+                  <p className="text-sm text-gray-500 mb-4">Current base rates by consumption range</p>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={residentialTariffData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis 
+                        dataKey="range" 
+                        tick={{ fontSize: 12 }}
+                        stroke="#6b7280"
+                      />
+                      <YAxis 
+                        tick={{ fontSize: 12 }}
+                        stroke="#6b7280"
+                        label={{ value: 'Rate (BDT/m³)', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
+                      />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '8px' }}
+                      />
+                      <Bar dataKey="rate" fill="#4C6EF5" radius={[8, 8, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
 
-            {/* Commercial Tariff Structure */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="text-base font-semibold text-gray-900 mb-1">Commercial Tariff Structure</h3>
-              <p className="text-sm text-gray-500 mb-4">Current base rates by consumption range</p>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={commercialTariffData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis 
-                    dataKey="range" 
-                    tick={{ fontSize: 12 }}
-                    stroke="#6b7280"
-                  />
-                  <YAxis 
-                    tick={{ fontSize: 12 }}
-                    stroke="#6b7280"
-                    label={{ value: 'Rate (BDT/m³)', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
-                  />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '8px' }}
-                  />
-                  <Bar dataKey="rate" fill="#10b981" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Ward Multipliers */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="text-base font-semibold text-gray-900 mb-1">Ward Multipliers</h3>
-              <p className="text-sm text-gray-500 mb-4">Regional adjustment factors</p>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={wardMultiplierData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis 
-                    dataKey="ward" 
-                    tick={{ fontSize: 12 }}
-                    stroke="#6b7280"
-                  />
-                  <YAxis 
-                    tick={{ fontSize: 12 }}
-                    stroke="#6b7280"
-                    domain={[0.8, 1.2]}
-                    label={{ value: 'Multiplier', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
-                  />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '8px' }}
-                  />
-                  <Bar dataKey="multiplier" fill="#f59e0b" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Historical Rate Trends */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="text-base font-semibold text-gray-900 mb-1">Historical Rate Trends</h3>
-              <p className="text-sm text-gray-500 mb-4">Base rate changes over time (0-10 m³ slab)</p>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={historicalRateData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis 
-                    dataKey="month" 
-                    tick={{ fontSize: 12 }}
-                    stroke="#6b7280"
-                  />
-                  <YAxis 
-                    tick={{ fontSize: 12 }}
-                    stroke="#6b7280"
-                    domain={[7, 16]}
-                    label={{ value: 'Rate (BDT/m³)', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
-                  />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '8px' }}
-                  />
-                  <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey="residential" 
-                    stroke="#4C6EF5" 
-                    strokeWidth={2}
-                    dot={{ fill: '#4C6EF5', r: 4 }}
-                    name="Residential"
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="commercial" 
-                    stroke="#10b981" 
-                    strokeWidth={2}
-                    dot={{ fill: '#10b981', r: 4 }}
-                    name="Commercial"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              {/* Commercial Tariff Structure */}
+              {commercialTariffData.length > 0 && (
+                <div className="bg-white rounded-xl border border-gray-200 p-6">
+                  <h3 className="text-base font-semibold text-gray-900 mb-1">Commercial Tariff Structure</h3>
+                  <p className="text-sm text-gray-500 mb-4">Current base rates by consumption range</p>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={commercialTariffData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis 
+                        dataKey="range" 
+                        tick={{ fontSize: 12 }}
+                        stroke="#6b7280"
+                      />
+                      <YAxis 
+                        tick={{ fontSize: 12 }}
+                        stroke="#6b7280"
+                        label={{ value: 'Rate (BDT/m³)', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
+                      />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '8px' }}
+                      />
+                      <Bar dataKey="rate" fill="#10b981" radius={[8, 8, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <p className="text-sm text-gray-500 text-center">No active tariff plans found</p>
+          </div>
+        )}
       </div>
     </div>
   );

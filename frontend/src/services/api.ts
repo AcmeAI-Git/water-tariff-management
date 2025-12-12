@@ -352,6 +352,13 @@ export const waterBillsApi = {
     return fetchService.delete<void>(`/water-bills/${id}`);
   },
 
+  calculate: (data: CalculateBillDto): Promise<BillCalculationResult> => {
+    return fetchService.post<BillCalculationResult>(
+      "/water-bills/calculate",
+      data
+    );
+  },
+
   markPaid: (id: number): Promise<WaterBill> => {
     return fetchService.put<WaterBill>(`/water-bills/${id}/mark-paid`, {});
   },
@@ -367,12 +374,14 @@ export const auditLogsApi = {
     return fetchService.get<AuditLog>(`/audit-logs/${id}`);
   },
 
-  getByRecord: (
-    tableName: string,
-    recordId: number
-  ): Promise<AuditLog[]> => {
-    return fetchService.get<AuditLog[]>(
-      `/audit-logs/record/${tableName}/${recordId}`
+  recordForRecord: (
+    tablename: string,
+    recordid: number,
+    data: CreateAuditLogDto
+  ): Promise<AuditLog> => {
+    return fetchService.post<AuditLog>(
+      `/audit-logs/record/${tablename}/${recordid}`,
+      data
     );
   },
 

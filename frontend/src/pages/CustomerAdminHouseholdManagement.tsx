@@ -8,68 +8,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Calendar } from '../components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
 import { Plus, Edit, CalendarIcon, Search } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { format } from 'date-fns';
 import { cn } from '../utils/utils';
+import { api } from '../services/api';
+import { useApiQuery, useApiMutation } from '../hooks/useApiQuery';
+import { mapUserToHousehold, mapUserStatus, type DisplayHousehold } from '../utils/dataMappers';
+import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import type { Zone, Ward } from '../types';
 
 export function CustomerAdminHouseholdManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  
-  const [households, setHouseholds] = useState([
-    {
-      id: 1,
-      fullName: 'Ahmed Hassan',
-      meterNo: 'MTR-2024-1001',
-      phone: '+880-1712-345678',
-      address: '45 Dhanmondi Road, Ward 3, Dhaka',
-      status: 'Approved'
-    },
-    {
-      id: 2,
-      fullName: 'Fatima Rahman',
-      meterNo: 'MTR-2024-1002',
-      phone: '+880-1823-456789',
-      address: '12 Mirpur Street, Ward 3, Dhaka',
-      status: 'Pending'
-    },
-    {
-      id: 3,
-      fullName: 'Mohammad Ali',
-      meterNo: 'MTR-2024-1003',
-      phone: '+880-1934-567890',
-      address: '78 Gulshan Avenue, Ward 3, Dhaka',
-      status: 'Approved'
-    },
-    {
-      id: 4,
-      fullName: 'Nadia Chowdhury',
-      meterNo: 'MTR-2024-1004',
-      phone: '+880-1645-678901',
-      address: '23 Banani Road, Ward 3, Dhaka',
-      status: 'Approved'
-    },
-    {
-      id: 5,
-      fullName: 'Karim Sheikh',
-      meterNo: 'MTR-2024-1005',
-      phone: '+880-1756-789012',
-      address: '56 Uttara Sector 7, Ward 3, Dhaka',
-      status: 'Pending'
-    },
-    {
-      id: 6,
-      fullName: 'Ayesha Begum',
-      meterNo: 'MTR-2024-1006',
-      phone: '+880-1867-890123',
-      address: '34 Mohammadpur Lane, Ward 3, Dhaka',
-      status: 'Approved'
-    },
-  ]);
-
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedHousehold, setSelectedHousehold] = useState<any>(null);
+  const [selectedHousehold, setSelectedHousehold] = useState<DisplayHousehold | null>(null);
   
   const [formData, setFormData] = useState({
     fullName: '',
@@ -79,8 +32,8 @@ export function CustomerAdminHouseholdManagement() {
     address: '',
     category: 'residential',
     meterInstallDate: undefined as Date | undefined,
-    zone: '',
-    ward: '',
+    zoneId: '',
+    wardId: '',
   });
 
   const [editFormData, setEditFormData] = useState({
@@ -91,9 +44,77 @@ export function CustomerAdminHouseholdManagement() {
     address: '',
     category: 'residential',
     meterInstallDate: undefined as Date | undefined,
-    zone: '',
-    ward: '',
+    zoneId: '',
+    wardId: '',
   });
+
+  // Fetch users (households)
+  const { data: users = [], isLoading: usersLoading } = useApiQuery(
+    ['users', statusFilter === 'all' ? undefined : statusFilter],
+    () => {
+      const status = statusFilter === 'all' ? undefined : statusFilter;
+      return api.users.getAll(status);
+    }
+  );
+
+  // Fetch zones and wards
+  const { data: zones = [], isLoading: zonesLoading } = useApiQuery(
+    ['zones'],
+    () => api.zones.getAll()
+  );
+
+  const { data: wards = [], isLoading: wardsLoading } = useApiQuery(
+    ['wards'],
+    () => api.wards.getAll()
+  );
+
+  // Map users to households
+  const households = useMemo(() => {
+    return users.map(mapUserToHousehold);
+  }, [users]);
+
+  // Filter households by search query
+  const filteredHouseholds = useMemo(() => {
+    if (!searchQuery) return households;
+    const term = searchQuery.toLowerCase();
+    return households.filter(
+      (household) =>
+        household.meterNo.toLowerCase().includes(term) ||
+        household.fullName.toLowerCase().includes(term) ||
+        household.phone.toLowerCase().includes(term)
+    );
+  }, [households, searchQuery]);
+
+  // Create user mutation
+  const createMutation = useApiMutation(
+    (data: Parameters<typeof api.users.create>[0]) => api.users.create(data),
+    {
+      successMessage: 'Household created successfully',
+      errorMessage: 'Failed to create household',
+      invalidateQueries: [['users']],
+    }
+  );
+
+  // Update user mutation
+  const updateMutation = useApiMutation(
+    ({ id, data }: { id: number; data: Parameters<typeof api.users.update>[1] }) =>
+      api.users.update(id, data),
+    {
+      successMessage: 'Household updated successfully',
+      errorMessage: 'Failed to update household',
+      invalidateQueries: [['users']],
+    }
+  );
+
+  // Activate user mutation
+  const activateMutation = useApiMutation(
+    (id: number) => api.users.activate(id),
+    {
+      successMessage: 'Household activated successfully',
+      errorMessage: 'Failed to activate household',
+      invalidateQueries: [['users']],
+    }
+  );
 
   const handleInputChange = (field: string, value: string | Date | undefined) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -103,17 +124,20 @@ export function CustomerAdminHouseholdManagement() {
     setEditFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = () => {
-    const newHousehold = {
-      id: households.length + 1,
+  const handleSubmit = async () => {
+    if (!formData.zoneId || !formData.wardId || !formData.meterInstallDate) return;
+
+    await createMutation.mutateAsync({
       fullName: formData.fullName,
       meterNo: formData.meterNo,
       phone: formData.phone,
+      email: formData.email || '',
       address: formData.address,
-      status: 'Pending'
-    };
-
-    setHouseholds(prev => [...prev, newHousehold]);
+      hourseType: formData.category === 'residential' ? 'Residential' : 'Commercial',
+      installDate: format(formData.meterInstallDate, 'yyyy-MM-dd'),
+      zoneId: parseInt(formData.zoneId),
+      wardId: parseInt(formData.wardId),
+    });
     
     // Reset form
     setFormData({
@@ -124,59 +148,95 @@ export function CustomerAdminHouseholdManagement() {
       address: '',
       category: 'residential',
       meterInstallDate: undefined,
-      zone: '',
-      ward: '',
+      zoneId: '',
+      wardId: '',
     });
     
     setIsDialogOpen(false);
   };
 
-  const handleEditClick = (household: any) => {
+  const handleEditClick = (household: DisplayHousehold) => {
     setSelectedHousehold(household);
+    // Find the user to get full details
+    const user = users.find(u => u.id === household.id);
     setEditFormData({
       fullName: household.fullName,
       meterNo: household.meterNo,
       phone: household.phone,
-      email: 'ahmed.hassan@example.com',
+      email: household.email || user?.email || '',
       address: household.address,
-      category: 'residential',
-      meterInstallDate: new Date('2024-01-15'),
-      zone: 'Zone A',
-      ward: 'Ward 3',
+      category: user?.hourseType?.toLowerCase().includes('commercial') ? 'commercial' : 'residential',
+      meterInstallDate: user?.installDate ? new Date(user.installDate) : undefined,
+      zoneId: household.zoneId?.toString() || '',
+      wardId: household.wardId?.toString() || '',
     });
     setIsEditDialogOpen(true);
   };
 
-  const handleEditSubmit = () => {
-    // In a real app, this would update the household in the database
-    const updatedHouseholds = households.map(h => 
-      h.id === selectedHousehold?.id 
-        ? { ...h, fullName: editFormData.fullName, meterNo: editFormData.meterNo, phone: editFormData.phone, address: editFormData.address }
-        : h
-    );
+  const handleEditSubmit = async () => {
+    if (!selectedHousehold || !editFormData.zoneId || !editFormData.wardId || !editFormData.meterInstallDate) return;
+
+    await updateMutation.mutateAsync({
+      id: selectedHousehold.id,
+      data: {
+        fullName: editFormData.fullName,
+        meterNo: editFormData.meterNo,
+        phone: editFormData.phone,
+        email: editFormData.email,
+        address: editFormData.address,
+        hourseType: editFormData.category === 'residential' ? 'Residential' : 'Commercial',
+        installDate: format(editFormData.meterInstallDate, 'yyyy-MM-dd'),
+        zoneId: parseInt(editFormData.zoneId),
+        wardId: parseInt(editFormData.wardId),
+      },
+    });
     
-    setHouseholds(updatedHouseholds);
     setIsEditDialogOpen(false);
     setSelectedHousehold(null);
   };
 
+  const handleActivate = async (householdId: number) => {
+    await activateMutation.mutateAsync(householdId);
+  };
+
   const getStatusColor = (status: string) => {
-    switch (status) {
+    const mappedStatus = mapUserStatus(status);
+    switch (mappedStatus) {
       case 'Approved':
+      case 'Active':
         return 'bg-green-100 text-green-700';
       case 'Pending':
+      case 'Inactive':
         return 'bg-yellow-100 text-yellow-700';
       default:
         return 'bg-gray-100 text-gray-700';
     }
   };
 
-  // Filter households based on search query and status
-  const filteredHouseholds = households.filter((household) => {
-    const matchesSearch = household.meterNo.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || household.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  // Prepare zone and ward options
+  const zoneOptions = zones.map((zone) => ({
+    value: zone.id.toString(),
+    label: zone.name || zone.zoneNo,
+  }));
+
+  const wardOptions = useMemo(() => {
+    if (!editFormData.zoneId && !formData.zoneId) return [];
+    const zoneId = parseInt(editFormData.zoneId || formData.zoneId);
+    return wards
+      .filter((ward) => ward.zoneId === zoneId)
+      .map((ward) => ({
+        value: ward.id.toString(),
+        label: ward.name || ward.wardNo,
+      }));
+  }, [wards, formData.zoneId, editFormData.zoneId]);
+
+  if (usersLoading || zonesLoading || wardsLoading) {
+    return (
+      <div className="min-h-screen bg-app flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-app">
@@ -329,17 +389,21 @@ export function CustomerAdminHouseholdManagement() {
                       Zone *
                     </Label>
                     <Select
-                      value={formData.zone}
-                      onValueChange={(value) => handleInputChange('zone', value)}
+                      value={formData.zoneId}
+                      onValueChange={(value) => {
+                        handleInputChange('zoneId', value);
+                        handleInputChange('wardId', ''); // Reset ward when zone changes
+                      }}
                     >
                       <SelectTrigger className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500">
                         <SelectValue placeholder="Select zone" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Zone A">Zone A</SelectItem>
-                        <SelectItem value="Zone B">Zone B</SelectItem>
-                        <SelectItem value="Zone C">Zone C</SelectItem>
-                        <SelectItem value="Zone D">Zone D</SelectItem>
+                        {zoneOptions.map((zone) => (
+                          <SelectItem key={zone.value} value={zone.value}>
+                            {zone.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -349,18 +413,19 @@ export function CustomerAdminHouseholdManagement() {
                       Ward *
                     </Label>
                     <Select
-                      value={formData.ward}
-                      onValueChange={(value) => handleInputChange('ward', value)}
+                      value={formData.wardId}
+                      onValueChange={(value) => handleInputChange('wardId', value)}
+                      disabled={!formData.zoneId}
                     >
                       <SelectTrigger className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500">
                         <SelectValue placeholder="Select ward" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Ward 1">Ward 1</SelectItem>
-                        <SelectItem value="Ward 2">Ward 2</SelectItem>
-                        <SelectItem value="Ward 3">Ward 3</SelectItem>
-                        <SelectItem value="Ward 4">Ward 4</SelectItem>
-                        <SelectItem value="Ward 5">Ward 5</SelectItem>
+                        {wardOptions.map((ward) => (
+                          <SelectItem key={ward.value} value={ward.value}>
+                            {ward.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -379,10 +444,10 @@ export function CustomerAdminHouseholdManagement() {
                 <Button
                   type="submit"
                   onClick={handleSubmit}
-                  disabled={!formData.fullName || !formData.meterNo || !formData.phone || !formData.address || !formData.meterInstallDate || !formData.zone || !formData.ward}
+                  disabled={!formData.fullName || !formData.meterNo || !formData.phone || !formData.address || !formData.meterInstallDate || !formData.zoneId || !formData.wardId || createMutation.isPending}
                   className="bg-primary hover:bg-primary-600 text-white rounded-lg h-10 px-5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Add Household
+                  {createMutation.isPending ? 'Adding...' : 'Add Household'}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -409,7 +474,8 @@ export function CustomerAdminHouseholdManagement() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="Approved">Approved</SelectItem>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Inactive">Inactive</SelectItem>
                   <SelectItem value="Pending">Pending</SelectItem>
                 </SelectContent>
               </Select>
@@ -552,17 +618,21 @@ export function CustomerAdminHouseholdManagement() {
                     Zone *
                   </Label>
                   <Select
-                    value={editFormData.zone}
-                    onValueChange={(value) => handleEditInputChange('zone', value)}
+                    value={editFormData.zoneId}
+                    onValueChange={(value) => {
+                      handleEditInputChange('zoneId', value);
+                      handleEditInputChange('wardId', ''); // Reset ward when zone changes
+                    }}
                   >
                     <SelectTrigger className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500">
                       <SelectValue placeholder="Select zone" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Zone A">Zone A</SelectItem>
-                      <SelectItem value="Zone B">Zone B</SelectItem>
-                      <SelectItem value="Zone C">Zone C</SelectItem>
-                      <SelectItem value="Zone D">Zone D</SelectItem>
+                      {zoneOptions.map((zone) => (
+                        <SelectItem key={zone.value} value={zone.value}>
+                          {zone.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -572,18 +642,19 @@ export function CustomerAdminHouseholdManagement() {
                     Ward *
                   </Label>
                   <Select
-                    value={editFormData.ward}
-                    onValueChange={(value) => handleEditInputChange('ward', value)}
+                    value={editFormData.wardId}
+                    onValueChange={(value) => handleEditInputChange('wardId', value)}
+                    disabled={!editFormData.zoneId}
                   >
                     <SelectTrigger className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500">
                       <SelectValue placeholder="Select ward" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Ward 1">Ward 1</SelectItem>
-                      <SelectItem value="Ward 2">Ward 2</SelectItem>
-                      <SelectItem value="Ward 3">Ward 3</SelectItem>
-                      <SelectItem value="Ward 4">Ward 4</SelectItem>
-                      <SelectItem value="Ward 5">Ward 5</SelectItem>
+                      {wardOptions.map((ward) => (
+                        <SelectItem key={ward.value} value={ward.value}>
+                          {ward.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -602,10 +673,10 @@ export function CustomerAdminHouseholdManagement() {
               <Button
                 type="submit"
                 onClick={handleEditSubmit}
-                disabled={!editFormData.fullName || !editFormData.meterNo || !editFormData.phone || !editFormData.address || !editFormData.meterInstallDate || !editFormData.zone || !editFormData.ward}
+                disabled={!editFormData.fullName || !editFormData.meterNo || !editFormData.phone || !editFormData.address || !editFormData.meterInstallDate || !editFormData.zoneId || !editFormData.wardId || updateMutation.isPending}
                 className="bg-primary hover:bg-primary-600 text-white rounded-lg h-10 px-5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Save Changes
+                {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -638,27 +709,40 @@ export function CustomerAdminHouseholdManagement() {
               ) : (
                 filteredHouseholds.map((household) => (
                   <TableRow key={household.id} className="border-gray-100">
-                  <TableCell className="text-sm font-medium text-gray-900">{household.fullName}</TableCell>
-                  <TableCell className="text-sm text-gray-600">{household.meterNo}</TableCell>
-                  <TableCell className="text-sm text-gray-600">{household.phone}</TableCell>
-                  <TableCell className="text-sm text-gray-600">{household.address}</TableCell>
-                  <TableCell>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(household.status)}`}>
-                      {household.status}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleEditClick(household)}
-                      className="border-gray-300 text-gray-700 rounded-lg h-8 px-3 bg-white hover:bg-gray-50 flex items-center gap-1.5"
-                    >
-                      <Edit size={14} />
-                      Edit
-                    </Button>
-                  </TableCell>
-                </TableRow>
+                    <TableCell className="text-sm font-medium text-gray-900">{household.fullName}</TableCell>
+                    <TableCell className="text-sm text-gray-600">{household.meterNo}</TableCell>
+                    <TableCell className="text-sm text-gray-600">{household.phone}</TableCell>
+                    <TableCell className="text-sm text-gray-600">{household.address}</TableCell>
+                    <TableCell>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(household.status)}`}>
+                        {mapUserStatus(household.status)}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {household.status.toLowerCase() === 'inactive' || household.status.toLowerCase() === 'pending' ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleActivate(household.id)}
+                            className="border-green-300 text-green-700 rounded-lg h-8 px-3 bg-white hover:bg-green-50"
+                            disabled={activateMutation.isPending}
+                          >
+                            Activate
+                          </Button>
+                        ) : null}
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleEditClick(household)}
+                          className="border-gray-300 text-gray-700 rounded-lg h-8 px-3 bg-white hover:bg-gray-50 flex items-center gap-1.5"
+                        >
+                          <Edit size={14} />
+                          Edit
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
                 ))
               )}
             </TableBody>
@@ -668,5 +752,3 @@ export function CustomerAdminHouseholdManagement() {
     </div>
   );
 }
-
-

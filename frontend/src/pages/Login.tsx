@@ -1,13 +1,52 @@
-﻿import { useNavigate } from 'react-router-dom';
+﻿import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import { api } from '../services/api';
+import { toast } from 'sonner';
+import type { Admin } from '../types';
 
 export default function Login() {
   const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleLogin = () => {
-    navigate('/');
+  const handleLogin = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    
+    if (!email || !password) {
+      setError('Please enter both email and password');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError('');
+      
+      const admin = await api.admins.login({
+        email,
+        password,
+      });
+      
+      // Store admin data in localStorage
+      localStorage.setItem('admin', JSON.stringify(admin));
+      localStorage.setItem('isAuthenticated', 'true');
+      
+      toast.success('Login successful!');
+      
+      // Navigate based on role (you can customize this based on roleId)
+      // For now, navigate to admin dashboard
+      navigate('/admin/dashboard');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Login failed. Please check your credentials.';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDemo = (role: string) => {
@@ -40,7 +79,13 @@ export default function Login() {
             <p className="text-sm text-gray-600">Please enter your credentials to continue</p>
           </div>
 
-          <div className="space-y-5">
+          <form onSubmit={handleLogin} className="space-y-5">
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
+            
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium text-gray-700">
                 Email
@@ -49,7 +94,11 @@ export default function Login() {
                 id="email"
                 type="email"
                 placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
                 className="bg-gray-50 border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
+                required
               />
             </div>
 
@@ -61,7 +110,11 @@ export default function Login() {
                 id="password"
                 type="password"
                 placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
                 className="bg-gray-50 border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
+                required
               />
             </div>
 
@@ -76,12 +129,13 @@ export default function Login() {
             </div>
 
             <Button 
-              onClick={handleLogin}
-              className="w-full bg-primary hover:bg-primary-600 text-white rounded-lg h-11 text-base font-medium shadow-sm"
+              type="submit"
+              disabled={loading}
+              className="w-full bg-primary hover:bg-primary-600 text-white rounded-lg h-11 text-base font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Login
+              {loading ? 'Logging in...' : 'Login'}
             </Button>
-          </div>
+          </form>
 
           <div className="mt-6 pt-6 border-t border-gray-200">
             <p className="text-sm text-gray-600 mb-3 text-center">Quick Demo Access:</p>

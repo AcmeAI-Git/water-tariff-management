@@ -1,16 +1,66 @@
 ﻿import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useMemo } from 'react';
+import { api } from '../services/api';
+import { useApiQuery } from '../hooks/useApiQuery';
+import { LoadingSpinner } from '../components/common/LoadingSpinner';
 
 export function MeterAdminMetrics() {
-  const dailyData = [
-    { date: 'Nov 1', readings: 12 },
-    { date: 'Nov 2', readings: 15 },
-    { date: 'Nov 3', readings: 8 },
-    { date: 'Nov 4', readings: 18 },
-    { date: 'Nov 5', readings: 22 },
-    { date: 'Nov 6', readings: 16 },
-    { date: 'Nov 7', readings: 19 },
-    { date: 'Nov 8', readings: 14 },
-  ];
+  // Fetch consumption entries
+  const { data: consumptions = [], isLoading: consumptionsLoading } = useApiQuery(
+    ['consumption'],
+    () => api.consumption.getAll()
+  );
+
+  // Fetch users
+  const { data: users = [], isLoading: usersLoading } = useApiQuery(
+    ['users'],
+    () => api.users.getAll()
+  );
+
+  // Calculate metrics
+  const thisMonth = new Date();
+  const readingsThisMonth = consumptions.filter((consumption) => {
+    if (!consumption.createdAt) return false;
+    const createdDate = new Date(consumption.createdAt);
+    return createdDate.getMonth() === thisMonth.getMonth() && 
+           createdDate.getFullYear() === thisMonth.getFullYear();
+  }).length;
+
+  // Prepare daily readings data (last 30 days)
+  const dailyData = useMemo(() => {
+    const data: { date: string; readings: number }[] = [];
+    const today = new Date();
+    
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      
+      const count = consumptions.filter((consumption) => {
+        if (!consumption.createdAt) return false;
+        const createdDate = new Date(consumption.createdAt);
+        return createdDate.toDateString() === date.toDateString();
+      }).length;
+      
+      data.push({ date: dateStr, readings: count });
+    }
+    
+    return data;
+  }, [consumptions]);
+
+  const avgDailyEntries = (readingsThisMonth / 30).toFixed(0);
+  const totalHouseholds = users.length;
+  const coverageRate = totalHouseholds > 0 
+    ? ((consumptions.length / totalHouseholds) * 100).toFixed(0)
+    : '0';
+
+  if (consumptionsLoading || usersLoading) {
+    return (
+      <div className="min-h-screen bg-app flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-app">
@@ -28,19 +78,19 @@ export function MeterAdminMetrics() {
           <div className="grid grid-cols-3 gap-6">
             <div className="bg-white p-6 rounded-xl border border-gray-200">
               <p className="text-sm text-gray-600 mb-2">Readings Entered This Month</p>
-              <p className="text-3xl font-semibold text-gray-900">247</p>
-              <p className="text-xs text-gray-500 mt-2">As of November 8, 2025</p>
+              <p className="text-3xl font-semibold text-gray-900">{readingsThisMonth}</p>
+              <p className="text-xs text-gray-500 mt-2">As of {thisMonth.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
             </div>
 
             <div className="bg-white p-6 rounded-xl border border-gray-200">
-              <p className="text-sm text-gray-600 mb-2">Entries Pending Approval</p>
-              <p className="text-3xl font-semibold text-gray-900">12</p>
-              <p className="text-xs text-gray-500 mt-2">Awaiting supervisor review</p>
+              <p className="text-sm text-gray-600 mb-2">Total Readings</p>
+              <p className="text-3xl font-semibold text-gray-900">{consumptions.length}</p>
+              <p className="text-xs text-gray-500 mt-2">All time entries</p>
             </div>
 
             <div className="bg-white p-6 rounded-xl border border-gray-200">
               <p className="text-sm text-gray-600 mb-2">Average Daily Entries</p>
-              <p className="text-3xl font-semibold text-gray-900">16</p>
+              <p className="text-3xl font-semibold text-gray-900">{avgDailyEntries}</p>
               <p className="text-xs text-gray-500 mt-2">Last 30 days average</p>
             </div>
           </div>
@@ -96,7 +146,7 @@ export function MeterAdminMetrics() {
                 <p className="text-sm font-medium text-gray-900">Total Households Covered</p>
                 <p className="text-xs text-gray-500 mt-0.5">In your assigned ward</p>
               </div>
-              <p className="text-base font-semibold text-gray-900">342</p>
+              <p className="text-base font-semibold text-gray-900">{totalHouseholds}</p>
             </div>
 
             <div className="flex items-center justify-between px-6 py-4">
@@ -104,23 +154,15 @@ export function MeterAdminMetrics() {
                 <p className="text-sm font-medium text-gray-900">Coverage Rate</p>
                 <p className="text-xs text-gray-500 mt-0.5">Percentage of households with data</p>
               </div>
-              <p className="text-base font-semibold text-gray-900">72%</p>
+              <p className="text-base font-semibold text-gray-900">{coverageRate}%</p>
             </div>
 
             <div className="flex items-center justify-between px-6 py-4">
               <div>
-                <p className="text-sm font-medium text-gray-900">Accuracy Score</p>
-                <p className="text-xs text-gray-500 mt-0.5">Based on validation checks</p>
+                <p className="text-sm font-medium text-gray-900">Total Readings</p>
+                <p className="text-xs text-gray-500 mt-0.5">All meter readings entered</p>
               </div>
-              <p className="text-base font-semibold text-gray-900">98.5%</p>
-            </div>
-
-            <div className="flex items-center justify-between px-6 py-4">
-              <div>
-                <p className="text-sm font-medium text-gray-900">Rejected Entries</p>
-                <p className="text-xs text-gray-500 mt-0.5">This month</p>
-              </div>
-              <p className="text-base font-semibold text-gray-900">3</p>
+              <p className="text-base font-semibold text-gray-900">{consumptions.length}</p>
             </div>
           </div>
         </div>
@@ -128,5 +170,3 @@ export function MeterAdminMetrics() {
     </div>
   );
 }
-
-

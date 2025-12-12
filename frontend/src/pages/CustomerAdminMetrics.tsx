@@ -1,39 +1,73 @@
 ﻿import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useMemo } from 'react';
+import { api } from '../services/api';
+import { useApiQuery } from '../hooks/useApiQuery';
+import { LoadingSpinner } from '../components/common/LoadingSpinner';
 
 export function CustomerAdminMetrics() {
-  // Mock data for daily registrations
-  const dailyData = [
-    { date: 'Oct 10', registrations: 3 },
-    { date: 'Oct 11', registrations: 1 },
-    { date: 'Oct 12', registrations: 4 },
-    { date: 'Oct 13', registrations: 2 },
-    { date: 'Oct 14', registrations: 5 },
-    { date: 'Oct 15', registrations: 3 },
-    { date: 'Oct 16', registrations: 2 },
-    { date: 'Oct 17', registrations: 6 },
-    { date: 'Oct 18', registrations: 4 },
-    { date: 'Oct 19', registrations: 3 },
-    { date: 'Oct 20', registrations: 5 },
-    { date: 'Oct 21', registrations: 2 },
-    { date: 'Oct 22', registrations: 4 },
-    { date: 'Oct 23', registrations: 7 },
-    { date: 'Oct 24', registrations: 3 },
-    { date: 'Oct 25', registrations: 5 },
-    { date: 'Oct 26', registrations: 2 },
-    { date: 'Oct 27', registrations: 4 },
-    { date: 'Oct 28', registrations: 6 },
-    { date: 'Oct 29', registrations: 3 },
-    { date: 'Oct 30', registrations: 5 },
-    { date: 'Oct 31', registrations: 4 },
-    { date: 'Nov 1', registrations: 3 },
-    { date: 'Nov 2', registrations: 6 },
-    { date: 'Nov 3', registrations: 4 },
-    { date: 'Nov 4', registrations: 5 },
-    { date: 'Nov 5', registrations: 2 },
-    { date: 'Nov 6', registrations: 7 },
-    { date: 'Nov 7', registrations: 5 },
-    { date: 'Nov 8', registrations: 4 },
-  ];
+  // Fetch users (households)
+  const { data: users = [], isLoading: usersLoading } = useApiQuery(
+    ['users'],
+    () => api.users.getAll()
+  );
+
+  // Fetch pending approval requests
+  const { data: pendingApprovals = [] } = useApiQuery(
+    ['approval-requests', 'pending'],
+    () => api.approvalRequests.getPending()
+  );
+
+  // Calculate metrics
+  const totalHouseholds = users.length;
+  const pendingCount = pendingApprovals.filter((req: any) => 
+    req.moduleName?.toLowerCase().includes('household') || 
+    req.moduleName?.toLowerCase().includes('customer')
+  ).length;
+
+  // Calculate households registered this month
+  const thisMonth = new Date();
+  const householdsThisMonth = users.filter((user) => {
+    if (!user.createdAt) return false;
+    const createdDate = new Date(user.createdAt);
+    return createdDate.getMonth() === thisMonth.getMonth() && 
+           createdDate.getFullYear() === thisMonth.getFullYear();
+  }).length;
+
+  // Prepare daily registration data (last 30 days)
+  const dailyData = useMemo(() => {
+    const data: { date: string; registrations: number }[] = [];
+    const today = new Date();
+    
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      
+      const count = users.filter((user) => {
+        if (!user.createdAt) return false;
+        const createdDate = new Date(user.createdAt);
+        return createdDate.toDateString() === date.toDateString();
+      }).length;
+      
+      data.push({ date: dateStr, registrations: count });
+    }
+    
+    return data;
+  }, [users]);
+
+  if (usersLoading) {
+    return (
+      <div className="min-h-screen bg-app flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  const avgDailyRegistrations = (householdsThisMonth / 30).toFixed(1);
+  const peakDay = dailyData.reduce((max, day) => 
+    day.registrations > max.registrations ? day : max, 
+    { date: '', registrations: 0 }
+  );
 
   return (
     <div className="min-h-screen bg-app">
@@ -53,12 +87,7 @@ export function CustomerAdminMetrics() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Households Registered This Month</p>
-                  <p className="text-2xl font-semibold text-gray-900 mt-1">47</p>
-                </div>
-                <div className="text-right">
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                    +12% from last month
-                  </span>
+                  <p className="text-2xl font-semibold text-gray-900 mt-1">{householdsThisMonth}</p>
                 </div>
               </div>
             </div>
@@ -67,7 +96,7 @@ export function CustomerAdminMetrics() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Registrations Pending Approval</p>
-                  <p className="text-2xl font-semibold text-gray-900 mt-1">8</p>
+                  <p className="text-2xl font-semibold text-gray-900 mt-1">{pendingCount}</p>
                 </div>
                 <div className="text-right">
                   <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
@@ -81,10 +110,7 @@ export function CustomerAdminMetrics() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Total Households in Ward</p>
-                  <p className="text-2xl font-semibold text-gray-900 mt-1">324</p>
-                </div>
-                <div className="text-right">
-                  <span className="text-sm text-gray-500">Ward 3, Dhaka South</span>
+                  <p className="text-2xl font-semibold text-gray-900 mt-1">{totalHouseholds}</p>
                 </div>
               </div>
             </div>
@@ -137,17 +163,19 @@ export function CustomerAdminMetrics() {
           <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
             <div className="px-6 py-4">
               <p className="text-sm font-medium text-gray-900 mb-1">Peak Registration Day</p>
-              <p className="text-sm text-gray-600">November 6 with 7 registrations</p>
+              <p className="text-sm text-gray-600">
+                {peakDay.date} with {peakDay.registrations} registrations
+              </p>
             </div>
             
             <div className="px-6 py-4">
               <p className="text-sm font-medium text-gray-900 mb-1">Average Daily Registrations</p>
-              <p className="text-sm text-gray-600">4.2 households per day</p>
+              <p className="text-sm text-gray-600">{avgDailyRegistrations} households per day</p>
             </div>
 
             <div className="px-6 py-4">
-              <p className="text-sm font-medium text-gray-900 mb-1">Approval Rate</p>
-              <p className="text-sm text-gray-600">83% of registrations approved within 48 hours</p>
+              <p className="text-sm font-medium text-gray-900 mb-1">Total Registrations</p>
+              <p className="text-sm text-gray-600">{totalHouseholds} households registered</p>
             </div>
           </div>
         </div>
@@ -155,5 +183,3 @@ export function CustomerAdminMetrics() {
     </div>
   );
 }
-
-

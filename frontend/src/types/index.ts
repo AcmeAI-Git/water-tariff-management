@@ -265,26 +265,30 @@ export interface CreateApprovalStatusDto {
 // Approval Request Types
 export interface ApprovalRequest {
   id: number;
-  entityType: string;
-  entityId: number;
+  moduleName: string;
+  recordId: number;
   requestedBy: number;
-  statusId: number;
-  comments?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  reviewedBy?: number | null;
+  approvalStatusId: number;
+  comments?: string | null;
+  requestedAt: string;
+  reviewedAt?: string | null;
+  // Relations (populated by backend)
+  requester?: Admin;
+  reviewer?: Admin | null;
+  approvalStatus?: ApprovalStatus;
 }
 
 export interface CreateApprovalRequestDto {
-  entityType: string;
-  entityId: number;
+  moduleName: string;
+  recordId: number;
   requestedBy: number;
-  statusId: number;
   comments?: string;
 }
 
 export interface ReviewApprovalRequestDto {
-  statusId: number;
   reviewedBy: number;
+  status: string; // 'Approved' or 'Rejected'
   comments?: string;
 }
 
@@ -353,16 +357,16 @@ export interface UpdateWaterBillDto {
 // Audit Log Types
 export interface AuditLog {
   id: number;
-  userId?: number;
-  adminId?: number;
+  userId?: number | null;
   action: string;
-  module: string;
-  tableName?: string;
-  recordId?: number;
-  details: string;
-  ipAddress?: string;
-  userAgent?: string;
+  tableName: string;
+  recordId: number;
+  oldData?: any | null;
+  newData?: any | null;
+  ipAddress?: string | null;
   createdAt: string;
+  // Relations (populated by backend)
+  user?: User | null;
 }
 
 export interface CreateAuditLogDto {

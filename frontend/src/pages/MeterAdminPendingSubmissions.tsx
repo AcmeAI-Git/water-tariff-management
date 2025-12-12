@@ -1,17 +1,70 @@
 ﻿import { Button } from '../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { X } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo } from 'react';
+import { api } from '../services/api';
+import { useApiQuery, useApiMutation } from '../hooks/useApiQuery';
+import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import type { Consumption, User } from '../types';
 
 export function MeterAdminPendingSubmissions() {
-  const [queuedReadings, setQueuedReadings] = useState([
-    { id: 1, householdName: 'Ahmed Residence', meterNo: 'MTR-2024-001', reading: '245.5', month: '2025-01' },
-    { id: 2, householdName: 'Rahman Villa', meterNo: 'MTR-2024-002', reading: '189.2', month: '2025-01' },
-  ]);
+  // Fetch all consumption entries
+  const { data: consumptions = [], isLoading: consumptionsLoading } = useApiQuery(
+    ['consumption'],
+    () => api.consumption.getAll()
+  );
 
-  const removeReading = (id: number) => {
-    setQueuedReadings(queuedReadings.filter(reading => reading.id !== id));
+  // Fetch all users to map userId to user details
+  const { data: users = [], isLoading: usersLoading } = useApiQuery(
+    ['users'],
+    () => api.users.getAll()
+  );
+
+  // Filter pending consumptions (those not yet approved)
+  // Note: Backend may not have explicit approval status, so we'll show all recent entries
+  // In a real system, you'd filter by approvalStatusId
+  const pendingConsumptions = useMemo(() => {
+    // For now, show all consumptions as pending
+    // You may need to add approval status filtering based on your backend structure
+    return consumptions.slice().reverse(); // Show most recent first
+  }, [consumptions]);
+
+  // Delete consumption mutation
+  const deleteMutation = useApiMutation(
+    (id: number) => api.consumption.delete(id),
+    {
+      successMessage: 'Reading removed successfully',
+      errorMessage: 'Failed to remove reading',
+      invalidateQueries: [['consumption']],
+    }
+  );
+
+  const removeReading = async (id: number) => {
+    await deleteMutation.mutateAsync(id);
   };
+
+  // Map consumption to display format with user details
+  const displayReadings = useMemo(() => {
+    return pendingConsumptions.map((consumption) => {
+      const user = users.find((u) => u.id === consumption.userId);
+      const billMonthDate = new Date(consumption.billMonth);
+      return {
+        id: consumption.id,
+        householdName: user?.fullName || 'Unknown',
+        meterNo: user?.meterNo || 'N/A',
+        reading: consumption.currentReading.toFixed(2),
+        month: billMonthDate.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit' }),
+      };
+    });
+  }, [pendingConsumptions, users]);
+
+  if (consumptionsLoading || usersLoading) {
+    return (
+      <div className="min-h-screen bg-app flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-app">
@@ -38,14 +91,14 @@ export function MeterAdminPendingSubmissions() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {queuedReadings.length === 0 ? (
+                {displayReadings.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center text-gray-500 py-8">
                       No readings in queue. Add readings from the Meter Data Entry page.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  queuedReadings.map((reading) => (
+                  displayReadings.map((reading) => (
                     <TableRow key={reading.id} className="border-gray-100">
                       <TableCell className="text-sm text-gray-900 font-medium">{reading.householdName}</TableCell>
                       <TableCell className="text-sm text-gray-600">{reading.meterNo}</TableCell>
@@ -56,6 +109,7 @@ export function MeterAdminPendingSubmissions() {
                           onClick={() => removeReading(reading.id)}
                           variant="outline" 
                           className="border-red-200 text-red-600 hover:bg-red-50 rounded-lg h-8 px-3 text-sm"
+                          disabled={deleteMutation.isPending}
                         >
                           <X size={14} className="mr-1" />
                           Remove
@@ -68,18 +122,7 @@ export function MeterAdminPendingSubmissions() {
             </Table>
           </div>
         </div>
-
-        {/* Final Button */}
-        {queuedReadings.length > 0 && (
-          <div className="flex justify-center">
-            <Button className="bg-primary hover:bg-primary-600 text-white rounded-lg px-12 py-6">
-              Send Batch for Approval ({queuedReadings.length} readings)
-            </Button>
-          </div>
-        )}
       </div>
     </div>
   );
 }
-
-
