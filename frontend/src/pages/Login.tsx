@@ -49,8 +49,14 @@ export default function Login() {
       toast.success('Login successful!');
       
       // Navigate based on role
-      const roleName = admin.role?.name || '';
+      const roleName = admin.role?.name || admin.roleName || '';
       const route = getRouteForRole(roleName);
+      
+      // Debug logging (can be removed in production)
+      if (!roleName) {
+        console.warn('No role name found in admin object:', admin);
+      }
+      
       navigate(route);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Login failed. Please check your credentials.';
@@ -85,8 +91,14 @@ export default function Login() {
       toast.success('Demo login successful!');
       
       // Navigate based on role (same logic as regular login)
-      const roleName = admin.role?.name || '';
+      const roleName = admin.role?.name || admin.roleName || '';
       const route = getRouteForRole(roleName);
+      
+      // Debug logging (can be removed in production)
+      if (!roleName) {
+        console.warn('No role name found in admin object:', admin);
+      }
+      
       navigate(route);
     } catch (err) {
       const errorMessage = err instanceof Error 

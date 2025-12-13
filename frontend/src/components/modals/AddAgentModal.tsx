@@ -10,6 +10,7 @@ interface Agent {
   email: string;
   password?: string;
   confirm?: string;
+  cityCorporation?: string;
   zone?: string;
   ward?: string;
   role: string;
@@ -23,22 +24,25 @@ interface AddAgentModalProps {
   agent?: Agent | null;
   roleFixed?: string; // For locking role to specific value (e.g., "Meter Admin")
   onDelete?: () => void; // Optional delete handler for edit mode
+  cityCorporationOptions?: Array<{ value: string; label: string }>; // City Corporation options from API
   zoneOptions?: Array<{ value: string; label: string }>; // Zone options from API
   wardOptions?: Array<{ value: string; label: string }>; // Ward options from API
   roleOptions?: Array<{ value: string; label: string }>; // Role options from API
   modalTitle?: string; // Custom modal title (defaults to "Add New Agent" or "Edit Agent")
   submitButtonText?: string; // Custom submit button text (defaults to "Add Agent" or "Save Changes")
+  showCityCorporation?: boolean; // Show city corporation field (default false)
   showZoneWard?: boolean; // Show zone/ward fields (default false)
   zoneWardAsNumbers?: boolean; // Use number inputs instead of dropdowns (default false)
 }
 
-export function AddAgentModal({ open, onClose, onSave, editMode = false, agent = null, roleFixed, onDelete, zoneOptions = [], wardOptions = [], roleOptions = [], modalTitle, submitButtonText, showZoneWard = false, zoneWardAsNumbers = false }: AddAgentModalProps) {
+export function AddAgentModal({ open, onClose, onSave, editMode = false, agent = null, roleFixed, onDelete, cityCorporationOptions = [], zoneOptions = [], wardOptions = [], roleOptions = [], modalTitle, submitButtonText, showCityCorporation = false, showZoneWard = false, zoneWardAsNumbers = false }: AddAgentModalProps) {
   const [form, setForm] = useState<Agent>({
     name: "",
     phone: "",
     email: "",
     password: "",
     confirm: "",
+    cityCorporation: "",
     zone: "",
     ward: "",
     role: roleFixed || "Super Admin",
@@ -60,6 +64,7 @@ export function AddAgentModal({ open, onClose, onSave, editMode = false, agent =
         email: "",
         password: "",
         confirm: "",
+        cityCorporation: "",
         zone: "",
         ward: "",
         role: roleFixed || "Super Admin",
@@ -72,9 +77,39 @@ export function AddAgentModal({ open, onClose, onSave, editMode = false, agent =
   };
 
   const handleSubmit = () => {
-    if (!editMode && form.password !== form.confirm) return;
-    onSave(form);
+    // Validate required fields (trim whitespace and check for empty)
+    const trimmedName = form.name?.trim();
+    const trimmedEmail = form.email?.trim();
+    const trimmedPhone = form.phone?.trim();
+    
+    if (!trimmedName || !trimmedEmail || !trimmedPhone) {
+      return; // Don't submit if required fields are missing
+    }
+    if (!editMode) {
+      if (form.password !== form.confirm) return;
+      if (!form.password || form.password.length < 6) return;
+    }
+    // Send trimmed values
+    onSave({
+      ...form,
+      name: trimmedName,
+      email: trimmedEmail,
+      phone: trimmedPhone,
+    });
     onClose();
+  };
+
+  // Check if form is valid for submit button
+  const isFormValid = () => {
+    const trimmedName = form.name?.trim();
+    const trimmedEmail = form.email?.trim();
+    const trimmedPhone = form.phone?.trim();
+    
+    if (!trimmedName || !trimmedEmail || !trimmedPhone) return false;
+    if (!editMode) {
+      if (!form.password || form.password.length < 6 || form.password !== form.confirm) return false;
+    }
+    return true;
   };
 
   if (!open) return null;
@@ -92,8 +127,17 @@ export function AddAgentModal({ open, onClose, onSave, editMode = false, agent =
         <h2 className="text-lg font-semibold mb-2">{finalModalTitle}</h2>
         <p className="text-xs text-gray-500 mb-4">{modalDescription}</p>
         <div className="space-y-3">
-          <Input placeholder="Full Name" value={form.name} onChange={e => handleChange("name", e.target.value)} />
-          <Input placeholder="Phone Number" value={form.phone || ""} onChange={e => handleChange("phone", e.target.value)} />
+          <Input placeholder="Full Name *" value={form.name} onChange={e => handleChange("name", e.target.value)} required />
+          <Input placeholder="Phone Number *" value={form.phone || ""} onChange={e => handleChange("phone", e.target.value)} required />
+          {showCityCorporation && (
+            <Dropdown 
+              options={cityCorporationOptions} 
+              value={form.cityCorporation || ""} 
+              onChange={v => handleChange("cityCorporation", v)} 
+              placeholder="Select City Corporation" 
+              className="w-full" 
+            />
+          )}
           {showZoneWard && (
             <div className="flex gap-2">
               {zoneWardAsNumbers ? (
@@ -134,11 +178,11 @@ export function AddAgentModal({ open, onClose, onSave, editMode = false, agent =
             className="w-full"
             disabled={!!roleFixed}
           />
-          <Input placeholder="Email Address" value={form.email} onChange={e => handleChange("email", e.target.value)} />
+          <Input type="email" placeholder="Email Address *" value={form.email} onChange={e => handleChange("email", e.target.value)} required />
           {!editMode && (
             <>
-              <Input type="password" placeholder="Password" value={form.password || ""} onChange={e => handleChange("password", e.target.value)} />
-              <Input type="password" placeholder="Confirm Password" value={form.confirm || ""} onChange={e => handleChange("confirm", e.target.value)} />
+              <Input type="password" placeholder="Password * (min 6 characters)" value={form.password || ""} onChange={e => handleChange("password", e.target.value)} required minLength={6} />
+              <Input type="password" placeholder="Confirm Password *" value={form.confirm || ""} onChange={e => handleChange("confirm", e.target.value)} required />
             </>
           )}
         </div>
@@ -154,7 +198,13 @@ export function AddAgentModal({ open, onClose, onSave, editMode = false, agent =
           )}
           <div className={`flex gap-2 ${editMode && onDelete ? 'ml-auto' : 'w-full justify-end'}`}>
             <Button variant="outline" onClick={onClose}>Cancel</Button>
-            <Button className="bg-primary text-white" onClick={handleSubmit}>{finalSubmitButtonText}</Button>
+            <Button 
+              className="bg-primary text-white disabled:opacity-50 disabled:cursor-not-allowed" 
+              onClick={handleSubmit}
+              disabled={!isFormValid()}
+            >
+              {finalSubmitButtonText}
+            </Button>
           </div>
         </div>
       </div>

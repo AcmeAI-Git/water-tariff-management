@@ -19,7 +19,7 @@ export function GeneralInfoAdminSidebar({ activePage, onNavigate }: GeneralInfoA
 
     const routeMap: Record<string, string> = {
         dashboard: "/general-info/dashboard",
-        users: "/general-info/users",
+        users: "/general-info/meter-readers",
         audit: "/general-info/audit",
     };
 
@@ -51,7 +51,7 @@ export function GeneralInfoAdminSidebar({ activePage, onNavigate }: GeneralInfoA
 
     const menuItems = [
         { id: "dashboard", label: "Dashboard", icon: Home },
-        { id: "users", label: "User Management", icon: Users },
+        { id: "users", label: "Meter Reader Management", icon: Users },
         { id: "audit", label: "System Audit Log", icon: ClipboardList },
     ];
 
@@ -81,8 +81,8 @@ export function GeneralInfoAdminSidebar({ activePage, onNavigate }: GeneralInfoA
                                     : "text-gray-700 hover:bg-gray-50"
                             }`}
                         >
-                            <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-                            <span className="text-[0.9375rem] font-medium">
+                            <Icon size={20} strokeWidth={isActive ? 2.5 : 2} className="flex-shrink-0" />
+                            <span className="text-[0.9375rem] font-medium whitespace-nowrap text-left">
                                 {item.label}
                             </span>
                         </button>

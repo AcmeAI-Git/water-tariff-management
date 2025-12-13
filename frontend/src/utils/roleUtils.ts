@@ -10,8 +10,11 @@ export function getRouteKeyFromRoleName(roleName: string): string {
     'superadmin': 'admin',
     'admin': 'admin',
     'meter reader': 'meter-admin',
+    'meter reader admin': 'meter-admin',
     'meter admin': 'meter-admin',
     'meteradmin': 'meter-admin',
+    'meter-reader': 'meter-admin',
+    'meter-reader-admin': 'meter-admin',
     'customer admin': 'customer-admin',
     'customeradmin': 'customer-admin',
     'tariff admin': 'tariff-admin',
@@ -22,6 +25,8 @@ export function getRouteKeyFromRoleName(roleName: string): string {
     'general info': 'general-info',
     'general info admin': 'general-info',
     'generalinfo': 'general-info',
+    'general-info': 'general-info',
+    'general-info-admin': 'general-info',
   };
   
   // Direct match

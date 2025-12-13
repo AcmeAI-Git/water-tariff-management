@@ -23,22 +23,31 @@ interface Agent {
     email: string;
     password?: string;
     confirm?: string;
+    cityCorporation?: string;
     zone?: string;
     ward?: string;
     role: string;
 }
 
-interface EditingMeterAdmin extends DisplayAdmin {
+interface EditingMeterReader extends DisplayAdmin {
     index: number;
 }
 
-export default function UserManagement() {
+// Hardcoded location values for all meter readers
+const HARDCODED_LOCATION = {
+    cityCorporation: 'Dhaka South City Corporation',
+    cityCorporationId: 1, // DSCC
+    zone: 'Zone 1',
+    zoneId: 1,
+    ward: 'Ward 1',
+    wardId: 1,
+};
+
+export default function MeterReaderManagement() {
     const [searchTerm, setSearchTerm] = useState("");
-    const [selectedZone, setSelectedZone] = useState("");
-    const [selectedWard, setSelectedWard] = useState("");
     const [showModal, setShowModal] = useState(false);
     const [editMode, setEditMode] = useState(false);
-    const [editingAgent, setEditingAgent] = useState<EditingMeterAdmin | null>(null);
+    const [editingAgent, setEditingAgent] = useState<EditingMeterReader | null>(null);
 
     // Fetch roles to find Meter Admin role ID
     const { data: roles = [], isLoading: rolesLoading } = useApiQuery(
@@ -59,24 +68,12 @@ export default function UserManagement() {
         { enabled: !!meterAdminRoleId }
     );
 
-    // Fetch zones for dropdown
-    const { data: zones = [], isLoading: zonesLoading } = useApiQuery(
-        ['zones'],
-        () => api.zones.getAll()
-    );
-
-    // Fetch wards for dropdown
-    const { data: wards = [], isLoading: wardsLoading } = useApiQuery(
-        ['wards'],
-        () => api.wards.getAll()
-    );
-
     // Map admins to display format
     const displayAdmins = useMemo(() => {
         return admins.map((admin) => mapAdminToDisplay(admin, roles));
     }, [admins, roles]);
 
-    // Filter admins by search term
+    // Filter admins by search term only (no location filtering since all have same location)
     const filteredAdmins = useMemo(() => {
         if (!searchTerm) return displayAdmins;
         const term = searchTerm.toLowerCase();
@@ -93,8 +90,8 @@ export default function UserManagement() {
         (data: { fullName: string; email: string; phone: string; password: string; roleId: number }) =>
             api.admins.create(data),
         {
-            successMessage: 'Meter Admin created successfully',
-            errorMessage: 'Failed to create Meter Admin',
+            successMessage: 'Meter Reader created successfully',
+            errorMessage: 'Failed to create Meter Reader',
             invalidateQueries: [['admins']],
         }
     );
@@ -104,8 +101,8 @@ export default function UserManagement() {
         ({ id, data }: { id: number; data: { fullName?: string; email?: string; phone?: string } }) =>
             api.admins.update(id, data),
         {
-            successMessage: 'Meter Admin updated successfully',
-            errorMessage: 'Failed to update Meter Admin',
+            successMessage: 'Meter Reader updated successfully',
+            errorMessage: 'Failed to update Meter Reader',
             invalidateQueries: [['admins']],
         }
     );
@@ -114,36 +111,36 @@ export default function UserManagement() {
     const deleteMutation = useApiMutation(
         (id: number) => api.admins.delete(id),
         {
-            successMessage: 'Meter Admin deleted successfully',
-            errorMessage: 'Failed to delete Meter Admin',
+            successMessage: 'Meter Reader deleted successfully',
+            errorMessage: 'Failed to delete Meter Reader',
             invalidateQueries: [['admins']],
         }
     );
 
     const getRoleBadgeColor = () => {
-        return "bg-amber-50 text-amber-700"; // All Meter Admins have same color
+        return "bg-amber-50 text-amber-700"; // All Meter Readers have same color
     };
-
-    // Find roleId by role name
-    // const getRoleIdByName = (roleName: string): number | null => {
-    //     const role = roles.find((r) => r.name === roleName);
-    //     return role?.id || null;
-    // };
 
     const handleAddAgent = async (newAgent: Agent) => {
         if (!meterAdminRoleId || !newAgent.password) {
             return;
         }
 
+        // Validate and trim required fields
+        const trimmedName = newAgent.name?.trim();
+        const trimmedEmail = newAgent.email?.trim();
+        const trimmedPhone = newAgent.phone?.trim();
+
+        if (!trimmedName || !trimmedEmail || !trimmedPhone) {
+            return;
+        }
+
         await createMutation.mutateAsync({
-            fullName: newAgent.name,
-            email: newAgent.email,
-            phone: newAgent.phone || '',
+            fullName: trimmedName,
+            email: trimmedEmail,
+            phone: trimmedPhone,
             password: newAgent.password,
             roleId: meterAdminRoleId,
-            // zoneId and wardId will be included when backend supports it
-            // zoneId: newAgent.zone ? parseInt(newAgent.zone) : undefined,
-            // wardId: newAgent.ward ? parseInt(newAgent.ward) : undefined,
         });
         setShowModal(false);
         setEditMode(false);
@@ -164,9 +161,6 @@ export default function UserManagement() {
                 fullName: updatedAgent.name,
                 email: updatedAgent.email,
                 phone: updatedAgent.phone,
-                // zoneId and wardId will be included when backend supports it
-                // zoneId: updatedAgent.zone ? parseInt(updatedAgent.zone) : undefined,
-                // wardId: updatedAgent.ward ? parseInt(updatedAgent.ward) : undefined,
             },
         });
         setShowModal(false);
@@ -189,23 +183,7 @@ export default function UserManagement() {
         setEditingAgent(null);
     };
 
-    // Prepare zone options for dropdown
-    const zoneOptions = useMemo(() => {
-        return zones.map((zone) => ({
-            value: zone.id.toString(),
-            label: zone.name || zone.zoneNo,
-        }));
-    }, [zones]);
-
-    // Prepare ward options for dropdown
-    const wardOptions = useMemo(() => {
-        return wards.map((ward) => ({
-            value: ward.id.toString(),
-            label: ward.name || ward.wardNo,
-        }));
-    }, [wards]);
-
-    if (adminsLoading || rolesLoading || zonesLoading || wardsLoading) {
+    if (adminsLoading || rolesLoading) {
         return (
             <div className="min-h-screen bg-app flex items-center justify-center">
                 <LoadingSpinner />
@@ -220,17 +198,17 @@ export default function UserManagement() {
                 <div className="flex items-center justify-between mb-8">
                     <div>
                         <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">
-                            User Management
+                            Meter Reader Management
                         </h1>
                         <p className="text-sm text-gray-500">
-                            Manage all meter admins who handle meter readings
+                            Manage all meter readers who handle meter readings
                         </p>
                     </div>
                     <Button
                         className="bg-primary hover:bg-primary-600 text-white px-6 rounded-lg shadow-sm"
                         onClick={() => setShowModal(true)}
                     >
-                        + Add User
+                        + Add Meter Reader
                     </Button>
                 </div>
 
@@ -243,29 +221,12 @@ export default function UserManagement() {
                         />
                         <Input
                             type="text"
-                            placeholder="Search Meter Admins..."
+                            placeholder="Search Meter Readers..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="pl-10 bg-white border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                         />
                     </div>
-                </div>
-                {/* Drop Downs */}
-                <div className="mb-6 flex gap-4">
-                    <Dropdown
-                        options={zoneOptions}
-                        value={selectedZone}
-                        onChange={setSelectedZone}
-                        placeholder="Select Zone"
-                        className="w-48"
-                    />
-                    <Dropdown
-                        options={wardOptions}
-                        value={selectedWard}
-                        onChange={setSelectedWard}
-                        placeholder="Select Ward"
-                        className="w-48"
-                    />
                 </div>
 
                 {/* Table */}
@@ -278,6 +239,9 @@ export default function UserManagement() {
                                 </TableHead>
                                 <TableHead className="text-sm font-semibold text-gray-700">
                                     Email
+                                </TableHead>
+                                <TableHead className="text-sm font-semibold text-gray-700">
+                                    City Corporation
                                 </TableHead>
                                 <TableHead className="text-sm font-semibold text-gray-700">
                                     Zone
@@ -296,16 +260,12 @@ export default function UserManagement() {
                         <TableBody>
                             {filteredAdmins.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="text-center text-gray-500 py-8">
-                                        {searchTerm ? 'No meter admins found matching your search' : 'No meter admins found'}
+                                    <TableCell colSpan={7} className="text-center text-gray-500 py-8">
+                                        {searchTerm ? 'No meter readers found matching your search' : 'No meter readers found'}
                                     </TableCell>
                                 </TableRow>
                             ) : (
                                 filteredAdmins.map((admin, index) => {
-                                    // Find zone and ward names if available (will be empty until backend supports zoneId/wardId in admin)
-                                    const zoneName = ''; // TODO: Get from admin.zoneId when backend supports it
-                                    const wardName = ''; // TODO: Get from admin.wardId when backend supports it
-                                    
                                     return (
                                         <TableRow
                                             key={admin.id}
@@ -318,10 +278,13 @@ export default function UserManagement() {
                                                 {admin.email}
                                             </TableCell>
                                             <TableCell className="text-sm text-gray-600">
-                                                {zoneName || 'N/A'}
+                                                {HARDCODED_LOCATION.cityCorporation}
                                             </TableCell>
                                             <TableCell className="text-sm text-gray-600">
-                                                {wardName || 'N/A'}
+                                                {HARDCODED_LOCATION.zone}
+                                            </TableCell>
+                                            <TableCell className="text-sm text-gray-600">
+                                                {HARDCODED_LOCATION.ward}
                                             </TableCell>
                                             <TableCell>
                                                 <span
@@ -362,15 +325,11 @@ export default function UserManagement() {
                     email: editingAgent.email,
                     phone: editingAgent.phone,
                     role: editingAgent.role,
-                    zone: '', // TODO: Get from admin when backend supports it
-                    ward: '', // TODO: Get from admin when backend supports it
                 } : null}
                 roleFixed="Meter Admin"
                 onDelete={editMode ? handleDelete : undefined}
-                modalTitle={editMode ? "Edit User" : "Add User"}
-                submitButtonText={editMode ? "Save Changes" : "Add User"}
-                showZoneWard={true}
-                zoneWardAsNumbers={true}
+                modalTitle={editMode ? "Edit Meter Reader" : "Add Meter Reader"}
+                submitButtonText={editMode ? "Save Changes" : "Add Meter Reader"}
             />
         </div>
     );

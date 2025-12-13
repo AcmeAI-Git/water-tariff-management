@@ -2,12 +2,12 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Plus, Search } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { api } from '../services/api';
 import { useApiQuery, useApiMutation, useAdminId } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { toast } from 'sonner';
-import type { User, Consumption, Admin } from '../types';
+import type { User, Consumption } from '../types';
 
 export function MeterAdminDataEntry() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -16,40 +16,14 @@ export function MeterAdminDataEntry() {
   const [verifiedUser, setVerifiedUser] = useState<User | null>(null);
   const adminId = useAdminId();
 
-  // Get logged-in admin from localStorage
-  const loggedInAdmin = useMemo(() => {
-    const adminStr = localStorage.getItem('admin');
-    if (!adminStr) return null;
-    try {
-      return JSON.parse(adminStr) as Admin;
-    } catch {
-      return null;
-    }
-  }, []);
+  // Hardcoded location for all meter readers
+  const HARDCODED_WARD = 'Ward 1';
 
-  // Fetch all users for search
+  // Fetch all users for search (households)
   const { data: users = [], isLoading: usersLoading } = useApiQuery(
     ['users'],
     () => api.users.getAll()
   );
-
-  // Find the Meter Admin's user record by matching email
-  const meterAdminUser = useMemo(() => {
-    if (!loggedInAdmin?.email) return null;
-    return users.find(user => user.email === loggedInAdmin.email) || null;
-  }, [users, loggedInAdmin]);
-
-  // Get ward name
-  const wardName = useMemo(() => {
-    if (!meterAdminUser?.wardId) return 'Not assigned';
-    // Check if ward relation is populated in the user object (from API response)
-    const userWithWard = meterAdminUser as User & { ward?: { name?: string; wardNo?: string } };
-    if (userWithWard && 'ward' in userWithWard && userWithWard.ward) {
-      return userWithWard.ward.name || `Ward ${userWithWard.ward.wardNo}` || 'Not assigned';
-    }
-    // If ward relation not populated, return generic message
-    return 'Not assigned';
-  }, [meterAdminUser]);
 
   // Fetch user's previous consumption to get last reading
   const { data: previousConsumptions = [] } = useApiQuery<Consumption[]>(
@@ -156,7 +130,7 @@ export function MeterAdminDataEntry() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">Meter Data Entry</h1>
-          <p className="text-sm text-gray-500">Your Assigned Ward: {wardName}</p>
+          <p className="text-sm text-gray-500">Your Assigned Ward: {HARDCODED_WARD}</p>
         </div>
 
         {/* Entry Section */}

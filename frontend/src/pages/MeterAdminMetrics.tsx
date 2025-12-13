@@ -3,19 +3,10 @@ import { useMemo } from 'react';
 import { api } from '../services/api';
 import { useApiQuery } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
-import type { Admin } from '../types';
 
 export function MeterAdminMetrics() {
-  // Get logged-in admin from localStorage
-  const loggedInAdmin = useMemo(() => {
-    const adminStr = localStorage.getItem('admin');
-    if (!adminStr) return null;
-    try {
-      return JSON.parse(adminStr) as Admin;
-    } catch {
-      return null;
-    }
-  }, []);
+  // Hardcoded location for all meter readers
+  const HARDCODED_WARD = 'Ward 1';
 
   // Fetch consumption entries
   const { data: consumptions = [], isLoading: consumptionsLoading } = useApiQuery(
@@ -23,29 +14,11 @@ export function MeterAdminMetrics() {
     () => api.consumption.getAll()
   );
 
-  // Fetch users
+  // Fetch users (households)
   const { data: users = [], isLoading: usersLoading } = useApiQuery(
     ['users'],
     () => api.users.getAll()
   );
-
-  // Find the Meter Admin's user record by matching email
-  const meterAdminUser = useMemo(() => {
-    if (!loggedInAdmin?.email) return null;
-    return users.find(user => user.email === loggedInAdmin.email) || null;
-  }, [users, loggedInAdmin]);
-
-  // Get ward name
-  const wardName = useMemo(() => {
-    if (!meterAdminUser?.wardId) return 'your assigned ward';
-    // Check if ward relation is populated in the user object (from API response)
-    const userWithWard = meterAdminUser as typeof meterAdminUser & { ward?: { name?: string; wardNo?: string } };
-    if (userWithWard && 'ward' in userWithWard && userWithWard.ward) {
-      return userWithWard.ward.name || `Ward ${userWithWard.ward.wardNo}` || 'your assigned ward';
-    }
-    // If ward relation not populated, return generic message
-    return 'your assigned ward';
-  }, [meterAdminUser]);
 
   // Calculate metrics
   const thisMonth = new Date();
@@ -174,7 +147,7 @@ export function MeterAdminMetrics() {
             <div className="flex items-center justify-between px-6 py-4">
               <div>
                 <p className="text-sm font-medium text-gray-900">Total Households Covered</p>
-                <p className="text-xs text-gray-500 mt-0.5">In {wardName}</p>
+                <p className="text-xs text-gray-500 mt-0.5">In {HARDCODED_WARD}</p>
               </div>
               <p className="text-base font-semibold text-gray-900">{totalHouseholds}</p>
             </div>

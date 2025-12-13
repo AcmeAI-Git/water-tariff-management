@@ -1,7 +1,7 @@
 import { Route, Routes, Navigate } from "react-router-dom";
 import Login from "../pages/Login";
 import Dashboard from "../pages/AdminDashboard";
-import UserManagement from "../pages/UserManagement";
+import MeterReaderManagement from "../pages/MeterReaderManagement";
 import { AgentManagement } from "../pages/AgentManagement";
 import { SystemAuditLog } from "../pages/SystemAuditLog";
 import { MeterAdminDataEntry } from "../pages/MeterAdminDataEntry";
@@ -34,10 +34,10 @@ const RouterIndex = () => {
           } 
         />
         <Route 
-          path="/admin/users" 
+          path="/admin/meter-readers" 
           element={
             <ProtectedRoute allowedRoles={['admin']}>
-              <UserManagement />
+              <MeterReaderManagement />
             </ProtectedRoute>
           } 
         />
@@ -196,10 +196,10 @@ const RouterIndex = () => {
           } 
         />
         <Route 
-          path="/general-info/users" 
+          path="/general-info/meter-readers" 
           element={
             <ProtectedRoute allowedRoles={['general-info']}>
-              <UserManagement />
+              <MeterReaderManagement />
             </ProtectedRoute>
           } 
         />

@@ -1,4 +1,4 @@
-﻿import {
+import {
     Home,
     Users,
     Users2,
@@ -20,7 +20,7 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
 
     const routeMap: Record<string, string> = {
         dashboard: "/admin/dashboard",
-        users: "/admin/users",
+        users: "/admin/meter-readers",
         agents: "/admin/agents",
         audit: "/admin/audit",
     };
@@ -53,7 +53,7 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
 
     const menuItems = [
         { id: "dashboard", label: "Dashboard", icon: Home },
-        { id: "users", label: "User Management", icon: Users },
+        { id: "users", label: "Meter Reader Management", icon: Users },
         { id: "agents", label: "Agent Management", icon: Users2 },
         { id: "audit", label: "System Audit Log", icon: ClipboardList },
     ];
@@ -84,8 +84,8 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
                                     : "text-gray-700 hover:bg-gray-50"
                             }`}
                         >
-                            <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-                            <span className="text-[0.9375rem] font-medium">
+                            <Icon size={20} strokeWidth={isActive ? 2.5 : 2} className="flex-shrink-0" />
+                            <span className="text-[0.9375rem] font-medium whitespace-nowrap text-left">
                                 {item.label}
                             </span>
                         </button>
