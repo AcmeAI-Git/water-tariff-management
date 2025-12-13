@@ -18,10 +18,11 @@ export default function Layout({ children }: LayoutProps) {
   const isTariffAdmin = pathname.startsWith("/tariff-admin");
   const isApprovalAdmin = pathname.startsWith("/approval-admin");
   const isGeneralInfoAdmin = pathname.startsWith("/general-info");
+  const isSuperAdmin = pathname.startsWith("/admin");
 
   // meter admin helper
   const meterActive = isMeterAdmin
-    ? "meter-admin-" + pathname.replace("/meter-admin/", "").replace(/\/.*$/, "")
+    ? pathname.replace("/meter-admin/", "").replace(/\/.*$/, "")
     : "";
 
   const handleMeterNavigate = (id: string) => {
@@ -122,6 +123,34 @@ export default function Layout({ children }: LayoutProps) {
       })()
     : "";
 
+  // Super admin (Sidebar) helpers
+  const superAdminActive = isSuperAdmin
+    ? (() => {
+        if (pathname.startsWith("/admin/dashboard")) return "dashboard";
+        if (pathname.startsWith("/admin/meter-readers")) return "users";
+        if (pathname.startsWith("/admin/agents")) return "agents";
+        if (pathname.startsWith("/admin/audit")) return "audit";
+        return "dashboard";
+      })()
+    : "";
+
+  const handleSuperAdminNavigate = (id: string) => {
+    if (id === "logout") {
+      localStorage.removeItem("authToken");
+      sessionStorage.clear();
+      navigate("/login");
+      return;
+    }
+    const routeMap: Record<string, string> = {
+      dashboard: "/admin/dashboard",
+      users: "/admin/meter-readers",
+      agents: "/admin/agents",
+      audit: "/admin/audit",
+    };
+    const path = routeMap[id] ?? "/admin/dashboard";
+    navigate(path);
+  };
+
   return (
     <div className="min-h-screen flex">
       <aside className="w-[260px] fixed inset-y-0 left-0 bg-white shadow z-20">
@@ -136,7 +165,7 @@ export default function Layout({ children }: LayoutProps) {
         ) : isGeneralInfoAdmin ? (
           <GeneralInfoAdminSidebar activePage={generalInfoActive} />
         ) : (
-          <Sidebar activePage={""} onNavigate={() => {}} />
+          <Sidebar activePage={superAdminActive} onNavigate={handleSuperAdminNavigate} />
         )}
       </aside>
       <main className="flex-1 ml-[260px] max-w-6xl mx-auto w-full px-4 py-6">
