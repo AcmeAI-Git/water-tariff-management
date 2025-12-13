@@ -10,6 +10,7 @@ import { MeterAdminSubmittedReadings } from "../pages/MeterAdminSubmittedReading
 import TariffVisualizer from "../pages/TariffVisualizer";
 import { MeterAdminMetrics } from "../pages/MeterAdminMetrics";
 import { CustomerAdminHouseholdManagement } from "../pages/CustomerAdminHouseholdManagement";
+import { CustomerAdminSubmissionHistory } from "../pages/CustomerAdminSubmissionHistory";
 import { CustomerAdminMetrics } from "../pages/CustomerAdminMetrics";
 import Layout from "../components/common/Layout";
 import { TariffAdminMyMetrics } from '../pages/TariffAdminMyMetrics';
@@ -106,6 +107,14 @@ const RouterIndex = () => {
           element={
             <ProtectedRoute allowedRoles={['customer-admin']}>
               <CustomerAdminHouseholdManagement />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/customer-admin/pending" 
+          element={
+            <ProtectedRoute allowedRoles={['customer-admin']}>
+              <CustomerAdminSubmissionHistory />
             </ProtectedRoute>
           } 
         />

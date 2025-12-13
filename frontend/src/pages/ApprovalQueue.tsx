@@ -8,8 +8,9 @@ import { api } from '../services/api';
 import { useApiQuery, useApiMutation, useAdminId } from '../hooks/useApiQuery';
 import { mapApprovalRequestToDisplay } from '../utils/dataMappers';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
-import type { User, Consumption } from '../types';
+import type { User, Consumption, ApprovalRequest } from '../types';
 import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 // Unified display item type for approval queue
 interface ApprovalQueueItem {
@@ -185,6 +186,7 @@ export function ApprovalQueue() {
         ['approval-requests', 'pending'],
         ['approval-requests'],
         ['users', 'pending'],
+        ['users', 'active'],
         ['users'],
         ['consumption'],
       ],
@@ -199,6 +201,7 @@ export function ApprovalQueue() {
       errorMessage: 'Failed to activate household',
       invalidateQueries: [
         ['users', 'pending'],
+        ['users', 'active'],
         ['users'],
         ['approval-requests', 'pending'],
         ['approval-requests'],
@@ -317,10 +320,23 @@ export function ApprovalQueue() {
         }
       }
       
-      // Explicitly refetch pending approval requests to ensure UI updates
-      await queryClient.refetchQueries({ queryKey: ['approval-requests', 'pending'] });
-      await queryClient.refetchQueries({ queryKey: ['users', 'pending'] });
-      await queryClient.refetchQueries({ queryKey: ['consumption'] });
+      // Invalidate and refetch all related queries to ensure UI updates immediately
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['approval-requests', 'pending'], refetchType: 'active' }),
+        queryClient.invalidateQueries({ queryKey: ['approval-requests'], refetchType: 'active' }),
+        queryClient.invalidateQueries({ queryKey: ['users', 'pending'], refetchType: 'active' }),
+        queryClient.invalidateQueries({ queryKey: ['users', 'active'], refetchType: 'active' }),
+        queryClient.invalidateQueries({ queryKey: ['users'], refetchType: 'active' }),
+        queryClient.invalidateQueries({ queryKey: ['consumption'], refetchType: 'active' }),
+      ]);
+      
+      // Explicitly refetch to ensure data is fresh
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['approval-requests', 'pending'] }),
+        queryClient.refetchQueries({ queryKey: ['users', 'pending'] }),
+        queryClient.refetchQueries({ queryKey: ['users', 'active'] }),
+        queryClient.refetchQueries({ queryKey: ['consumption'] }),
+      ]);
       
       setSelectedRequest(null);
     } catch (error) {
@@ -335,6 +351,22 @@ export function ApprovalQueue() {
     }
 
     try {
+      // Optimistically remove the item from the queue
+      const requestIdToRemove = request.recordType === 'approval-request' 
+        ? parseInt(request.id.replace('REQ-', ''))
+        : null;
+      
+      if (requestIdToRemove) {
+        // Optimistically update the cache to remove the rejected item
+        queryClient.setQueryData<ApprovalRequest[]>(
+          ['approval-requests', 'pending'],
+          (oldData) => {
+            if (!oldData) return oldData;
+            return oldData.filter((req) => req.id !== requestIdToRemove);
+          }
+        );
+      }
+
       if (request.recordType === 'approval-request') {
         // Extract numeric ID from "REQ-001" format
         const numericId = parseInt(request.id.replace('REQ-', ''));
@@ -381,14 +413,33 @@ export function ApprovalQueue() {
         }
       }
       
-      // Explicitly refetch pending approval requests to ensure UI updates
-      await queryClient.refetchQueries({ queryKey: ['approval-requests', 'pending'] });
-      await queryClient.refetchQueries({ queryKey: ['users', 'pending'] });
-      await queryClient.refetchQueries({ queryKey: ['consumption'] });
-      
+      // Close modal first for better UX
       setSelectedRequest(null);
+      
+      // Wait for backend to process the status change
+      // The mutation hook will already invalidate/refetch, but we need to ensure
+      // the backend has updated before refetching
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Force a fresh refetch after backend has processed
+      // This ensures we get the updated data from the backend
+      await queryClient.refetchQueries({ 
+        queryKey: ['approval-requests', 'pending'],
+        type: 'active',
+        exact: true
+      });
+      
+      // Also ensure other related queries are fresh
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['users', 'pending'], type: 'active' }),
+        queryClient.refetchQueries({ queryKey: ['users', 'active'], type: 'active' }),
+        queryClient.refetchQueries({ queryKey: ['consumption'], type: 'active' }),
+      ]);
     } catch (error) {
       console.error('Failed to reject:', error);
+      // Revert optimistic update on error
+      queryClient.invalidateQueries({ queryKey: ['approval-requests', 'pending'] });
+      toast.error('Failed to reject request. Please try again.');
     }
   };
 

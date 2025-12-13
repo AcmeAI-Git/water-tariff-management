@@ -13,13 +13,14 @@ import { format } from 'date-fns';
 import { cn } from '../utils/utils';
 import { api } from '../services/api';
 import { useApiQuery, useApiMutation, useAdminId } from '../hooks/useApiQuery';
-import { mapUserToHousehold, mapUserStatus, type DisplayHousehold } from '../utils/dataMappers';
+import { mapUserToHousehold, type DisplayHousehold } from '../utils/dataMappers';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import { toast } from 'sonner';
 // import type { Zone, Ward } from '../types';
 
 export function CustomerAdminHouseholdManagement() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('active'); // Only show approved households
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedHousehold, setSelectedHousehold] = useState<DisplayHousehold | null>(null);
@@ -49,7 +50,7 @@ export function CustomerAdminHouseholdManagement() {
     wardId: '',
   });
 
-  // Fetch users (households)
+  // Fetch users (households) - default to 'active' to show only approved households
   const { data: users = [], isLoading: usersLoading } = useApiQuery(
     statusFilter === 'all' ? ['users'] : ['users', statusFilter],
     () => {
@@ -92,7 +93,7 @@ export function CustomerAdminHouseholdManagement() {
     {
       successMessage: 'Household created successfully',
       errorMessage: 'Failed to create household',
-      invalidateQueries: [['users']],
+      invalidateQueries: [['users'], ['users', 'pending'], ['users', 'active']],
     }
   );
 
@@ -103,7 +104,7 @@ export function CustomerAdminHouseholdManagement() {
     {
       successMessage: 'Household updated successfully',
       errorMessage: 'Failed to update household',
-      invalidateQueries: [['users']],
+      invalidateQueries: [['users'], ['users', 'pending'], ['users', 'active']],
     }
   );
 
@@ -125,58 +126,123 @@ export function CustomerAdminHouseholdManagement() {
   };
 
   const handleSubmit = async () => {
-    if (!formData.zoneId || !formData.wardId || !formData.meterInstallDate) return;
+    // Validate required fields
+    if (!formData.fullName?.trim()) {
+      toast.error('Please enter the full name');
+      return;
+    }
+    if (!formData.meterNo?.trim()) {
+      toast.error('Please enter the meter number');
+      return;
+    }
+    if (!formData.phone?.trim()) {
+      toast.error('Please enter the phone number');
+      return;
+    }
+    if (!formData.email?.trim()) {
+      toast.error('Please enter the email address');
+      return;
+    }
+    if (!formData.address?.trim()) {
+      toast.error('Please enter the address');
+      return;
+    }
+    if (!formData.zoneId) {
+      toast.error('Please select a zone');
+      return;
+    }
+    if (!formData.wardId) {
+      toast.error('Please select a ward');
+      return;
+    }
+    if (!formData.meterInstallDate) {
+      toast.error('Please select the meter installation date');
+      return;
+    }
+    
     if (!adminId) {
-      console.error('Admin ID not found');
+      toast.error('Admin ID not found. Please log in again.');
       return;
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!formData.email || !formData.email.trim() || !emailRegex.test(formData.email.trim())) {
-      alert('Please enter a valid email address');
+    if (!emailRegex.test(formData.email.trim())) {
+      toast.error('Please enter a valid email address');
       return;
     }
 
-    // Create household
-    const newUser = await createMutation.mutateAsync({
-      fullName: formData.fullName,
-      meterNo: formData.meterNo,
-      phone: formData.phone,
-      email: formData.email.trim(),
-      address: formData.address,
-      hourseType: formData.category === 'residential' ? 'Residential' : 'Commercial',
-      installDate: format(formData.meterInstallDate, 'yyyy-MM-dd'),
-      zoneId: parseInt(formData.zoneId),
-      wardId: parseInt(formData.wardId),
-    });
-
-    // Create approval request for the household
     try {
-      await createApprovalRequestMutation.mutateAsync({
-        moduleName: 'Customer',
-        recordId: newUser.id,
-        requestedBy: adminId,
+      // Create household
+      const newUser = await createMutation.mutateAsync({
+        fullName: formData.fullName.trim(),
+        meterNo: formData.meterNo.trim(),
+        phone: formData.phone.trim(),
+        email: formData.email.trim(),
+        address: formData.address.trim(),
+        hourseType: formData.category === 'residential' ? 'Residential' : 'Commercial',
+        installDate: format(formData.meterInstallDate, 'yyyy-MM-dd'),
+        zoneId: parseInt(formData.zoneId),
+        wardId: parseInt(formData.wardId),
       });
+
+      // Create approval request for the household
+      try {
+        await createApprovalRequestMutation.mutateAsync({
+          moduleName: 'Customer',
+          recordId: newUser.id,
+          requestedBy: adminId,
+        });
+        // Show success toast notification
+        toast.success('Household submitted for approval');
+        
+        // Reset form
+        setFormData({
+          fullName: '',
+          meterNo: '',
+          phone: '',
+          email: '',
+          address: '',
+          category: 'residential',
+          meterInstallDate: undefined,
+          zoneId: '',
+          wardId: '',
+        });
+        
+        setIsDialogOpen(false);
+      } catch (error) {
+        console.error('Failed to create approval request:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Failed to create approval request';
+        toast.error(`Household created but failed to submit for approval: ${errorMessage}`);
+        // Still reset form and close dialog since household was created
+        setFormData({
+          fullName: '',
+          meterNo: '',
+          phone: '',
+          email: '',
+          address: '',
+          category: 'residential',
+          meterInstallDate: undefined,
+          zoneId: '',
+          wardId: '',
+        });
+        setIsDialogOpen(false);
+      }
     } catch (error) {
-      console.error('Failed to create approval request:', error);
-      // Don't fail the whole operation if approval request creation fails
+      console.error('Failed to create household:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create household';
+      
+      // Provide more specific error messages
+      if (errorMessage.includes('email') || errorMessage.includes('Email')) {
+        toast.error('This email address is already registered. Please use a different email.');
+      } else if (errorMessage.includes('meter') || errorMessage.includes('Meter')) {
+        toast.error('This meter number is already registered. Please use a different meter number.');
+      } else if (errorMessage.includes('phone') || errorMessage.includes('Phone')) {
+        toast.error('This phone number is already registered. Please use a different phone number.');
+      } else {
+        toast.error(`Failed to create household: ${errorMessage}`);
+      }
     }
-    
-    // Reset form
-    setFormData({
-      fullName: '',
-      meterNo: '',
-      phone: '',
-      email: '',
-      address: '',
-      category: 'residential',
-      meterInstallDate: undefined,
-      zoneId: '',
-      wardId: '',
-    });
-    
-    setIsDialogOpen(false);
   };
 
   const handleEditClick = (household: DisplayHousehold) => {
@@ -224,20 +290,6 @@ export function CustomerAdminHouseholdManagement() {
     
     setIsEditDialogOpen(false);
     setSelectedHousehold(null);
-  };
-
-  const getStatusColor = (status: string) => {
-    const mappedStatus = mapUserStatus(status);
-    switch (mappedStatus) {
-      case 'Approved':
-      case 'Active':
-        return 'bg-green-100 text-green-700';
-      case 'Pending':
-      case 'Inactive':
-        return 'bg-yellow-100 text-yellow-700';
-      default:
-        return 'bg-gray-100 text-gray-700';
-    }
   };
 
   // Prepare zone and ward options
@@ -303,6 +355,7 @@ export function CustomerAdminHouseholdManagement() {
                       onChange={(e) => handleInputChange('fullName', e.target.value)}
                       placeholder="Enter full name"
                       className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
+                      required
                     />
                   </div>
 
@@ -316,6 +369,7 @@ export function CustomerAdminHouseholdManagement() {
                       onChange={(e) => handleInputChange('meterNo', e.target.value)}
                       placeholder="MTR-2024-XXXX"
                       className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
+                      required
                     />
                   </div>
                 </div>
@@ -331,12 +385,13 @@ export function CustomerAdminHouseholdManagement() {
                       onChange={(e) => handleInputChange('phone', e.target.value)}
                       placeholder="+880-XXXX-XXXXXX"
                       className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
+                      required
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="email" className="text-sm font-medium text-gray-700">
-                      Email Address
+                      Email Address *
                     </Label>
                     <Input
                       id="email"
@@ -345,6 +400,7 @@ export function CustomerAdminHouseholdManagement() {
                       onChange={(e) => handleInputChange('email', e.target.value)}
                       placeholder="email@example.com"
                       className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
+                      required
                     />
                   </div>
                 </div>
@@ -359,6 +415,7 @@ export function CustomerAdminHouseholdManagement() {
                     onChange={(e) => handleInputChange('address', e.target.value)}
                     placeholder="Enter complete address"
                     className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500 min-h-[80px]"
+                    required
                   />
                 </div>
 
@@ -480,9 +537,9 @@ export function CustomerAdminHouseholdManagement() {
               <Dropdown
                 options={[
                   { value: 'all', label: 'All Status' },
-                  { value: 'Active', label: 'Active' },
-                  { value: 'Inactive', label: 'Inactive' },
-                  { value: 'Pending', label: 'Pending' }
+                  { value: 'active', label: 'Active' },
+                  { value: 'inactive', label: 'Inactive' },
+                  { value: 'pending', label: 'Pending' }
                 ]}
                 value={statusFilter}
                 onChange={setStatusFilter}
@@ -688,7 +745,7 @@ export function CustomerAdminHouseholdManagement() {
                 <TableHead className="text-sm font-semibold text-gray-700">Meter No</TableHead>
                 <TableHead className="text-sm font-semibold text-gray-700">Phone</TableHead>
                 <TableHead className="text-sm font-semibold text-gray-700">Address</TableHead>
-                <TableHead className="text-sm font-semibold text-gray-700 text-center">Action</TableHead>
+                <TableHead className="text-sm font-semibold text-gray-700 text-left">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

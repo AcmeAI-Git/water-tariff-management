@@ -1,4 +1,4 @@
-﻿import { Users, TrendingUp, BarChart3, LogOut } from "lucide-react";
+import { Users, TrendingUp, BarChart3, LogOut, Clock } from "lucide-react";
 
 interface CustomerAdminSidebarProps {
     activePage: string;
@@ -14,6 +14,11 @@ export function CustomerAdminSidebar({
             id: "customer-admin-households",
             label: "Household Management",
             icon: Users,
+        },
+        {
+            id: "customer-admin-pending",
+            label: "Submission History",
+            icon: Clock,
         },
         {
             id: "customer-admin-visualizer",

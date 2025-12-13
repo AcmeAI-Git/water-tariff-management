@@ -48,6 +48,7 @@ export default function Layout({ children }: LayoutProps) {
     }
     const map: Record<string, string> = {
       "customer-admin-households": "/customer-admin/households",
+      "customer-admin-pending": "/customer-admin/pending",
       "customer-admin-visualizer": "/customer-admin/visualizer",
       "customer-admin-metrics": "/customer-admin/metrics",
     };

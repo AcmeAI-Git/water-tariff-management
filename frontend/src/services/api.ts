@@ -267,8 +267,22 @@ export const approvalStatusApi = {
 
 // ==================== APPROVAL REQUESTS ====================
 export const approvalRequestsApi = {
-  getAll: (statusId?: number): Promise<ApprovalRequest[]> => {
-    const query = statusId ? `?statusId=${statusId}` : "";
+  getAll: (optionsOrStatusId?: { statusId?: number; moduleName?: string } | number): Promise<ApprovalRequest[]> => {
+    const params: string[] = [];
+    
+    // Handle backward compatibility: if it's a number, treat it as statusId
+    if (typeof optionsOrStatusId === 'number') {
+      params.push(`statusId=${optionsOrStatusId}`);
+    } else if (optionsOrStatusId) {
+      if (optionsOrStatusId.statusId) {
+        params.push(`statusId=${optionsOrStatusId.statusId}`);
+      }
+      if (optionsOrStatusId.moduleName) {
+        params.push(`moduleName=${encodeURIComponent(optionsOrStatusId.moduleName)}`);
+      }
+    }
+    
+    const query = params.length > 0 ? `?${params.join('&')}` : "";
     return fetchService.get<ApprovalRequest[]>(`/approval-requests${query}`);
   },
 
