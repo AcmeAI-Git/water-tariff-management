@@ -120,7 +120,7 @@ export default function AdminDashboard() {
                 const billDate = new Date(bill.billMonth);
                 const month = billDate.toLocaleDateString('en-US', { month: 'short' });
                 monthlyRevenue[month] = (monthlyRevenue[month] || 0) + (bill.totalBill || 0);
-            } catch (e) {
+            } catch {
                 // Skip invalid dates
             }
         });
@@ -142,7 +142,7 @@ export default function AdminDashboard() {
     // Map pending approvals to display format
     const pendingData = useMemo(() => {
         return pendingApprovals.slice(0, 4).map((approval) => {
-            const moduleName = (approval as any).moduleName || 'Unknown';
+            const moduleName = approval.moduleName || 'Unknown';
             return {
                 consumer: moduleName,
                 type: moduleName.includes('Tariff') ? 'Commercial' : 'Residential',

@@ -29,8 +29,8 @@ export interface DisplayApprovalRequest {
   requestedBy: string;
   requestDate: string;
   status: string;
-  oldData: any;
-  newData: any;
+  oldData: unknown;
+  newData: unknown;
   reviewedBy?: string;
   reviewedDate?: string;
   comments?: string;
@@ -88,11 +88,15 @@ export function mapApprovalRequestToDisplay(
 ): DisplayApprovalRequest {
   // Extract oldData and newData from the request if available
   // The backend structure may vary, so we handle it flexibly
-  const oldData = (request as any).oldData || null;
-  const newData = (request as any).newData || null;
+  const requestWithExtras = request as ApprovalRequest & {
+    oldData?: unknown;
+    newData?: unknown;
+  };
+  const oldData = requestWithExtras.oldData || null;
+  const newData = requestWithExtras.newData || null;
 
   // Map status - backend uses approvalStatusId, frontend expects status string
-  const status = (request as any).approvalStatus?.name || 'Pending';
+  const status = request.approvalStatus?.name || 'Pending';
 
   return {
     id: `REQ-${String(request.id).padStart(3, '0')}`,
@@ -110,9 +114,9 @@ export function mapApprovalRequestToDisplay(
     status,
     oldData,
     newData,
-    reviewedBy: (request as any).reviewer?.fullName,
-    reviewedDate: (request as any).reviewedAt
-      ? new Date((request as any).reviewedAt).toLocaleString('en-US', {
+    reviewedBy: request.reviewer?.fullName,
+    reviewedDate: request.reviewedAt
+      ? new Date(request.reviewedAt).toLocaleString('en-US', {
           year: 'numeric',
           month: '2-digit',
           day: '2-digit',
@@ -120,7 +124,7 @@ export function mapApprovalRequestToDisplay(
           minute: '2-digit',
         })
       : undefined,
-    comments: (request as any).comments,
+    comments: request.comments || undefined,
   };
 }
 
@@ -139,7 +143,11 @@ export function mapAuditLogToDisplay(
   const action = log.action.toUpperCase();
 
   // Format details from oldData/newData if available
-  let details = (log as any).details || '';
+  interface AuditLogWithExtras extends AuditLog {
+    details?: string;
+  }
+  const logWithExtras = log as AuditLogWithExtras;
+  let details = logWithExtras.details || '';
   if (!details && log.oldData && log.newData) {
     details = `Changed ${log.tableName} record #${log.recordId}`;
   } else if (!details) {
@@ -168,7 +176,7 @@ export function mapAuditLogToDisplay(
 /**
  * Formats JSONB data for display in approval requests
  */
-export function formatJsonbData(data: any): string {
+export function formatJsonbData(data: unknown): string {
   if (!data) return 'N/A';
   if (typeof data === 'string') return data;
   try {

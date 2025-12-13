@@ -15,6 +15,7 @@ export interface Admin {
   email: string;
   phone: string;
   roleId: number;
+  role?: Role; // Role relation from backend
   createdAt?: string;
   updatedAt?: string;
 }
@@ -331,7 +332,7 @@ export interface WaterBill {
   tariffPlanId: number;
   consumptionId: number;
   totalBill: number;
-  breakdown?: any;
+  breakdown?: unknown;
   billMonth: string;
   status: string;
   createdAt?: string;
@@ -342,14 +343,14 @@ export interface CreateWaterBillDto {
   tariffPlanId: number;
   consumptionId: number;
   totalBill: number;
-  breakdown?: any;
+  breakdown?: unknown;
   billMonth: string;
   status?: string;
 }
 
 export interface UpdateWaterBillDto {
   totalBill?: number;
-  breakdown?: any;
+  breakdown?: unknown;
   billMonth?: string;
   status?: string;
 }
@@ -361,8 +362,8 @@ export interface AuditLog {
   action: string;
   tableName: string;
   recordId: number;
-  oldData?: any | null;
-  newData?: any | null;
+  oldData?: unknown | null;
+  newData?: unknown | null;
   ipAddress?: string | null;
   createdAt: string;
   // Relations (populated by backend)

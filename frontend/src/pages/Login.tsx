@@ -5,6 +5,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { api } from '../services/api';
 import { toast } from 'sonner';
+import { getRouteForRole } from '../utils/roleUtils';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -22,16 +23,6 @@ export default function Login() {
     'tariff-admin': { email: 'tariff-admin@demo.com', password: 'demo123' },
     'approval-admin': { email: 'approval-admin@demo.com', password: 'demo123' },
     'general-info': { email: 'general-info@demo.com', password: 'demo123' },
-  };
-
-  // Route mapping for navigation after login
-  const routeMap: Record<string, string> = {
-    admin: '/admin/dashboard',
-    'meter-admin': '/meter-admin/entry',
-    'customer-admin': '/customer-admin/households',
-    'tariff-admin': '/tariff-admin/config',
-    'approval-admin': '/approval-admin/queue',
-    'general-info': '/general-info/dashboard',
   };
 
   const handleLogin = async (e?: React.FormEvent) => {
@@ -57,9 +48,10 @@ export default function Login() {
       
       toast.success('Login successful!');
       
-      // Navigate based on role (you can customize this based on roleId)
-      // For now, navigate to admin dashboard
-      navigate('/admin/dashboard');
+      // Navigate based on role
+      const roleName = admin.role?.name || '';
+      const route = getRouteForRole(roleName);
+      navigate(route);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Login failed. Please check your credentials.';
       setError(errorMessage);
@@ -92,9 +84,10 @@ export default function Login() {
       
       toast.success('Demo login successful!');
       
-      // Navigate to the appropriate route for this role
-      const dest = routeMap[role] ?? '/admin/dashboard';
-      navigate(dest);
+      // Navigate based on role (same logic as regular login)
+      const roleName = admin.role?.name || '';
+      const route = getRouteForRole(roleName);
+      navigate(route);
     } catch (err) {
       const errorMessage = err instanceof Error 
         ? err.message 

@@ -22,7 +22,7 @@ export function TariffAdminMyMetrics() {
   // Filter to current admin's submissions
   const myPendingSubmissions = useMemo(() => {
     if (!adminId) return [];
-    return approvalRequests.filter((req: any) => 
+    return approvalRequests.filter((req) => 
       req.requestedBy === adminId && 
       (!req.reviewedBy || req.reviewedBy === null)
     );

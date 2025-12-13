@@ -124,7 +124,7 @@ export default function TariffVisualizer() {
       });
       setCalculationResult(result);
       setCalculated(true);
-    } catch (error) {
+    } catch {
       // Error handled by mutation
     }
   };
