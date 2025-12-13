@@ -1,4 +1,4 @@
-﻿import { Button } from '../components/ui/button';
+import { Button } from '../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
@@ -8,14 +8,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Calendar } from '../components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
 import { Plus, Edit, CalendarIcon, Search } from 'lucide-react';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
 import { cn } from '../utils/utils';
 import { api } from '../services/api';
 import { useApiQuery, useApiMutation } from '../hooks/useApiQuery';
 import { mapUserToHousehold, mapUserStatus, type DisplayHousehold } from '../utils/dataMappers';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
-import type { Zone, Ward } from '../types';
+// import type { Zone, Ward } from '../types';
 
 export function CustomerAdminHouseholdManagement() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -50,7 +50,7 @@ export function CustomerAdminHouseholdManagement() {
 
   // Fetch users (households)
   const { data: users = [], isLoading: usersLoading } = useApiQuery(
-    ['users', statusFilter === 'all' ? undefined : statusFilter],
+    statusFilter === 'all' ? ['users'] : ['users', statusFilter],
     () => {
       const status = statusFilter === 'all' ? undefined : statusFilter;
       return api.users.getAll(status);

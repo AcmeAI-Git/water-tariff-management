@@ -1,4 +1,4 @@
-﻿import { Button } from "../components/ui/button";
+import { Button } from "../components/ui/button";
 import {
     Table,
     TableBody,
@@ -33,20 +33,20 @@ export default function AdminDashboard() {
         () => api.users.getAll()
     );
 
-    const { data: admins = [], isLoading: adminsLoading } = useApiQuery(
-        ['admins'],
-        () => api.admins.getAll()
-    );
+    // const { data: admins = [], isLoading: adminsLoading } = useApiQuery(
+    //     ['admins'],
+    //     () => api.admins.getAll()
+    // );
 
     const { data: pendingApprovals = [], isLoading: approvalsLoading } = useApiQuery(
         ['approval-requests', 'pending'],
         () => api.approvalRequests.getPending()
     );
 
-    const { data: auditLogs = [], isLoading: auditLogsLoading } = useApiQuery(
-        ['audit-logs'],
-        () => api.auditLogs.getAll()
-    );
+    // const { data: auditLogs = [], isLoading: auditLogsLoading } = useApiQuery(
+    //     ['audit-logs'],
+    //     () => api.auditLogs.getAll()
+    // );
 
     // Fetch water bills for revenue calculations
     const { data: waterBills = [], isLoading: waterBillsLoading } = useApiQuery(
@@ -62,7 +62,7 @@ export default function AdminDashboard() {
 
     // Calculate metrics
     const totalConsumers = users.length;
-    const totalAdmins = admins.length;
+    // const totalAdmins = admins.length;
     const pendingCount = pendingApprovals.length;
     
     // Calculate average consumption from consumption data
@@ -146,8 +146,8 @@ export default function AdminDashboard() {
             return {
                 consumer: moduleName,
                 type: moduleName.includes('Tariff') ? 'Commercial' : 'Residential',
-                date: approval.createdAt 
-                    ? new Date(approval.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                date: approval.requestedAt 
+                    ? new Date(approval.requestedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                     : 'N/A',
                 time: '-',
                 entry: moduleName,
@@ -156,7 +156,7 @@ export default function AdminDashboard() {
         });
     }, [pendingApprovals]);
 
-    if (usersLoading || adminsLoading || approvalsLoading || auditLogsLoading || waterBillsLoading || consumptionsLoading) {
+    if (usersLoading || approvalsLoading || waterBillsLoading || consumptionsLoading) {
         return (
             <div className="min-h-screen bg-app flex items-center justify-center">
                 <LoadingSpinner />

@@ -1,11 +1,9 @@
-import { Button } from '../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Badge } from '../components/ui/badge';
 import { useMemo } from 'react';
 import { api } from '../services/api';
 import { useApiQuery } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
-import type { TariffPlan } from '../types';
 
 export function TariffAdminTariffHistory() {
   // Fetch all tariff plans
@@ -28,12 +26,12 @@ export function TariffAdminTariffHistory() {
         effectiveFrom: plan.effectiveFrom,
         effectiveTo: plan.effectiveTo || null,
         status: plan.effectiveTo ? 'Expired' : 'Active',
-        approvalStatus: plan.approvalStatus?.name || 'Unknown',
+        approvalStatus: (plan as any).approvalStatus?.name || 'Unknown',
       });
 
       // Add slab records
       if (plan.slabs && plan.slabs.length > 0) {
-        plan.slabs.forEach((slab, index) => {
+        plan.slabs.forEach((slab) => {
           const range = slab.maxConsumption 
             ? `${slab.minConsumption}-${slab.maxConsumption} m³`
             : `${slab.minConsumption}+ m³`;
@@ -46,7 +44,7 @@ export function TariffAdminTariffHistory() {
             effectiveFrom: plan.effectiveFrom,
             effectiveTo: plan.effectiveTo || null,
             status: plan.effectiveTo ? 'Expired' : 'Active',
-            approvalStatus: plan.approvalStatus?.name || 'Unknown',
+            approvalStatus: (plan as any).approvalStatus?.name || 'Unknown',
           });
         });
       }

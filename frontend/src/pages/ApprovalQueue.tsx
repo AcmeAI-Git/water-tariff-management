@@ -8,7 +8,6 @@ import { api } from '../services/api';
 import { useApiQuery, useApiMutation, useAdminId } from '../hooks/useApiQuery';
 import { mapApprovalRequestToDisplay, type DisplayApprovalRequest } from '../utils/dataMappers';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
-import type { ApprovalRequest } from '../types';
 
 export function ApprovalQueue() {
   const [selectedRequest, setSelectedRequest] = useState<DisplayApprovalRequest | null>(null);

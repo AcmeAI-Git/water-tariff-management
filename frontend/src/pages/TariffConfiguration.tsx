@@ -6,7 +6,6 @@ import { EditMultipliersModal } from '../components/modals/EditMultipliersModal'
 import { api } from '../services/api';
 import { useApiQuery } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
-import type { TariffPlan, CityCorporation, Zone, Ward } from '../types';
 
 export function TariffConfiguration() {
   const [activeTab, setActiveTab] = useState<'slabs' | 'multipliers'>('slabs');
@@ -29,14 +28,14 @@ export function TariffConfiguration() {
 
   // Fetch zones filtered by selected city
   const { data: zones = [], isLoading: zonesLoading } = useApiQuery(
-    ['zones', selectedCityId],
+    selectedCityId ? ['zones', selectedCityId] : ['zones'],
     () => api.zones.getAll(selectedCityId || undefined),
     { enabled: !!selectedCityId }
   );
 
   // Fetch wards filtered by selected zone
   const { data: wards = [], isLoading: wardsLoading } = useApiQuery(
-    ['wards', selectedZoneId],
+    selectedZoneId ? ['wards', selectedZoneId] : ['wards'],
     () => api.wards.getAll(selectedZoneId || undefined),
     { enabled: !!selectedZoneId }
   );
@@ -121,9 +120,9 @@ export function TariffConfiguration() {
   }, [wards]);
 
   // Get selected city name
-  const selectedCity = useMemo(() => {
-    return cityCorporations.find(c => c.id === selectedCityId)?.name || '';
-  }, [cityCorporations, selectedCityId]);
+  // const selectedCity = useMemo(() => {
+  //   return cityCorporations.find(c => c.id === selectedCityId)?.name || '';
+  // }, [cityCorporations, selectedCityId]);
 
   if (plansLoading || citiesLoading || zonesLoading || wardsLoading) {
     return (

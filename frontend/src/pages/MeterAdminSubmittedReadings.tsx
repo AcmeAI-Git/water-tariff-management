@@ -1,10 +1,9 @@
-﻿import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Badge } from '../components/ui/badge';
 import { useMemo } from 'react';
 import { api } from '../services/api';
 import { useApiQuery } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
-import type { Consumption, User } from '../types';
 
 export function MeterAdminSubmittedReadings() {
   // Fetch all consumption entries

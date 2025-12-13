@@ -1,11 +1,10 @@
-﻿import { Button } from '../components/ui/button';
+import { Button } from '../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { X } from 'lucide-react';
 import { useMemo } from 'react';
 import { api } from '../services/api';
 import { useApiQuery, useApiMutation } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
-import type { Consumption, User } from '../types';
 
 export function MeterAdminPendingSubmissions() {
   // Fetch all consumption entries

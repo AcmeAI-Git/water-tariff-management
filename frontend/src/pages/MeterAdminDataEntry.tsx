@@ -1,4 +1,4 @@
-﻿import { Button } from '../components/ui/button';
+import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Plus, Search } from 'lucide-react';
@@ -24,7 +24,7 @@ export function MeterAdminDataEntry() {
 
   // Fetch user's previous consumption to get last reading
   const { data: previousConsumptions = [] } = useApiQuery<Consumption[]>(
-    ['consumption', verifiedUser?.id],
+    verifiedUser?.id ? ['consumption', verifiedUser.id] : ['consumption'],
     () => {
       if (!verifiedUser?.id) return Promise.resolve([]);
       return api.consumption.getAll().then(consumptions => 

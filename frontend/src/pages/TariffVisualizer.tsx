@@ -1,4 +1,4 @@
-﻿import { Button } from '../components/ui/button';
+import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Slider } from '../components/ui/slider';
@@ -8,7 +8,7 @@ import { useState, useMemo } from 'react';
 import { api } from '../services/api';
 import { useApiQuery, useApiMutation } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
-import type { TariffPlan, CityCorporation, Zone, Ward, BillCalculationResult } from '../types';
+import type { BillCalculationResult } from '../types';
 
 export default function TariffVisualizer() {
   const [consumption, setConsumption] = useState(60);
@@ -33,14 +33,14 @@ export default function TariffVisualizer() {
 
   // Fetch zones filtered by selected city
   const { data: zones = [], isLoading: zonesLoading } = useApiQuery(
-    ['zones', selectedCityId],
+    selectedCityId ? ['zones', selectedCityId] : ['zones'],
     () => api.zones.getAll(selectedCityId || undefined),
     { enabled: !!selectedCityId }
   );
 
   // Fetch wards filtered by selected zone
   const { data: wards = [], isLoading: wardsLoading } = useApiQuery(
-    ['wards', selectedZoneId],
+    selectedZoneId ? ['wards', selectedZoneId] : ['wards'],
     () => api.wards.getAll(selectedZoneId || undefined),
     { enabled: !!selectedZoneId }
   );
@@ -91,13 +91,13 @@ export default function TariffVisualizer() {
   }, [activePlan]);
 
   // Get selected city, zone, and ward objects
-  const selectedCity = useMemo(() => {
-    return cityCorporations.find(c => c.id === selectedCityId);
-  }, [cityCorporations, selectedCityId]);
+  // const selectedCity = useMemo(() => {
+  //   return cityCorporations.find(c => c.id === selectedCityId);
+  // }, [cityCorporations, selectedCityId]);
 
-  const selectedZone = useMemo(() => {
-    return zones.find(z => z.id === selectedZoneId);
-  }, [zones, selectedZoneId]);
+  // const selectedZone = useMemo(() => {
+  //   return zones.find(z => z.id === selectedZoneId);
+  // }, [zones, selectedZoneId]);
 
   const selectedWard = useMemo(() => {
     return wards.find(w => w.id === selectedWardId);

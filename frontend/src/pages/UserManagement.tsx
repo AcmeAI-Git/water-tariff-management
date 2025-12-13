@@ -54,7 +54,7 @@ export default function UserManagement() {
 
     // Fetch admins filtered by Meter Admin role
     const { data: admins = [], isLoading: adminsLoading } = useApiQuery(
-        ['admins', meterAdminRoleId],
+        meterAdminRoleId ? ['admins', meterAdminRoleId] : ['admins'],
         () => api.admins.getAll(meterAdminRoleId || undefined),
         { enabled: !!meterAdminRoleId }
     );
@@ -125,10 +125,10 @@ export default function UserManagement() {
     };
 
     // Find roleId by role name
-    const getRoleIdByName = (roleName: string): number | null => {
-        const role = roles.find((r) => r.name === roleName);
-        return role?.id || null;
-    };
+    // const getRoleIdByName = (roleName: string): number | null => {
+    //     const role = roles.find((r) => r.name === roleName);
+    //     return role?.id || null;
+    // };
 
     const handleAddAgent = async (newAgent: Agent) => {
         if (!meterAdminRoleId || !newAgent.password) {

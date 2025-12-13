@@ -2,13 +2,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Badge } from '../components/ui/badge';
 import { useMemo } from 'react';
 import { api } from '../services/api';
-import { useApiQuery, useAdminId } from '../hooks/useApiQuery';
-import { mapApprovalRequestToDisplay, type DisplayApprovalRequest } from '../utils/dataMappers';
+import { useApiQuery } from '../hooks/useApiQuery';
+import { mapApprovalRequestToDisplay } from '../utils/dataMappers';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
-import type { ApprovalRequest } from '../types';
 
 export function ApprovalHistory() {
-  const adminId = useAdminId();
 
   // Fetch all approval requests
   const { data: approvalRequests = [], isLoading } = useApiQuery(

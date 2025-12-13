@@ -13,7 +13,7 @@ import { Input } from "../components/ui/input";
 import { useState, useMemo } from "react";
 import { AddAgentModal } from "../components/modals/AddAgentModal";
 import { api } from "../services/api";
-import { useApiQuery, useApiMutation, useAdminId } from "../hooks/useApiQuery";
+import { useApiQuery, useApiMutation } from "../hooks/useApiQuery";
 import { mapAdminToDisplay, type DisplayAdmin } from "../utils/dataMappers";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
 
@@ -39,7 +39,7 @@ export function AgentManagement() {
     const [showModal, setShowModal] = useState(false);
     const [editMode, setEditMode] = useState(false);
     const [editingAgent, setEditingAgent] = useState<EditingAgent | null>(null);
-    const adminId = useAdminId();
+    // const adminId = useAdminId();
 
     // Fetch admins and roles
     const { data: admins = [], isLoading: adminsLoading } = useApiQuery(

@@ -96,10 +96,10 @@ export function mapApprovalRequestToDisplay(
 
   return {
     id: `REQ-${String(request.id).padStart(3, '0')}`,
-    module: (request as any).moduleName || request.entityType || 'Unknown',
+    module: request.moduleName || 'Unknown',
     requestedBy: adminName || `Admin #${request.requestedBy}`,
-    requestDate: request.createdAt
-      ? new Date(request.createdAt).toLocaleString('en-US', {
+    requestDate: request.requestedAt
+      ? new Date(request.requestedAt).toLocaleString('en-US', {
           year: 'numeric',
           month: '2-digit',
           day: '2-digit',
@@ -139,11 +139,11 @@ export function mapAuditLogToDisplay(
   const action = log.action.toUpperCase();
 
   // Format details from oldData/newData if available
-  let details = log.details || '';
-  if (!details && (log as any).oldData && (log as any).newData) {
-    details = `Changed ${log.tableName || log.module} record #${(log as any).recordId}`;
+  let details = (log as any).details || '';
+  if (!details && log.oldData && log.newData) {
+    details = `Changed ${log.tableName} record #${log.recordId}`;
   } else if (!details) {
-    details = `${action} ${log.tableName || log.module}`;
+    details = `${action} ${log.tableName}`;
   }
 
   return {
@@ -160,7 +160,7 @@ export function mapAuditLogToDisplay(
       : '',
     user,
     action,
-    module: log.tableName || log.module,
+    module: log.tableName,
     details,
   };
 }

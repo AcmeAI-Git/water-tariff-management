@@ -1,4 +1,4 @@
-﻿import {
+import {
     Table,
     TableBody,
     TableCell,
@@ -12,9 +12,8 @@ import { Search } from "lucide-react";
 import { useState, useMemo } from "react";
 import { api } from "../services/api";
 import { useApiQuery } from "../hooks/useApiQuery";
-import { mapAuditLogToDisplay, type DisplayAuditLog } from "../utils/dataMappers";
+import { mapAuditLogToDisplay } from "../utils/dataMappers";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
-import type { AuditLog, User } from "../types";
 
 export function SystemAuditLog() {
     const [searchTerm, setSearchTerm] = useState("");

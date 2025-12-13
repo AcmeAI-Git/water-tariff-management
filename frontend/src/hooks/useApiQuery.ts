@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { toast } from 'sonner';
 
 /**
@@ -9,16 +10,22 @@ export function useApiQuery<TData = unknown, TError = Error>(
   queryFn: () => Promise<TData>,
   options?: Omit<Parameters<typeof useQuery<TData, TError>>[0], 'queryKey' | 'queryFn'>
 ) {
-  return useQuery<TData, TError>({
+  const query = useQuery<TData, TError>({
     queryKey,
     queryFn,
-    onError: (error) => {
-      const errorMessage = error instanceof Error ? error.message : 'An error occurred';
-      toast.error(errorMessage);
-      console.error('API Query Error:', error);
-    },
     ...options,
   });
+
+  // Handle errors using useEffect since onError is removed in React Query v5
+  useEffect(() => {
+    if (query.error) {
+      const errorMessage = query.error instanceof Error ? query.error.message : 'An error occurred';
+      toast.error(errorMessage);
+      console.error('API Query Error:', query.error);
+    }
+  }, [query.error]);
+
+  return query;
 }
 
 /**
@@ -36,7 +43,7 @@ export function useApiMutation<TData = unknown, TVariables = void, TError = Erro
 
   return useMutation<TData, TError, TVariables>({
     mutationFn,
-    onSuccess: (data, variables, context) => {
+    onSuccess: (data, variables, context, mutation) => {
       if (options?.successMessage) {
         toast.success(options.successMessage);
       }
@@ -49,10 +56,10 @@ export function useApiMutation<TData = unknown, TVariables = void, TError = Erro
       }
       
       if (options?.onSuccess) {
-        options.onSuccess(data, variables, context);
+        options.onSuccess(data, variables, context, mutation);
       }
     },
-    onError: (error, variables, context) => {
+    onError: (error, variables, context, mutation) => {
       const errorMessage = 
         options?.errorMessage || 
         (error instanceof Error ? error.message : 'An error occurred');
@@ -60,7 +67,7 @@ export function useApiMutation<TData = unknown, TVariables = void, TError = Erro
       console.error('API Mutation Error:', error);
       
       if (options?.onError) {
-        options.onError(error, variables, context);
+        options.onError(error, variables, context, mutation);
       }
     },
   });
