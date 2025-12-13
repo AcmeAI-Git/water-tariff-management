@@ -49,6 +49,15 @@ export function MeterAdminDataEntry() {
     }
   );
 
+  // Create approval request mutation
+  const createApprovalRequestMutation = useApiMutation(
+    (data: Parameters<typeof api.approvalRequests.create>[0]) => api.approvalRequests.create(data),
+    {
+      errorMessage: 'Failed to create approval request',
+      invalidateQueries: [['approval-requests']],
+    }
+  );
+
   const handleSearch = () => {
     const foundUser = users.find(
       (user) =>
@@ -94,13 +103,26 @@ export function MeterAdminDataEntry() {
     // Format bill month to YYYY-MM-DD (first day of month)
     const billMonthDate = `${billMonth}-01`;
 
-    await createConsumptionMutation.mutateAsync({
+    // Create consumption record
+    const newConsumption = await createConsumptionMutation.mutateAsync({
       userId: verifiedUser.id,
       createdBy: adminId,
       billMonth: billMonthDate,
       currentReading: currentReadingNum,
       previousReading: previousReading > 0 ? previousReading : undefined,
     });
+
+    // Create approval request for the consumption
+    try {
+      await createApprovalRequestMutation.mutateAsync({
+        moduleName: 'Consumption',
+        recordId: newConsumption.id,
+        requestedBy: adminId,
+      });
+    } catch (error) {
+      console.error('Failed to create approval request:', error);
+      // Don't fail the whole operation if approval request creation fails
+    }
 
     // Reset form
     setCurrentReading('');

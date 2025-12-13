@@ -752,7 +752,12 @@ export function TariffAdminTariffConfiguration() {
                         {ward.name || ward.wardNo}
                       </TableCell>
                       <TableCell className="text-sm text-gray-600">
-                        {ward.tariffMultiplier ? ward.tariffMultiplier.toFixed(2) : '1.00'}x
+                        {(() => {
+                          const multiplier = typeof ward.tariffMultiplier === 'number' 
+                            ? ward.tariffMultiplier 
+                            : Number(ward.tariffMultiplier) || 1;
+                          return multiplier.toFixed(2);
+                        })()}x
                       </TableCell>
                       <TableCell className="text-center">
                         <Button 
@@ -760,7 +765,10 @@ export function TariffAdminTariffConfiguration() {
                           size="sm"
                           onClick={() => {
                             setSelectedWard(ward.id.toString());
-                            setNewMultiplier(ward.tariffMultiplier?.toString() || '1.0');
+                            const multiplier = typeof ward.tariffMultiplier === 'number' 
+                              ? ward.tariffMultiplier 
+                              : Number(ward.tariffMultiplier) || 1;
+                            setNewMultiplier(multiplier.toString());
                             setRuleType('ward-multiplier');
                             setIsModalOpen(true);
                           }}

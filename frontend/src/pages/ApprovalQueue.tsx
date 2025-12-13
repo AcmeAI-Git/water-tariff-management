@@ -6,17 +6,43 @@ import { useState, useMemo } from 'react';
 import { ReviewChangeModal } from './ReviewChangeModal';
 import { api } from '../services/api';
 import { useApiQuery, useApiMutation, useAdminId } from '../hooks/useApiQuery';
-import { mapApprovalRequestToDisplay, type DisplayApprovalRequest } from '../utils/dataMappers';
+import { mapApprovalRequestToDisplay } from '../utils/dataMappers';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import type { User, Consumption } from '../types';
+
+// Unified display item type for approval queue
+interface ApprovalQueueItem {
+  id: string;
+  module: string;
+  requestedBy: string;
+  requestDate: string;
+  status: string;
+  recordId: number;
+  recordType: 'approval-request' | 'household' | 'consumption';
+  oldData?: unknown;
+  newData?: unknown;
+}
 
 export function ApprovalQueue() {
-  const [selectedRequest, setSelectedRequest] = useState<DisplayApprovalRequest | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<ApprovalQueueItem | null>(null);
   const adminId = useAdminId();
 
   // Fetch pending approval requests
-  const { data: approvalRequests = [], isLoading } = useApiQuery(
+  const { data: approvalRequests = [], isLoading: approvalRequestsLoading } = useApiQuery(
     ['approval-requests', 'pending'],
     () => api.approvalRequests.getPending()
+  );
+
+  // Fetch pending households (users with status='pending')
+  const { data: pendingHouseholds = [], isLoading: householdsLoading } = useApiQuery(
+    ['users', 'pending'],
+    () => api.users.getAll('pending')
+  );
+
+  // Fetch all consumptions and filter for pending ones
+  const { data: allConsumptions = [], isLoading: consumptionsLoading } = useApiQuery(
+    ['consumption'],
+    () => api.consumption.getAll()
   );
 
   // Fetch all admins to map requestedBy IDs to names
@@ -25,16 +51,117 @@ export function ApprovalQueue() {
     () => api.admins.getAll()
   );
 
-  // Map approval requests to display format
-  const displayRequests = useMemo(() => {
-    return approvalRequests.map((request) => {
-      const requester = admins.find((a) => a.id === request.requestedBy);
-      return mapApprovalRequestToDisplay(request, requester?.fullName);
-    });
-  }, [approvalRequests, admins]);
+  // Filter pending consumptions
+  const pendingConsumptions = useMemo(() => {
+    return allConsumptions.filter((c: Consumption) => c.status?.toLowerCase() === 'pending');
+  }, [allConsumptions]);
 
-  // Review mutation
-  const reviewMutation = useApiMutation(
+  // Combine all pending items into unified display format
+  const displayRequests = useMemo(() => {
+    const items: ApprovalQueueItem[] = [];
+
+    // Add approval requests
+    approvalRequests.forEach((request) => {
+      const requester = admins.find((a) => a.id === request.requestedBy);
+      const mapped = mapApprovalRequestToDisplay(request, requester?.fullName);
+      items.push({
+        ...mapped,
+        recordId: request.recordId,
+        recordType: 'approval-request',
+      });
+    });
+
+    // Add pending households (that don't have approval requests)
+    pendingHouseholds.forEach((household: User) => {
+      // Check if this household already has an approval request
+      const hasApprovalRequest = approvalRequests.some(
+        (req) => req.moduleName === 'Customer' && req.recordId === household.id
+      );
+      
+      if (!hasApprovalRequest) {
+        // Try to find who created it (if we had createdBy field, but we don't)
+        // For now, we'll show it as "Unknown" or we could skip it
+        items.push({
+          id: `HOUSEHOLD-${household.id}`,
+          module: 'Customer',
+          requestedBy: 'Unknown', // Could be improved if we add createdBy to User entity
+          requestDate: household.createdAt 
+            ? new Date(household.createdAt).toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              })
+            : 'N/A',
+          status: 'Pending',
+          recordId: household.id,
+          recordType: 'household',
+          oldData: null,
+          newData: {
+            fullName: household.fullName,
+            meterNo: household.meterNo,
+            phone: household.phone,
+            email: household.email,
+            address: household.address,
+            hourseType: household.hourseType,
+            installDate: household.installDate,
+            zoneId: household.zoneId,
+            wardId: household.wardId,
+          },
+        });
+      }
+    });
+
+    // Add pending consumptions (that don't have approval requests)
+    pendingConsumptions.forEach((consumption: Consumption) => {
+      // Check if this consumption already has an approval request
+      const hasApprovalRequest = approvalRequests.some(
+        (req) => req.moduleName === 'Consumption' && req.recordId === consumption.id
+      );
+      
+      if (!hasApprovalRequest) {
+        const creator = admins.find((a) => a.id === consumption.createdBy);
+        items.push({
+          id: `CONSUMPTION-${consumption.id}`,
+          module: 'Consumption',
+          requestedBy: creator?.fullName || `Admin #${consumption.createdBy}`,
+          requestDate: consumption.createdAt
+            ? new Date(consumption.createdAt).toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              })
+            : 'N/A',
+          status: 'Pending',
+          recordId: consumption.id,
+          recordType: 'consumption',
+          oldData: null,
+          newData: {
+            userId: consumption.userId,
+            billMonth: consumption.billMonth,
+            currentReading: consumption.currentReading,
+            previousReading: consumption.previousReading,
+            consumption: consumption.consumption,
+          },
+        });
+      }
+    });
+
+    // Sort by request date (newest first)
+    return items.sort((a, b) => {
+      const dateA = new Date(a.requestDate).getTime();
+      const dateB = new Date(b.requestDate).getTime();
+      return dateB - dateA;
+    });
+  }, [approvalRequests, pendingHouseholds, pendingConsumptions, admins]);
+
+  const isLoading = approvalRequestsLoading || householdsLoading || consumptionsLoading;
+
+  // Review approval request mutation
+  const reviewApprovalRequestMutation = useApiMutation(
     ({ id, status, comments }: { id: number; status: 'Approved' | 'Rejected'; comments?: string }) => {
       if (!adminId) throw new Error('Admin ID not found');
       return api.approvalRequests.review(id, {
@@ -46,11 +173,53 @@ export function ApprovalQueue() {
     {
       successMessage: 'Approval request reviewed successfully',
       errorMessage: 'Failed to review approval request',
-      invalidateQueries: [['approval-requests']],
+      invalidateQueries: [['approval-requests'], ['users'], ['consumption']],
     }
   );
 
-  const handleReview = (request: DisplayApprovalRequest) => {
+  // Activate household mutation
+  const activateHouseholdMutation = useApiMutation(
+    (id: number) => api.users.activate(id),
+    {
+      successMessage: 'Household activated successfully',
+      errorMessage: 'Failed to activate household',
+      invalidateQueries: [['users'], ['approval-requests']],
+    }
+  );
+
+  // Approve consumption mutation
+  const approveConsumptionMutation = useApiMutation(
+    ({ id, comments }: { id: number; comments?: string }) => {
+      if (!adminId) throw new Error('Admin ID not found');
+      return api.consumption.approve(id, {
+        approvedBy: adminId,
+        comments,
+      });
+    },
+    {
+      successMessage: 'Consumption approved successfully',
+      errorMessage: 'Failed to approve consumption',
+      invalidateQueries: [['consumption'], ['approval-requests']],
+    }
+  );
+
+  // Reject consumption mutation
+  const rejectConsumptionMutation = useApiMutation(
+    ({ id, comments }: { id: number; comments?: string }) => {
+      if (!adminId) throw new Error('Admin ID not found');
+      return api.consumption.reject(id, {
+        approvedBy: adminId,
+        comments,
+      });
+    },
+    {
+      successMessage: 'Consumption rejected successfully',
+      errorMessage: 'Failed to reject consumption',
+      invalidateQueries: [['consumption'], ['approval-requests']],
+    }
+  );
+
+  const handleReview = (request: ApprovalQueueItem) => {
     setSelectedRequest(request);
   };
 
@@ -58,26 +227,109 @@ export function ApprovalQueue() {
     setSelectedRequest(null);
   };
 
-  const handleApprove = async (requestId: string, comments: string) => {
-    // Extract numeric ID from "REQ-001" format
-    const numericId = parseInt(requestId.replace('REQ-', ''));
-    await reviewMutation.mutateAsync({
-      id: numericId,
-      status: 'Approved',
-      comments: comments || undefined,
-    });
-    setSelectedRequest(null);
+  const handleApprove = async (request: ApprovalQueueItem, comments: string) => {
+    if (!adminId) {
+      console.error('Admin ID not found');
+      return;
+    }
+
+    try {
+      if (request.recordType === 'approval-request') {
+        // Extract numeric ID from "REQ-001" format
+        const numericId = parseInt(request.id.replace('REQ-', ''));
+        await reviewApprovalRequestMutation.mutateAsync({
+          id: numericId,
+          status: 'Approved',
+          comments: comments || undefined,
+        });
+      } else if (request.recordType === 'household') {
+        // Activate household
+        await activateHouseholdMutation.mutateAsync(request.recordId);
+        // Also create/update approval request if it exists
+        const approvalRequest = approvalRequests.find(
+          (req) => req.moduleName === 'Customer' && req.recordId === request.recordId
+        );
+        if (approvalRequest) {
+          await reviewApprovalRequestMutation.mutateAsync({
+            id: approvalRequest.id,
+            status: 'Approved',
+            comments: comments || undefined,
+          });
+        }
+      } else if (request.recordType === 'consumption') {
+        // Approve consumption
+        await approveConsumptionMutation.mutateAsync({
+          id: request.recordId,
+          comments: comments || undefined,
+        });
+        // Also create/update approval request if it exists
+        const approvalRequest = approvalRequests.find(
+          (req) => req.moduleName === 'Consumption' && req.recordId === request.recordId
+        );
+        if (approvalRequest) {
+          await reviewApprovalRequestMutation.mutateAsync({
+            id: approvalRequest.id,
+            status: 'Approved',
+            comments: comments || undefined,
+          });
+        }
+      }
+      setSelectedRequest(null);
+    } catch (error) {
+      console.error('Failed to approve:', error);
+    }
   };
 
-  const handleReject = async (requestId: string, comments: string) => {
-    // Extract numeric ID from "REQ-001" format
-    const numericId = parseInt(requestId.replace('REQ-', ''));
-    await reviewMutation.mutateAsync({
-      id: numericId,
-      status: 'Rejected',
-      comments: comments || undefined,
-    });
-    setSelectedRequest(null);
+  const handleReject = async (request: ApprovalQueueItem, comments: string) => {
+    if (!adminId) {
+      console.error('Admin ID not found');
+      return;
+    }
+
+    try {
+      if (request.recordType === 'approval-request') {
+        // Extract numeric ID from "REQ-001" format
+        const numericId = parseInt(request.id.replace('REQ-', ''));
+        await reviewApprovalRequestMutation.mutateAsync({
+          id: numericId,
+          status: 'Rejected',
+          comments: comments || undefined,
+        });
+      } else if (request.recordType === 'household') {
+        // For households, we can't reject directly - we'd need to delete or update status
+        // For now, just update the approval request if it exists
+        const approvalRequest = approvalRequests.find(
+          (req) => req.moduleName === 'Customer' && req.recordId === request.recordId
+        );
+        if (approvalRequest) {
+          await reviewApprovalRequestMutation.mutateAsync({
+            id: approvalRequest.id,
+            status: 'Rejected',
+            comments: comments || undefined,
+          });
+        }
+      } else if (request.recordType === 'consumption') {
+        // Reject consumption
+        await rejectConsumptionMutation.mutateAsync({
+          id: request.recordId,
+          comments: comments || undefined,
+        });
+        // Also create/update approval request if it exists
+        const approvalRequest = approvalRequests.find(
+          (req) => req.moduleName === 'Consumption' && req.recordId === request.recordId
+        );
+        if (approvalRequest) {
+          await reviewApprovalRequestMutation.mutateAsync({
+            id: approvalRequest.id,
+            status: 'Rejected',
+            comments: comments || undefined,
+          });
+        }
+      }
+      setSelectedRequest(null);
+    } catch (error) {
+      console.error('Failed to reject:', error);
+    }
   };
 
   if (isLoading) {
@@ -149,7 +401,12 @@ export function ApprovalQueue() {
                       <Button
                         onClick={() => handleReview(request)}
                         className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-9 px-4 flex items-center gap-2 ml-auto"
-                        disabled={reviewMutation.isPending}
+                        disabled={
+                          reviewApprovalRequestMutation.isPending ||
+                          activateHouseholdMutation.isPending ||
+                          approveConsumptionMutation.isPending ||
+                          rejectConsumptionMutation.isPending
+                        }
                       >
                         <Eye size={16} />
                         Review
@@ -166,10 +423,17 @@ export function ApprovalQueue() {
       {/* Review Modal */}
       {selectedRequest && (
         <ReviewChangeModal
-          request={selectedRequest}
+          request={{
+            id: selectedRequest.id,
+            module: selectedRequest.module,
+            requestedBy: selectedRequest.requestedBy,
+            requestDate: selectedRequest.requestDate,
+            oldData: selectedRequest.oldData,
+            newData: selectedRequest.newData,
+          }}
           onClose={handleCloseModal}
-          onApprove={handleApprove}
-          onReject={handleReject}
+          onApprove={(_requestId, comments) => handleApprove(selectedRequest, comments)}
+          onReject={(_requestId, comments) => handleReject(selectedRequest, comments)}
         />
       )}
     </div>

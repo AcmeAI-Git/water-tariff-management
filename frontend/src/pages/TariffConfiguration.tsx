@@ -113,10 +113,15 @@ export function TariffConfiguration() {
 
   // Prepare ward multipliers from API data
   const wardMultipliers = useMemo(() => {
-    return wards.map((ward) => ({
-      ward: ward.name || ward.wardNo,
-      multiplier: ward.tariffMultiplier.toFixed(2),
-    }));
+    return wards.map((ward) => {
+      const multiplier = typeof ward.tariffMultiplier === 'number' 
+        ? ward.tariffMultiplier 
+        : Number(ward.tariffMultiplier) || 1;
+      return {
+        ward: ward.name || ward.wardNo,
+        multiplier: multiplier.toFixed(2),
+      };
+    });
   }, [wards]);
 
   // Get selected city name

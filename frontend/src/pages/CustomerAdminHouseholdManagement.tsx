@@ -12,7 +12,7 @@ import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
 import { cn } from '../utils/utils';
 import { api } from '../services/api';
-import { useApiQuery, useApiMutation } from '../hooks/useApiQuery';
+import { useApiQuery, useApiMutation, useAdminId } from '../hooks/useApiQuery';
 import { mapUserToHousehold, mapUserStatus, type DisplayHousehold } from '../utils/dataMappers';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 // import type { Zone, Ward } from '../types';
@@ -23,6 +23,7 @@ export function CustomerAdminHouseholdManagement() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedHousehold, setSelectedHousehold] = useState<DisplayHousehold | null>(null);
+  const adminId = useAdminId();
   
   const [formData, setFormData] = useState({
     fullName: '',
@@ -106,6 +107,15 @@ export function CustomerAdminHouseholdManagement() {
     }
   );
 
+  // Create approval request mutation
+  const createApprovalRequestMutation = useApiMutation(
+    (data: Parameters<typeof api.approvalRequests.create>[0]) => api.approvalRequests.create(data),
+    {
+      errorMessage: 'Failed to create approval request',
+      invalidateQueries: [['approval-requests']],
+    }
+  );
+
   const handleInputChange = (field: string, value: string | Date | undefined) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -116,8 +126,13 @@ export function CustomerAdminHouseholdManagement() {
 
   const handleSubmit = async () => {
     if (!formData.zoneId || !formData.wardId || !formData.meterInstallDate) return;
+    if (!adminId) {
+      console.error('Admin ID not found');
+      return;
+    }
 
-    await createMutation.mutateAsync({
+    // Create household
+    const newUser = await createMutation.mutateAsync({
       fullName: formData.fullName,
       meterNo: formData.meterNo,
       phone: formData.phone,
@@ -128,6 +143,18 @@ export function CustomerAdminHouseholdManagement() {
       zoneId: parseInt(formData.zoneId),
       wardId: parseInt(formData.wardId),
     });
+
+    // Create approval request for the household
+    try {
+      await createApprovalRequestMutation.mutateAsync({
+        moduleName: 'Customer',
+        recordId: newUser.id,
+        requestedBy: adminId,
+      });
+    } catch (error) {
+      console.error('Failed to create approval request:', error);
+      // Don't fail the whole operation if approval request creation fails
+    }
     
     // Reset form
     setFormData({
