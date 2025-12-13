@@ -35,11 +35,15 @@ export function ApprovalHistory() {
       const requester = admins.find((a) => a.id === request.requestedBy);
       const reviewer = request.reviewer ? admins.find((a) => a.id === request.reviewedBy) : null;
       const mapped = mapApprovalRequestToDisplay(request, requester?.fullName);
+      // Backend uses statusName, frontend type might have name - check both
+      const decision = (request.approvalStatus as any)?.statusName || 
+                      request.approvalStatus?.name || 
+                      'Unknown';
       return {
         ...mapped,
         reviewedBy: reviewer?.fullName || mapped.reviewedBy,
         reviewedDate: mapped.reviewedDate || '',
-        decision: request.approvalStatus?.name || 'Unknown',
+        decision,
       };
     });
   }, [reviewedRequests, admins]);

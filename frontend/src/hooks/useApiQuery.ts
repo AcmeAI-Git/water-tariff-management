@@ -48,10 +48,12 @@ export function useApiMutation<TData = unknown, TVariables = void, TError = Erro
         toast.success(options.successMessage);
       }
       
-      // Invalidate related queries
+      // Invalidate and refetch related queries
       if (options?.invalidateQueries) {
         options.invalidateQueries.forEach((queryKey) => {
           queryClient.invalidateQueries({ queryKey });
+          // Explicitly refetch to ensure data is updated
+          queryClient.refetchQueries({ queryKey });
         });
       }
       

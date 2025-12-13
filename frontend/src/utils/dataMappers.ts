@@ -95,8 +95,10 @@ export function mapApprovalRequestToDisplay(
   const oldData = requestWithExtras.oldData || null;
   const newData = requestWithExtras.newData || null;
 
-  // Map status - backend uses approvalStatusId, frontend expects status string
-  const status = request.approvalStatus?.name || 'Pending';
+  // Map status - backend uses statusName, not name
+  const status = (request.approvalStatus as any)?.statusName || 
+                 request.approvalStatus?.name || 
+                 'Pending';
 
   return {
     id: `REQ-${String(request.id).padStart(3, '0')}`,

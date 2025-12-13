@@ -9,6 +9,7 @@ import { useApiQuery, useApiMutation, useAdminId } from '../hooks/useApiQuery';
 import { mapApprovalRequestToDisplay } from '../utils/dataMappers';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import type { User, Consumption } from '../types';
+import { useQueryClient } from '@tanstack/react-query';
 
 // Unified display item type for approval queue
 interface ApprovalQueueItem {
@@ -26,6 +27,7 @@ interface ApprovalQueueItem {
 export function ApprovalQueue() {
   const [selectedRequest, setSelectedRequest] = useState<ApprovalQueueItem | null>(null);
   const adminId = useAdminId();
+  const queryClient = useQueryClient();
 
   // Fetch pending approval requests
   const { data: approvalRequests = [], isLoading: approvalRequestsLoading } = useApiQuery(
@@ -60,8 +62,14 @@ export function ApprovalQueue() {
   const displayRequests = useMemo(() => {
     const items: ApprovalQueueItem[] = [];
 
-    // Add approval requests
+    // Add approval requests - filter to ensure only pending items are shown
     approvalRequests.forEach((request) => {
+      // Safety check: only include items that are actually pending
+      const statusName = (request.approvalStatus as any)?.statusName || request.approvalStatus?.name;
+      if (statusName && statusName.toLowerCase() !== 'pending') {
+        return; // Skip non-pending items
+      }
+      
       const requester = admins.find((a) => a.id === request.requestedBy);
       const mapped = mapApprovalRequestToDisplay(request, requester?.fullName);
       items.push({
@@ -173,7 +181,13 @@ export function ApprovalQueue() {
     {
       successMessage: 'Approval request reviewed successfully',
       errorMessage: 'Failed to review approval request',
-      invalidateQueries: [['approval-requests'], ['users'], ['consumption']],
+      invalidateQueries: [
+        ['approval-requests', 'pending'],
+        ['approval-requests'],
+        ['users', 'pending'],
+        ['users'],
+        ['consumption'],
+      ],
     }
   );
 
@@ -183,7 +197,27 @@ export function ApprovalQueue() {
     {
       successMessage: 'Household activated successfully',
       errorMessage: 'Failed to activate household',
-      invalidateQueries: [['users'], ['approval-requests']],
+      invalidateQueries: [
+        ['users', 'pending'],
+        ['users'],
+        ['approval-requests', 'pending'],
+        ['approval-requests'],
+      ],
+    }
+  );
+
+  // Delete household mutation (for rejection)
+  const deleteHouseholdMutation = useApiMutation(
+    (id: number) => api.users.delete(id),
+    {
+      successMessage: 'Household rejected and removed successfully',
+      errorMessage: 'Failed to reject household',
+      invalidateQueries: [
+        ['users', 'pending'],
+        ['users'],
+        ['approval-requests', 'pending'],
+        ['approval-requests'],
+      ],
     }
   );
 
@@ -199,7 +233,11 @@ export function ApprovalQueue() {
     {
       successMessage: 'Consumption approved successfully',
       errorMessage: 'Failed to approve consumption',
-      invalidateQueries: [['consumption'], ['approval-requests']],
+      invalidateQueries: [
+        ['consumption'],
+        ['approval-requests', 'pending'],
+        ['approval-requests'],
+      ],
     }
   );
 
@@ -215,7 +253,11 @@ export function ApprovalQueue() {
     {
       successMessage: 'Consumption rejected successfully',
       errorMessage: 'Failed to reject consumption',
-      invalidateQueries: [['consumption'], ['approval-requests']],
+      invalidateQueries: [
+        ['consumption'],
+        ['approval-requests', 'pending'],
+        ['approval-requests'],
+      ],
     }
   );
 
@@ -274,6 +316,12 @@ export function ApprovalQueue() {
           });
         }
       }
+      
+      // Explicitly refetch pending approval requests to ensure UI updates
+      await queryClient.refetchQueries({ queryKey: ['approval-requests', 'pending'] });
+      await queryClient.refetchQueries({ queryKey: ['users', 'pending'] });
+      await queryClient.refetchQueries({ queryKey: ['consumption'] });
+      
       setSelectedRequest(null);
     } catch (error) {
       console.error('Failed to approve:', error);
@@ -296,11 +344,14 @@ export function ApprovalQueue() {
           comments: comments || undefined,
         });
       } else if (request.recordType === 'household') {
-        // For households, we can't reject directly - we'd need to delete or update status
-        // For now, just update the approval request if it exists
+        // When rejecting a household, we should:
+        // 1. Update the approval request status to Rejected (if it exists)
+        // 2. Delete the household since it was never activated
         const approvalRequest = approvalRequests.find(
           (req) => req.moduleName === 'Customer' && req.recordId === request.recordId
         );
+        
+        // Update approval request first (if it exists)
         if (approvalRequest) {
           await reviewApprovalRequestMutation.mutateAsync({
             id: approvalRequest.id,
@@ -308,6 +359,9 @@ export function ApprovalQueue() {
             comments: comments || undefined,
           });
         }
+        
+        // Delete the household since it was rejected
+        await deleteHouseholdMutation.mutateAsync(request.recordId);
       } else if (request.recordType === 'consumption') {
         // Reject consumption
         await rejectConsumptionMutation.mutateAsync({
@@ -326,6 +380,12 @@ export function ApprovalQueue() {
           });
         }
       }
+      
+      // Explicitly refetch pending approval requests to ensure UI updates
+      await queryClient.refetchQueries({ queryKey: ['approval-requests', 'pending'] });
+      await queryClient.refetchQueries({ queryKey: ['users', 'pending'] });
+      await queryClient.refetchQueries({ queryKey: ['consumption'] });
+      
       setSelectedRequest(null);
     } catch (error) {
       console.error('Failed to reject:', error);
@@ -404,6 +464,7 @@ export function ApprovalQueue() {
                         disabled={
                           reviewApprovalRequestMutation.isPending ||
                           activateHouseholdMutation.isPending ||
+                          deleteHouseholdMutation.isPending ||
                           approveConsumptionMutation.isPending ||
                           rejectConsumptionMutation.isPending
                         }

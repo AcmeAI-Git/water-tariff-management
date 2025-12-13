@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Dropdown } from '../components/ui/Dropdown';
 import { Calendar } from '../components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
 import { Plus, Edit, CalendarIcon, Search } from 'lucide-react';
@@ -131,12 +131,19 @@ export function CustomerAdminHouseholdManagement() {
       return;
     }
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!formData.email || !formData.email.trim() || !emailRegex.test(formData.email.trim())) {
+      alert('Please enter a valid email address');
+      return;
+    }
+
     // Create household
     const newUser = await createMutation.mutateAsync({
       fullName: formData.fullName,
       meterNo: formData.meterNo,
       phone: formData.phone,
-      email: formData.email || '',
+      email: formData.email.trim(),
       address: formData.address,
       hourseType: formData.category === 'residential' ? 'Residential' : 'Commercial',
       installDate: format(formData.meterInstallDate, 'yyyy-MM-dd'),
@@ -193,13 +200,20 @@ export function CustomerAdminHouseholdManagement() {
   const handleEditSubmit = async () => {
     if (!selectedHousehold || !editFormData.zoneId || !editFormData.wardId || !editFormData.meterInstallDate) return;
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!editFormData.email || !editFormData.email.trim() || !emailRegex.test(editFormData.email.trim())) {
+      alert('Please enter a valid email address');
+      return;
+    }
+
     await updateMutation.mutateAsync({
       id: selectedHousehold.id,
       data: {
         fullName: editFormData.fullName,
         meterNo: editFormData.meterNo,
         phone: editFormData.phone,
-        email: editFormData.email,
+        email: editFormData.email.trim(),
         address: editFormData.address,
         hourseType: editFormData.category === 'residential' ? 'Residential' : 'Commercial',
         installDate: format(editFormData.meterInstallDate, 'yyyy-MM-dd'),
@@ -353,18 +367,16 @@ export function CustomerAdminHouseholdManagement() {
                     <Label htmlFor="category" className="text-sm font-medium text-gray-700">
                       Household Category *
                     </Label>
-                    <Select
+                    <Dropdown
+                      options={[
+                        { value: 'residential', label: 'Residential' },
+                        { value: 'commercial', label: 'Commercial' }
+                      ]}
                       value={formData.category}
-                      onValueChange={(value) => handleInputChange('category', value)}
-                    >
-                      <SelectTrigger className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500">
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="residential">Residential</SelectItem>
-                        <SelectItem value="commercial">Commercial</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      onChange={(value) => handleInputChange('category', value)}
+                      placeholder="Select category"
+                      className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
+                    />
                   </div>
 
                   <div className="space-y-2">
@@ -401,46 +413,30 @@ export function CustomerAdminHouseholdManagement() {
                     <Label htmlFor="zone" className="text-sm font-medium text-gray-700">
                       Zone *
                     </Label>
-                    <Select
+                    <Dropdown
+                      options={zoneOptions}
                       value={formData.zoneId}
-                      onValueChange={(value) => {
+                      onChange={(value) => {
                         handleInputChange('zoneId', value);
                         handleInputChange('wardId', ''); // Reset ward when zone changes
                       }}
-                    >
-                      <SelectTrigger className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500">
-                        <SelectValue placeholder="Select zone" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {zoneOptions.map((zone) => (
-                          <SelectItem key={zone.value} value={zone.value}>
-                            {zone.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      placeholder="Select zone"
+                      className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
+                    />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="ward" className="text-sm font-medium text-gray-700">
                       Ward *
                     </Label>
-                    <Select
+                    <Dropdown
+                      options={wardOptions}
                       value={formData.wardId}
-                      onValueChange={(value) => handleInputChange('wardId', value)}
+                      onChange={(value) => handleInputChange('wardId', value)}
+                      placeholder="Select ward"
                       disabled={!formData.zoneId}
-                    >
-                      <SelectTrigger className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500">
-                        <SelectValue placeholder="Select ward" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {wardOptions.map((ward) => (
-                          <SelectItem key={ward.value} value={ward.value}>
-                            {ward.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
+                    />
                   </div>
                 </div>
               </div>
@@ -457,7 +453,7 @@ export function CustomerAdminHouseholdManagement() {
                 <Button
                   type="submit"
                   onClick={handleSubmit}
-                  disabled={!formData.fullName || !formData.meterNo || !formData.phone || !formData.address || !formData.meterInstallDate || !formData.zoneId || !formData.wardId || createMutation.isPending}
+                  disabled={!formData.fullName || !formData.meterNo || !formData.phone || !formData.email || !formData.address || !formData.meterInstallDate || !formData.zoneId || !formData.wardId || createMutation.isPending}
                   className="bg-primary hover:bg-primary-600 text-white rounded-lg h-10 px-5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {createMutation.isPending ? 'Adding...' : 'Add Household'}
@@ -481,17 +477,18 @@ export function CustomerAdminHouseholdManagement() {
 
             {/* Status Filter Dropdown */}
             <div className="w-48">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="bg-white border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500" style={{ height: '44px' }}>
-                  <SelectValue placeholder="Filter by Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="Inactive">Inactive</SelectItem>
-                  <SelectItem value="Pending">Pending</SelectItem>
-                </SelectContent>
-              </Select>
+              <Dropdown
+                options={[
+                  { value: 'all', label: 'All Status' },
+                  { value: 'Active', label: 'Active' },
+                  { value: 'Inactive', label: 'Inactive' },
+                  { value: 'Pending', label: 'Pending' }
+                ]}
+                value={statusFilter}
+                onChange={setStatusFilter}
+                placeholder="Filter by Status"
+                className="bg-white border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
+              />
             </div>
           </div>
         </div>
@@ -551,7 +548,7 @@ export function CustomerAdminHouseholdManagement() {
 
                 <div className="space-y-2">
                   <Label htmlFor="edit-email" className="text-sm font-medium text-gray-700">
-                    Email Address
+                    Email Address *
                   </Label>
                   <Input
                     id="edit-email"
@@ -559,6 +556,7 @@ export function CustomerAdminHouseholdManagement() {
                     value={editFormData.email}
                     onChange={(e) => handleEditInputChange('email', e.target.value)}
                     placeholder="email@example.com"
+                    required
                     className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                   />
                 </div>
@@ -582,18 +580,16 @@ export function CustomerAdminHouseholdManagement() {
                   <Label htmlFor="edit-category" className="text-sm font-medium text-gray-700">
                     Household Category *
                   </Label>
-                  <Select
+                  <Dropdown
+                    options={[
+                      { value: 'residential', label: 'Residential' },
+                      { value: 'commercial', label: 'Commercial' }
+                    ]}
                     value={editFormData.category}
-                    onValueChange={(value) => handleEditInputChange('category', value)}
-                  >
-                    <SelectTrigger className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500">
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="residential">Residential</SelectItem>
-                      <SelectItem value="commercial">Commercial</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    onChange={(value) => handleEditInputChange('category', value)}
+                    placeholder="Select category"
+                    className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -630,46 +626,30 @@ export function CustomerAdminHouseholdManagement() {
                   <Label htmlFor="edit-zone" className="text-sm font-medium text-gray-700">
                     Zone *
                   </Label>
-                  <Select
+                  <Dropdown
+                    options={zoneOptions}
                     value={editFormData.zoneId}
-                    onValueChange={(value) => {
+                    onChange={(value) => {
                       handleEditInputChange('zoneId', value);
                       handleEditInputChange('wardId', ''); // Reset ward when zone changes
                     }}
-                  >
-                    <SelectTrigger className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500">
-                      <SelectValue placeholder="Select zone" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {zoneOptions.map((zone) => (
-                        <SelectItem key={zone.value} value={zone.value}>
-                          {zone.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    placeholder="Select zone"
+                    className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="edit-ward" className="text-sm font-medium text-gray-700">
                     Ward *
                   </Label>
-                  <Select
+                  <Dropdown
+                    options={wardOptions}
                     value={editFormData.wardId}
-                    onValueChange={(value) => handleEditInputChange('wardId', value)}
+                    onChange={(value) => handleEditInputChange('wardId', value)}
+                    placeholder="Select ward"
                     disabled={!editFormData.zoneId}
-                  >
-                    <SelectTrigger className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500">
-                      <SelectValue placeholder="Select ward" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {wardOptions.map((ward) => (
-                        <SelectItem key={ward.value} value={ward.value}>
-                          {ward.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
+                  />
                 </div>
               </div>
             </div>
@@ -686,7 +666,7 @@ export function CustomerAdminHouseholdManagement() {
               <Button
                 type="submit"
                 onClick={handleEditSubmit}
-                disabled={!editFormData.fullName || !editFormData.meterNo || !editFormData.phone || !editFormData.address || !editFormData.meterInstallDate || !editFormData.zoneId || !editFormData.wardId || updateMutation.isPending}
+                disabled={!editFormData.fullName || !editFormData.meterNo || !editFormData.phone || !editFormData.email || !editFormData.address || !editFormData.meterInstallDate || !editFormData.zoneId || !editFormData.wardId || updateMutation.isPending}
                 className="bg-primary hover:bg-primary-600 text-white rounded-lg h-10 px-5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
@@ -708,14 +688,13 @@ export function CustomerAdminHouseholdManagement() {
                 <TableHead className="text-sm font-semibold text-gray-700">Meter No</TableHead>
                 <TableHead className="text-sm font-semibold text-gray-700">Phone</TableHead>
                 <TableHead className="text-sm font-semibold text-gray-700">Address</TableHead>
-                <TableHead className="text-sm font-semibold text-gray-700">Status</TableHead>
-                <TableHead className="text-sm font-semibold text-gray-700 text-right">Action</TableHead>
+                <TableHead className="text-sm font-semibold text-gray-700 text-center">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredHouseholds.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={5} className="text-center py-8 text-gray-500">
                     No households found matching your search criteria
                   </TableCell>
                 </TableRow>
@@ -726,12 +705,7 @@ export function CustomerAdminHouseholdManagement() {
                     <TableCell className="text-sm text-gray-600">{household.meterNo}</TableCell>
                     <TableCell className="text-sm text-gray-600">{household.phone}</TableCell>
                     <TableCell className="text-sm text-gray-600">{household.address}</TableCell>
-                    <TableCell>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(household.status)}`}>
-                        {mapUserStatus(household.status)}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-center">
                       <Button 
                         variant="outline" 
                         size="sm"

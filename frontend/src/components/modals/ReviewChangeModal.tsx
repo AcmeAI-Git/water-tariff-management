@@ -10,8 +10,8 @@ interface ReviewChangeModalProps {
     module: string;
     requestedBy: string;
     requestDate: string;
-    oldData: Record<string, unknown> | null;
-    newData: Record<string, unknown>;
+    oldData: Record<string, unknown> | null | undefined;
+    newData: Record<string, unknown> | null | undefined;
   };
   onClose: () => void;
   onApprove: (requestId: string, comments: string) => void;
@@ -30,6 +30,52 @@ export function ReviewChangeModal({ request, onClose, onApprove, onReject }: Rev
   };
 
   const renderDataComparison = () => {
+    // Safety check: ensure newData exists and is a valid object
+    // Note: typeof null === 'object' in JavaScript, so we need explicit null check
+    const isValidObject = (obj: unknown): obj is Record<string, unknown> => {
+      return obj !== null && obj !== undefined && typeof obj === 'object' && !Array.isArray(obj);
+    };
+
+    // Safe wrapper for Object.entries that handles null/undefined
+    const safeObjectEntries = (obj: unknown): [string, unknown][] => {
+      if (!isValidObject(obj)) {
+        return [];
+      }
+      try {
+        return Object.entries(obj);
+      } catch (error) {
+        console.error('Error in Object.entries:', error, obj);
+        return [];
+      }
+    };
+
+    // Safe wrapper for Object.keys that handles null/undefined
+    const safeObjectKeys = (obj: unknown): string[] => {
+      if (!isValidObject(obj)) {
+        return [];
+      }
+      try {
+        return Object.keys(obj);
+      } catch (error) {
+        console.error('Error in Object.keys:', error, obj);
+        return [];
+      }
+    };
+
+    // Early return if newData is invalid
+    if (!isValidObject(request.newData)) {
+      return (
+        <div className="space-y-4">
+          <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+            <p className="text-sm text-yellow-700">No data available to display</p>
+          </div>
+        </div>
+      );
+    }
+
+    // Safely assign newData
+    const newData = request.newData;
+
     if (!request.oldData) {
       // New record
       return (
@@ -43,12 +89,16 @@ export function ReviewChangeModal({ request, onClose, onApprove, onReject }: Rev
           <div>
             <h4 className="text-sm font-semibold text-gray-700 mb-3">New Data</h4>
             <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-              {Object.entries(request.newData).map(([key, value]) => (
-                <div key={key} className="flex items-start justify-between py-1.5 border-b border-green-100 last:border-0">
-                  <span className="text-sm text-gray-600 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
-                  <span className="text-sm font-medium text-gray-900 text-right ml-4">{String(value)}</span>
-                </div>
-              ))}
+              {safeObjectEntries(newData).length === 0 ? (
+                <p className="text-sm text-gray-500 italic">No data fields available</p>
+              ) : (
+                safeObjectEntries(newData).map(([key, value]) => (
+                  <div key={key} className="flex items-start justify-between py-1.5 border-b border-green-100 last:border-0">
+                    <span className="text-sm text-gray-600 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
+                    <span className="text-sm font-medium text-gray-900 text-right ml-4">{String(value ?? '-')}</span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -56,7 +106,9 @@ export function ReviewChangeModal({ request, onClose, onApprove, onReject }: Rev
     }
 
     // Modified record - side by side comparison
-    const allKeys = new Set([...Object.keys(request.oldData ?? {}), ...Object.keys(request.newData)]);
+    const oldDataKeys = safeObjectKeys(request.oldData);
+    const newDataKeys = safeObjectKeys(newData);
+    const allKeys = new Set([...oldDataKeys, ...newDataKeys]);
 
     return (
       <div className="grid grid-cols-2 gap-4">
@@ -64,8 +116,8 @@ export function ReviewChangeModal({ request, onClose, onApprove, onReject }: Rev
           <h4 className="text-sm font-semibold text-gray-700 mb-3">Old Data</h4>
           <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 space-y-2">
             {Array.from(allKeys).map((key) => {
-              const oldValue = (request.oldData as Record<string, unknown> | undefined)?.[key as string];
-              const newValue = request.newData[key as string];
+              const oldValue = isValidObject(request.oldData) ? request.oldData[key] : undefined;
+              const newValue = newData[key];
               const isChanged = oldValue !== newValue;
               
               return (
@@ -90,8 +142,8 @@ export function ReviewChangeModal({ request, onClose, onApprove, onReject }: Rev
           <h4 className="text-sm font-semibold text-gray-700 mb-3">New Data</h4>
           <div className="bg-green-50 rounded-lg p-4 border border-green-200 space-y-2">
             {Array.from(allKeys).map((key) => {
-              const oldValue = (request.oldData as Record<string, unknown> | undefined)?.[key as string];
-              const newValue = request.newData[key as string];
+              const oldValue = isValidObject(request.oldData) ? request.oldData[key] : undefined;
+              const newValue = newData[key];
               const isChanged = oldValue !== newValue;
               
               return (

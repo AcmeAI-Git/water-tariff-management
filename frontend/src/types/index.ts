@@ -63,7 +63,7 @@ export interface User {
 
 export interface CreateUserDto {
   fullName: string;
-  email: string;
+  email?: string;
   phone: string;
   address: string;
   hourseType: string;
@@ -252,9 +252,11 @@ export interface RejectTariffPlanDto {
 }
 
 // Approval Status Types
+// Note: Backend uses statusName, but we support both for compatibility
 export interface ApprovalStatus {
   id: number;
-  name: string;
+  name?: string; // Frontend type (may not match backend)
+  statusName?: string; // Backend field name
   description?: string;
 }
 
