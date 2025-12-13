@@ -69,7 +69,14 @@ export default function AdminDashboard() {
     const avgConsumption = useMemo(() => {
         if (consumptions.length === 0) return 0;
         const totalConsumption = consumptions.reduce((sum, c) => {
-            const consumption = c.currentReading - (c.previousReading || 0);
+            // Ensure values are numbers
+            const current = typeof c.currentReading === 'number' 
+                ? c.currentReading 
+                : Number(c.currentReading) || 0;
+            const previous = typeof c.previousReading === 'number' 
+                ? c.previousReading 
+                : Number(c.previousReading) || 0;
+            const consumption = current - previous;
             return sum + Math.max(0, consumption); // Ensure non-negative
         }, 0);
         return parseFloat((totalConsumption / consumptions.length).toFixed(1));

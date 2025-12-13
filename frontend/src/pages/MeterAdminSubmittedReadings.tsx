@@ -27,12 +27,17 @@ export function MeterAdminSubmittedReadings() {
       // You may need to check approvalStatusId or similar field
       const status = 'Pending'; // Default - adjust based on your backend structure
       
+      // Ensure currentReading is a number before calling toFixed
+      const currentReading = typeof consumption.currentReading === 'number' 
+        ? consumption.currentReading 
+        : Number(consumption.currentReading) || 0;
+      
       return {
         id: consumption.id,
         batchId: `BATCH-${consumption.id}`,
         householdName: user?.fullName || 'Unknown',
         meterNo: user?.meterNo || 'N/A',
-        reading: consumption.currentReading.toFixed(2),
+        reading: currentReading.toFixed(2),
         month: billMonthDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' }),
         submittedDate: consumption.createdAt 
           ? new Date(consumption.createdAt).toLocaleDateString('en-US')

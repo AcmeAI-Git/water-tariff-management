@@ -107,7 +107,11 @@ export function MeterAdminDataEntry() {
     toast.success('Meter reading submitted for approval');
   };
 
-  const previousReading = previousConsumptions[0]?.currentReading || 0;
+  // Ensure previousReading is a number
+  const previousReadingRaw = previousConsumptions[0]?.currentReading;
+  const previousReading = typeof previousReadingRaw === 'number' 
+    ? previousReadingRaw 
+    : Number(previousReadingRaw) || 0;
 
   if (usersLoading) {
     return (

@@ -26,9 +26,11 @@ interface AddAgentModalProps {
   zoneOptions?: Array<{ value: string; label: string }>; // Zone options from API
   wardOptions?: Array<{ value: string; label: string }>; // Ward options from API
   roleOptions?: Array<{ value: string; label: string }>; // Role options from API
+  modalTitle?: string; // Custom modal title (defaults to "Add New Agent" or "Edit Agent")
+  submitButtonText?: string; // Custom submit button text (defaults to "Add Agent" or "Save Changes")
 }
 
-export function AddAgentModal({ open, onClose, onSave, editMode = false, agent = null, roleFixed, onDelete, zoneOptions = [], wardOptions = [], roleOptions = [] }: AddAgentModalProps) {
+export function AddAgentModal({ open, onClose, onSave, editMode = false, agent = null, roleFixed, onDelete, zoneOptions = [], wardOptions = [], roleOptions = [], modalTitle, submitButtonText }: AddAgentModalProps) {
   const [form, setForm] = useState<Agent>({
     name: "",
     phone: "",
@@ -75,15 +77,17 @@ export function AddAgentModal({ open, onClose, onSave, editMode = false, agent =
 
   if (!open) return null;
   
-  const modalTitle = editMode ? "Edit Agent" : "Add New Agent";
+  const defaultModalTitle = editMode ? "Edit Agent" : "Add New Agent";
+  const finalModalTitle = modalTitle || defaultModalTitle;
   const modalDescription = editMode ? "Update admin information" : "Register a new admin";
-  const submitButtonText = editMode ? "Save Changes" : "Add Agent";
+  const defaultSubmitButtonText = editMode ? "Save Changes" : "Add Agent";
+  const finalSubmitButtonText = submitButtonText || defaultSubmitButtonText;
   
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 relative">
         <button className="absolute right-4 top-4 text-gray-400 hover:text-gray-600" onClick={onClose}><X size={20} /></button>
-        <h2 className="text-lg font-semibold mb-2">{modalTitle}</h2>
+        <h2 className="text-lg font-semibold mb-2">{finalModalTitle}</h2>
         <p className="text-xs text-gray-500 mb-4">{modalDescription}</p>
         <div className="space-y-3">
           <Input placeholder="Full Name" value={form.name} onChange={e => handleChange("name", e.target.value)} />
@@ -125,7 +129,7 @@ export function AddAgentModal({ open, onClose, onSave, editMode = false, agent =
           )}
           <div className={`flex gap-2 ${editMode && onDelete ? 'ml-auto' : 'w-full justify-end'}`}>
             <Button variant="outline" onClick={onClose}>Cancel</Button>
-            <Button className="bg-primary text-white" onClick={handleSubmit}>{submitButtonText}</Button>
+            <Button className="bg-primary text-white" onClick={handleSubmit}>{finalSubmitButtonText}</Button>
           </div>
         </div>
       </div>

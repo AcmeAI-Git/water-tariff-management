@@ -47,11 +47,15 @@ export function MeterAdminPendingSubmissions() {
     return pendingConsumptions.map((consumption) => {
       const user = users.find((u) => u.id === consumption.userId);
       const billMonthDate = new Date(consumption.billMonth);
+      // Ensure currentReading is a number before calling toFixed
+      const currentReading = typeof consumption.currentReading === 'number' 
+        ? consumption.currentReading 
+        : Number(consumption.currentReading) || 0;
       return {
         id: consumption.id,
         householdName: user?.fullName || 'Unknown',
         meterNo: user?.meterNo || 'N/A',
-        reading: consumption.currentReading.toFixed(2),
+        reading: currentReading.toFixed(2),
         month: billMonthDate.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit' }),
       };
     });

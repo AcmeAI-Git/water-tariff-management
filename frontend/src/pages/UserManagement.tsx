@@ -224,7 +224,7 @@ export default function UserManagement() {
                         className="bg-primary hover:bg-primary-600 text-white px-6 rounded-lg shadow-sm"
                         onClick={() => setShowModal(true)}
                     >
-                        + Add Meter Admin
+                        + Add User
                     </Button>
                 </div>
 
@@ -341,6 +341,10 @@ export default function UserManagement() {
                 } : null}
                 roleFixed="Meter Admin"
                 onDelete={editMode ? handleDelete : undefined}
+                modalTitle={editMode ? "Edit User" : "Add User"}
+                submitButtonText={editMode ? "Save Changes" : "Add User"}
+                zoneOptions={zoneOptions}
+                wardOptions={wardOptions}
             />
         </div>
     );
