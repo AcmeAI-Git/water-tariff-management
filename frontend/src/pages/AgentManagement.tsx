@@ -187,11 +187,15 @@ export function AgentManagement() {
         setEditingAgent(null);
     };
 
-    // Prepare role options for dropdown
-    const roleOptions = roles.map((role) => ({
-        value: role.name,
-        label: role.name,
-    }));
+    // Prepare role options for dropdown (excluding Meter Admin)
+    const roleOptions = useMemo(() => {
+        return roles
+            .filter((role) => !role.name.toLowerCase().includes('meter'))
+            .map((role) => ({
+                value: role.name,
+                label: role.name,
+            }));
+    }, [roles]);
 
     // Prepare zone options for dropdown
     const zoneOptions = useMemo(() => {
