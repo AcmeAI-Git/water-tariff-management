@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "../components/ui/tooltip";
 import { Toaster as Sonner } from "../components/ui/sonner";
-import { BrowserRouter } from "react-router";
+import { BrowserRouter } from "react-router-dom";
 import type { ReactNode } from "react";
 
 const queryClient = new QueryClient({
