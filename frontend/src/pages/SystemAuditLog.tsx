@@ -18,25 +18,21 @@ import { LoadingSpinner } from "../components/common/LoadingSpinner";
 export function SystemAuditLog() {
     const [searchTerm, setSearchTerm] = useState("");
 
-    // Fetch audit logs
+    // Fetch audit logs (backend already populates user relation)
     const { data: auditLogs = [], isLoading } = useApiQuery(
         ['audit-logs'],
         () => api.auditLogs.getAll()
     );
 
-    // Fetch users to map userId to names
-    const { data: users = [] } = useApiQuery(
-        ['users'],
-        () => api.users.getAll()
-    );
-
     // Map audit logs to display format
+    // Use the populated user relation from backend, or fallback to userId
     const displayLogs = useMemo(() => {
         return auditLogs.map((log) => {
-            const user = log.userId ? users.find((u) => u.id === log.userId) : null;
-            return mapAuditLogToDisplay(log, user?.fullName);
+            // Backend populates log.user if userId exists and user is found
+            const userName = log.user?.fullName || (log.userId ? `User #${log.userId}` : 'System');
+            return mapAuditLogToDisplay(log, userName);
         });
-    }, [auditLogs, users]);
+    }, [auditLogs]);
 
     // Filter logs by search term
     const filteredLogs = useMemo(() => {

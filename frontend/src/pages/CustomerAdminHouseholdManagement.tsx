@@ -106,16 +106,6 @@ export function CustomerAdminHouseholdManagement() {
     }
   );
 
-  // Activate user mutation
-  const activateMutation = useApiMutation(
-    (id: number) => api.users.activate(id),
-    {
-      successMessage: 'Household activated successfully',
-      errorMessage: 'Failed to activate household',
-      invalidateQueries: [['users']],
-    }
-  );
-
   const handleInputChange = (field: string, value: string | Date | undefined) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -195,10 +185,6 @@ export function CustomerAdminHouseholdManagement() {
     setSelectedHousehold(null);
   };
 
-  const handleActivate = async (householdId: number) => {
-    await activateMutation.mutateAsync(householdId);
-  };
-
   const getStatusColor = (status: string) => {
     const mappedStatus = mapUserStatus(status);
     switch (mappedStatus) {
@@ -260,7 +246,7 @@ export function CustomerAdminHouseholdManagement() {
               <DialogHeader>
                 <DialogTitle className="text-xl font-semibold text-gray-900">Add New Household</DialogTitle>
                 <DialogDescription className="text-sm text-gray-600">
-                  Register a new household in your assigned ward. All fields marked with * are required.
+                  Register a new household. All fields marked with * are required.
                 </DialogDescription>
               </DialogHeader>
               
@@ -719,28 +705,15 @@ export function CustomerAdminHouseholdManagement() {
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        {household.status.toLowerCase() === 'inactive' || household.status.toLowerCase() === 'pending' ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleActivate(household.id)}
-                            className="border-green-300 text-green-700 rounded-lg h-8 px-3 bg-white hover:bg-green-50"
-                            disabled={activateMutation.isPending}
-                          >
-                            Activate
-                          </Button>
-                        ) : null}
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleEditClick(household)}
-                          className="border-gray-300 text-gray-700 rounded-lg h-8 px-3 bg-white hover:bg-gray-50 flex items-center gap-1.5"
-                        >
-                          <Edit size={14} />
-                          Edit
-                        </Button>
-                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleEditClick(household)}
+                        className="border-gray-300 text-gray-700 rounded-lg h-8 px-3 bg-white hover:bg-gray-50 flex items-center gap-1.5"
+                      >
+                        <Edit size={14} />
+                        Edit
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))

@@ -141,6 +141,9 @@ export default function UserManagement() {
             phone: newAgent.phone || '',
             password: newAgent.password,
             roleId: meterAdminRoleId,
+            // zoneId and wardId will be included when backend supports it
+            // zoneId: newAgent.zone ? parseInt(newAgent.zone) : undefined,
+            // wardId: newAgent.ward ? parseInt(newAgent.ward) : undefined,
         });
         setShowModal(false);
         setEditMode(false);
@@ -161,6 +164,9 @@ export default function UserManagement() {
                 fullName: updatedAgent.name,
                 email: updatedAgent.email,
                 phone: updatedAgent.phone,
+                // zoneId and wardId will be included when backend supports it
+                // zoneId: updatedAgent.zone ? parseInt(updatedAgent.zone) : undefined,
+                // wardId: updatedAgent.ward ? parseInt(updatedAgent.ward) : undefined,
             },
         });
         setShowModal(false);
@@ -274,6 +280,12 @@ export default function UserManagement() {
                                     Email
                                 </TableHead>
                                 <TableHead className="text-sm font-semibold text-gray-700">
+                                    Zone
+                                </TableHead>
+                                <TableHead className="text-sm font-semibold text-gray-700">
+                                    Ward
+                                </TableHead>
+                                <TableHead className="text-sm font-semibold text-gray-700">
                                     Role
                                 </TableHead>
                                 <TableHead className="text-sm font-semibold text-gray-700">
@@ -284,45 +296,57 @@ export default function UserManagement() {
                         <TableBody>
                             {filteredAdmins.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={4} className="text-center text-gray-500 py-8">
+                                    <TableCell colSpan={6} className="text-center text-gray-500 py-8">
                                         {searchTerm ? 'No meter admins found matching your search' : 'No meter admins found'}
                                     </TableCell>
                                 </TableRow>
                             ) : (
-                                filteredAdmins.map((admin, index) => (
-                                    <TableRow
-                                        key={admin.id}
-                                        className="border-gray-100"
-                                    >
-                                        <TableCell className="text-sm text-gray-900 font-medium">
-                                            {admin.name}
-                                        </TableCell>
-                                        <TableCell className="text-sm text-gray-600">
-                                            {admin.email}
-                                        </TableCell>
-                                        <TableCell>
-                                            <span
-                                                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor()}`}
-                                            >
-                                                {admin.role}
-                                            </span>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                                                onClick={() => handleEditClick(admin, index)}
-                                            >
-                                                <Edit2
-                                                    size={14}
-                                                    className="mr-1.5"
-                                                />
-                                                Edit
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))
+                                filteredAdmins.map((admin, index) => {
+                                    // Find zone and ward names if available (will be empty until backend supports zoneId/wardId in admin)
+                                    const zoneName = ''; // TODO: Get from admin.zoneId when backend supports it
+                                    const wardName = ''; // TODO: Get from admin.wardId when backend supports it
+                                    
+                                    return (
+                                        <TableRow
+                                            key={admin.id}
+                                            className="border-gray-100"
+                                        >
+                                            <TableCell className="text-sm text-gray-900 font-medium">
+                                                {admin.name}
+                                            </TableCell>
+                                            <TableCell className="text-sm text-gray-600">
+                                                {admin.email}
+                                            </TableCell>
+                                            <TableCell className="text-sm text-gray-600">
+                                                {zoneName || 'N/A'}
+                                            </TableCell>
+                                            <TableCell className="text-sm text-gray-600">
+                                                {wardName || 'N/A'}
+                                            </TableCell>
+                                            <TableCell>
+                                                <span
+                                                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor()}`}
+                                                >
+                                                    {admin.role}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                                                    onClick={() => handleEditClick(admin, index)}
+                                                >
+                                                    <Edit2
+                                                        size={14}
+                                                        className="mr-1.5"
+                                                    />
+                                                    Edit
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })
                             )}
                         </TableBody>
                     </Table>
@@ -338,13 +362,15 @@ export default function UserManagement() {
                     email: editingAgent.email,
                     phone: editingAgent.phone,
                     role: editingAgent.role,
+                    zone: '', // TODO: Get from admin when backend supports it
+                    ward: '', // TODO: Get from admin when backend supports it
                 } : null}
                 roleFixed="Meter Admin"
                 onDelete={editMode ? handleDelete : undefined}
                 modalTitle={editMode ? "Edit User" : "Add User"}
                 submitButtonText={editMode ? "Save Changes" : "Add User"}
-                zoneOptions={zoneOptions}
-                wardOptions={wardOptions}
+                showZoneWard={true}
+                zoneWardAsNumbers={true}
             />
         </div>
     );

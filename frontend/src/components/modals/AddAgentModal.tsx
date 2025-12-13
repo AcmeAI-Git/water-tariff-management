@@ -28,9 +28,11 @@ interface AddAgentModalProps {
   roleOptions?: Array<{ value: string; label: string }>; // Role options from API
   modalTitle?: string; // Custom modal title (defaults to "Add New Agent" or "Edit Agent")
   submitButtonText?: string; // Custom submit button text (defaults to "Add Agent" or "Save Changes")
+  showZoneWard?: boolean; // Show zone/ward fields (default false)
+  zoneWardAsNumbers?: boolean; // Use number inputs instead of dropdowns (default false)
 }
 
-export function AddAgentModal({ open, onClose, onSave, editMode = false, agent = null, roleFixed, onDelete, zoneOptions = [], wardOptions = [], roleOptions = [], modalTitle, submitButtonText }: AddAgentModalProps) {
+export function AddAgentModal({ open, onClose, onSave, editMode = false, agent = null, roleFixed, onDelete, zoneOptions = [], wardOptions = [], roleOptions = [], modalTitle, submitButtonText, showZoneWard = false, zoneWardAsNumbers = false }: AddAgentModalProps) {
   const [form, setForm] = useState<Agent>({
     name: "",
     phone: "",
@@ -92,10 +94,33 @@ export function AddAgentModal({ open, onClose, onSave, editMode = false, agent =
         <div className="space-y-3">
           <Input placeholder="Full Name" value={form.name} onChange={e => handleChange("name", e.target.value)} />
           <Input placeholder="Phone Number" value={form.phone || ""} onChange={e => handleChange("phone", e.target.value)} />
-          <div className="flex gap-2">
-            <Dropdown options={zoneOptions} value={form.zone || ""} onChange={v => handleChange("zone", v)} placeholder="Select zone" className="w-1/2" />
-            <Dropdown options={wardOptions} value={form.ward || ""} onChange={v => handleChange("ward", v)} placeholder="Select ward" className="w-1/2" />
-          </div>
+          {showZoneWard && (
+            <div className="flex gap-2">
+              {zoneWardAsNumbers ? (
+                <>
+                  <Input 
+                    type="number" 
+                    placeholder="Zone ID" 
+                    value={form.zone || ""} 
+                    onChange={e => handleChange("zone", e.target.value)} 
+                    className="w-1/2 bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500" 
+                  />
+                  <Input 
+                    type="number" 
+                    placeholder="Ward ID" 
+                    value={form.ward || ""} 
+                    onChange={e => handleChange("ward", e.target.value)} 
+                    className="w-1/2 bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500" 
+                  />
+                </>
+              ) : (
+                <>
+                  <Dropdown options={zoneOptions} value={form.zone || ""} onChange={v => handleChange("zone", v)} placeholder="Select zone" className="w-1/2" />
+                  <Dropdown options={wardOptions} value={form.ward || ""} onChange={v => handleChange("ward", v)} placeholder="Select ward" className="w-1/2" />
+                </>
+              )}
+            </div>
+          )}
           <Dropdown 
             options={roleOptions.length > 0 ? roleOptions : [
               {value:"Super Admin",label:"Super Admin"},
