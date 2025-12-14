@@ -16,9 +16,10 @@ interface ReviewChangeModalProps {
   onClose: () => void;
   onApprove: (requestId: string, comments: string) => void;
   onReject: (requestId: string, comments: string) => void;
+  isLoading?: boolean;
 }
 
-export function ReviewChangeModal({ request, onClose, onApprove, onReject }: ReviewChangeModalProps) {
+export function ReviewChangeModal({ request, onClose, onApprove, onReject, isLoading = false }: ReviewChangeModalProps) {
   const [comments, setComments] = useState('');
 
   const handleApprove = () => {
@@ -208,7 +209,16 @@ export function ReviewChangeModal({ request, onClose, onApprove, onReject }: Rev
           {/* Data Comparison */}
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Data Comparison</h3>
-            {renderDataComparison()}
+            {isLoading ? (
+              <div className="bg-gray-50 rounded-lg p-8 border border-gray-200 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#4C6EF5] mb-2"></div>
+                  <p className="text-sm text-gray-600">Loading record data...</p>
+                </div>
+              </div>
+            ) : (
+              renderDataComparison()
+            )}
           </div>
 
           {/* Comments */}

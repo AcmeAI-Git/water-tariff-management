@@ -27,6 +27,7 @@ interface ApprovalQueueItem {
 
 export function ApprovalQueue() {
   const [selectedRequest, setSelectedRequest] = useState<ApprovalQueueItem | null>(null);
+  const [isLoadingRecordData, setIsLoadingRecordData] = useState(false);
   const adminId = useAdminId();
   const queryClient = useQueryClient();
 
@@ -35,6 +36,25 @@ export function ApprovalQueue() {
     ['approval-requests', 'pending'],
     () => api.approvalRequests.getPending()
   );
+
+  // Fetch all Customer approval requests to find requesters for households
+  const { data: allCustomerApprovalRequests = [] } = useApiQuery(
+    ['approval-requests', 'Customer'],
+    () => api.approvalRequests.getAll({ moduleName: 'Customer' })
+  );
+
+  // Filter out rejected items from Customer approval requests
+  const filteredCustomerApprovalRequests = useMemo(() => {
+    return allCustomerApprovalRequests.filter((req) => {
+      const status = req.approvalStatus as ApprovalStatus | undefined;
+      const statusName = status?.statusName || status?.name;
+      // Only include pending or approved items, exclude rejected
+      return statusName && 
+             statusName.toLowerCase() !== 'rejected' && 
+             !req.reviewedBy && 
+             !req.reviewedAt;
+    });
+  }, [allCustomerApprovalRequests]);
 
   // Fetch pending households (users with status='pending')
   const { data: pendingHouseholds = [], isLoading: householdsLoading } = useApiQuery(
@@ -92,18 +112,49 @@ export function ApprovalQueue() {
 
     // Add pending households (that don't have approval requests)
     pendingHouseholds.forEach((household: User) => {
-      // Check if this household already has an approval request
-      const hasApprovalRequest = approvalRequests.some(
+      // Safety check: Skip if household doesn't have an ID (shouldn't happen, but safety)
+      if (!household.id) {
+        return;
+      }
+      
+      // Check if this household already has a pending approval request
+      const hasPendingApprovalRequest = approvalRequests.some(
         (req) => req.moduleName === 'Customer' && req.recordId === household.id
       );
       
-      if (!hasApprovalRequest) {
-        // Try to find who created it (if we had createdBy field, but we don't)
-        // For now, we'll show it as "Unknown" or we could skip it
+      if (!hasPendingApprovalRequest) {
+        // Use filtered list to check if household should be excluded
+        const relatedApprovalRequestFiltered = filteredCustomerApprovalRequests.find(
+          (req) => req.recordId === household.id
+        );
+        
+        // Skip if related request is rejected (using filtered list)
+        if (relatedApprovalRequestFiltered) {
+          const reqStatus = relatedApprovalRequestFiltered.approvalStatus as ApprovalStatus | undefined;
+          const reqStatusName = reqStatus?.statusName || reqStatus?.name;
+          if (reqStatusName?.toLowerCase() === 'rejected' || relatedApprovalRequestFiltered.reviewedBy) {
+            return; // Skip rejected households
+          }
+        }
+        
+        // Use unfiltered list to get requester name (for display)
+        // This ensures requester names persist even after rejection
+        const relatedApprovalRequest = allCustomerApprovalRequests.find(
+          (req) => req.recordId === household.id
+        );
+        
+        // Get requester name from approval request or fallback to admin lookup
+        let requesterName = 'Unknown';
+        if (relatedApprovalRequest) {
+          requesterName = relatedApprovalRequest.requester?.fullName || 
+                         admins.find((a) => a.id === relatedApprovalRequest.requestedBy)?.fullName || 
+                         `Admin #${relatedApprovalRequest.requestedBy}`;
+        }
+        
         items.push({
           id: `HOUSEHOLD-${household.id}`,
           module: 'Customer',
-          requestedBy: 'Unknown', // Could be improved if we add createdBy to User entity
+          requestedBy: requesterName,
           request: household.createdAt 
             ? new Date(household.createdAt).toLocaleString('en-US', {
                 year: 'numeric',
@@ -177,7 +228,7 @@ export function ApprovalQueue() {
       const dateB = new Date(b.request).getTime();
       return dateB - dateA;
     });
-  }, [approvalRequests, pendingHouseholds, pendingConsumptions, admins]);
+  }, [approvalRequests, filteredCustomerApprovalRequests, allCustomerApprovalRequests, pendingHouseholds, pendingConsumptions, admins]);
 
   const isLoading = approvalRequestsLoading || householdsLoading || consumptionsLoading;
 
@@ -196,6 +247,7 @@ export function ApprovalQueue() {
       errorMessage: 'Failed to review approval request',
       invalidateQueries: [
         ['approval-requests', 'pending'],
+        ['approval-requests', 'Customer'],
         ['approval-requests'],
         ['users', 'pending'],
         ['users', 'active'],
@@ -276,8 +328,57 @@ export function ApprovalQueue() {
     }
   );
 
-  const handleReview = (request: ApprovalQueueItem) => {
-    setSelectedRequest(request);
+  const handleReview = async (request: ApprovalQueueItem) => {
+    // If oldData/newData are missing (null/undefined), fetch the actual record data
+    if ((!request.oldData && !request.newData) || request.newData === null || request.newData === undefined) {
+      setIsLoadingRecordData(true);
+      try {
+        let newData: unknown = null;
+        
+        if (request.module === 'Customer' || request.recordType === 'household') {
+          // Fetch household/user data
+          const household = await api.users.getById(request.recordId);
+          newData = {
+            fullName: household.fullName,
+            meterNo: household.meterNo,
+            phone: household.phone,
+            email: household.email,
+            address: household.address,
+            hourseType: household.hourseType,
+            installDate: household.installDate,
+            zoneId: household.zoneId,
+            wardId: household.wardId,
+          };
+        } else if (request.module === 'Consumption' || request.recordType === 'consumption') {
+          // Fetch consumption data
+          const consumption = await api.consumption.getById(request.recordId);
+          newData = {
+            userId: consumption.userId,
+            billMonth: consumption.billMonth,
+            currentReading: consumption.currentReading,
+            previousReading: consumption.previousReading,
+            consumption: consumption.consumption,
+          };
+        }
+        
+        // Update request with fetched data
+        setSelectedRequest({
+          ...request,
+          oldData: null,
+          newData: newData,
+        });
+      } catch (error) {
+        console.error('Failed to fetch record data:', error);
+        toast.error('Failed to load record data');
+        // Still show modal with existing data
+        setSelectedRequest(request);
+      } finally {
+        setIsLoadingRecordData(false);
+      }
+    } else {
+      // Data already available, just set the request
+      setSelectedRequest(request);
+    }
   };
 
   const handleCloseModal = () => {
@@ -294,11 +395,19 @@ export function ApprovalQueue() {
       if (request.recordType === 'approval-request') {
         // Extract numeric ID from "REQ-001" format
         const numericId = parseInt(request.id.replace('REQ-', ''));
+        const approvalRequest = approvalRequests.find((req) => req.id === numericId);
+        
+        // Review the approval request
         await reviewApprovalRequestMutation.mutateAsync({
           id: numericId,
           status: 'Approved',
           comments: comments || undefined,
         });
+        
+        // If it's a Customer module request, also activate the household
+        if ((request.module === 'Customer' || approvalRequest?.moduleName === 'Customer') && request.recordId) {
+          await activateHouseholdMutation.mutateAsync(request.recordId);
+        }
       } else if (request.recordType === 'household') {
         // Activate household
         await activateHouseholdMutation.mutateAsync(request.recordId);
@@ -335,6 +444,7 @@ export function ApprovalQueue() {
       // Invalidate and refetch all related queries to ensure UI updates immediately
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['approval-requests', 'pending'], refetchType: 'active' }),
+        queryClient.invalidateQueries({ queryKey: ['approval-requests', 'Customer'], refetchType: 'active' }),
         queryClient.invalidateQueries({ queryKey: ['approval-requests'], refetchType: 'active' }),
         queryClient.invalidateQueries({ queryKey: ['users', 'pending'], refetchType: 'active' }),
         queryClient.invalidateQueries({ queryKey: ['users', 'active'], refetchType: 'active' }),
@@ -345,6 +455,7 @@ export function ApprovalQueue() {
       // Explicitly refetch to ensure data is fresh
       await Promise.all([
         queryClient.refetchQueries({ queryKey: ['approval-requests', 'pending'] }),
+        queryClient.refetchQueries({ queryKey: ['approval-requests', 'Customer'] }),
         queryClient.refetchQueries({ queryKey: ['users', 'pending'] }),
         queryClient.refetchQueries({ queryKey: ['users', 'active'] }),
         queryClient.refetchQueries({ queryKey: ['consumption'] }),
@@ -363,22 +474,7 @@ export function ApprovalQueue() {
     }
 
     try {
-      // Optimistically remove the item from the queue
-      const requestIdToRemove = request.recordType === 'approval-request' 
-        ? parseInt(request.id.replace('REQ-', ''))
-        : null;
-      
-      if (requestIdToRemove) {
-        // Optimistically update the cache to remove the rejected item
-        queryClient.setQueryData<ApprovalRequest[]>(
-          ['approval-requests', 'pending'],
-          (oldData) => {
-            if (!oldData) return oldData;
-            return oldData.filter((req) => req.id !== requestIdToRemove);
-          }
-        );
-      }
-
+      // Execute mutations first (wait for completion)
       if (request.recordType === 'approval-request') {
         // Extract numeric ID from "REQ-001" format
         const numericId = parseInt(request.id.replace('REQ-', ''));
@@ -389,19 +485,26 @@ export function ApprovalQueue() {
         });
       } else if (request.recordType === 'household') {
         // When rejecting a household, we should:
-        // 1. Update the approval request status to Rejected (if it exists)
+        // 1. Update the approval request status to Rejected (if it exists and is pending)
         // 2. Delete the household since it was never activated
         const approvalRequest = approvalRequests.find(
           (req) => req.moduleName === 'Customer' && req.recordId === request.recordId
         );
         
-        // Update approval request first (if it exists)
+        // Update approval request first (if it exists and is still pending)
         if (approvalRequest) {
-          await reviewApprovalRequestMutation.mutateAsync({
-            id: approvalRequest.id,
-            status: 'Rejected',
-            comments: comments || undefined,
-          });
+          const reqStatus = approvalRequest.approvalStatus as ApprovalStatus | undefined;
+          const reqStatusName = reqStatus?.statusName || reqStatus?.name;
+          
+          // Only reject if it's still pending
+          if (reqStatusName?.toLowerCase() === 'pending' && !approvalRequest.reviewedBy) {
+            await reviewApprovalRequestMutation.mutateAsync({
+              id: approvalRequest.id,
+              status: 'Rejected',
+              comments: comments || undefined,
+            });
+          }
+          // If already rejected, skip silently (no error)
         }
         
         // Delete the household since it was rejected
@@ -425,33 +528,47 @@ export function ApprovalQueue() {
         }
       }
       
-      // Close modal first for better UX
+      // Close modal immediately
       setSelectedRequest(null);
       
-      // Wait for backend to process the status change
-      // The mutation hook will already invalidate/refetch, but we need to ensure
-      // the backend has updated before refetching
+      // Wait for backend to fully process (slightly longer delay to ensure transaction is committed)
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Force a fresh refetch after backend has processed
-      // This ensures we get the updated data from the backend
-      await queryClient.refetchQueries({ 
-        queryKey: ['approval-requests', 'pending'],
-        type: 'active',
-        exact: true
-      });
-      
-      // Also ensure other related queries are fresh
+      // Force refetch of pending queries (mutation hook already invalidated)
+      // Only refetch the critical queries needed to update the queue
       await Promise.all([
-        queryClient.refetchQueries({ queryKey: ['users', 'pending'], type: 'active' }),
-        queryClient.refetchQueries({ queryKey: ['users', 'active'], type: 'active' }),
-        queryClient.refetchQueries({ queryKey: ['consumption'], type: 'active' }),
+        queryClient.refetchQueries({ 
+          queryKey: ['approval-requests', 'pending'],
+          type: 'active'
+        }),
+        queryClient.refetchQueries({ 
+          queryKey: ['approval-requests', 'Customer'],
+          type: 'active'
+        }),
+        queryClient.refetchQueries({ 
+          queryKey: ['users', 'pending'],
+          type: 'active',
+          exact: false  // Ensure all users queries are refetched
+        }),
       ]);
     } catch (error) {
       console.error('Failed to reject:', error);
-      // Revert optimistic update on error
+      
+      // Check if error is due to already-rejected request
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const isAlreadyRejected = errorMessage.includes('Only pending requests can be reviewed') ||
+                                errorMessage.includes('already reviewed') ||
+                                errorMessage.toLowerCase().includes('pending');
+      
+      if (!isAlreadyRejected) {
+        // Only show error toast if it's not an "already rejected" error
+        toast.error('Failed to reject request. Please try again.');
+      }
+      
+      // Always invalidate queries to ensure UI is in sync
       queryClient.invalidateQueries({ queryKey: ['approval-requests', 'pending'] });
-      toast.error('Failed to reject request. Please try again.');
+      queryClient.invalidateQueries({ queryKey: ['approval-requests', 'Customer'] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'pending'] });
     }
   };
 
@@ -558,6 +675,7 @@ export function ApprovalQueue() {
           onClose={handleCloseModal}
           onApprove={(_requestId, comments) => handleApprove(selectedRequest, comments)}
           onReject={(_requestId, comments) => handleReject(selectedRequest, comments)}
+          isLoading={isLoadingRecordData}
         />
       )}
     </div>
