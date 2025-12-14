@@ -169,7 +169,7 @@ export function CustomerAdminBillingManagement() {
                           : 'N/A'}
                       </TableCell>
                       <TableCell className="font-semibold text-gray-900">
-                        ৳{bill.totalBill?.toFixed(2) || '0.00'}
+                        ৳{bill.totalBill ? Number(bill.totalBill).toFixed(2) : '0.00'}
                       </TableCell>
                       <TableCell>
                         <span
@@ -269,7 +269,7 @@ export function CustomerAdminBillingManagement() {
                   <div>
                     <p className="text-sm text-gray-600">Total Bill</p>
                     <p className="font-semibold text-lg text-gray-900">
-                      ৳{selectedBill.totalBill?.toFixed(2) || '0.00'}
+                      ৳{selectedBill.totalBill ? Number(selectedBill.totalBill).toFixed(2) : '0.00'}
                     </p>
                   </div>
                   <div>

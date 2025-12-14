@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
-import { Droplet, FileText, TrendingUp, BarChart3, MessageSquare, ArrowRight } from 'lucide-react';
+import { Droplet, FileText, ArrowRight } from 'lucide-react';
 import { api } from '../services/api';
 import { useApiQuery } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
@@ -66,8 +66,13 @@ export default function CustomerDashboard() {
     const pendingBills = userBills.filter((b) => b.status === 'Unpaid' || b.status === 'Overdue').length;
     const totalBills = userBills.length;
     
+    // Ensure consumption is never negative (handle data errors)
+    const consumptionValue = currentMonthConsumption?.consumption 
+      ? Math.max(0, Number(currentMonthConsumption.consumption))
+      : 0;
+    
     return {
-      currentConsumption: currentMonthConsumption?.consumption || 0,
+      currentConsumption: consumptionValue,
       pendingBills,
       totalBills,
     };
@@ -135,42 +140,6 @@ export default function CustomerDashboard() {
           </Card>
         </div>
 
-        {/* Quick Links */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <Button
-            variant="outline"
-            className="h-auto p-4 flex flex-col items-center gap-2 border-gray-200 hover:bg-gray-50"
-            onClick={() => navigate('/customer/billing')}
-          >
-            <FileText size={24} className="text-primary" />
-            <span className="text-sm font-medium">Billing History</span>
-          </Button>
-          <Button
-            variant="outline"
-            className="h-auto p-4 flex flex-col items-center gap-2 border-gray-200 hover:bg-gray-50"
-            onClick={() => navigate('/customer/visualizer')}
-          >
-            <TrendingUp size={24} className="text-primary" />
-            <span className="text-sm font-medium">Tariff Visualizer</span>
-          </Button>
-          <Button
-            variant="outline"
-            className="h-auto p-4 flex flex-col items-center gap-2 border-gray-200 hover:bg-gray-50"
-            onClick={() => navigate('/customer/analytics')}
-          >
-            <BarChart3 size={24} className="text-primary" />
-            <span className="text-sm font-medium">Usage Analytics</span>
-          </Button>
-          <Button
-            variant="outline"
-            className="h-auto p-4 flex flex-col items-center gap-2 border-gray-200 hover:bg-gray-50"
-            onClick={() => navigate('/customer/feedback')}
-          >
-            <MessageSquare size={24} className="text-primary" />
-            <span className="text-sm font-medium">Feedback</span>
-          </Button>
-        </div>
-
         {/* Recent Usage History */}
         <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
@@ -203,9 +172,21 @@ export default function CustomerDashboard() {
                           ? format(new Date(consumption.billMonth), 'MMM yyyy')
                           : 'N/A'}
                       </TableCell>
-                      <TableCell>{consumption.currentReading?.toFixed(2) || 'N/A'}</TableCell>
-                      <TableCell>{consumption.previousReading?.toFixed(2) || 'N/A'}</TableCell>
-                      <TableCell>{consumption.consumption?.toFixed(2) || 'N/A'}</TableCell>
+                      <TableCell>
+                        {consumption.currentReading 
+                          ? Number(consumption.currentReading).toFixed(2) 
+                          : 'N/A'}
+                      </TableCell>
+                      <TableCell>
+                        {consumption.previousReading 
+                          ? Number(consumption.previousReading).toFixed(2) 
+                          : 'N/A'}
+                      </TableCell>
+                      <TableCell>
+                        {consumption.consumption !== undefined && consumption.consumption !== null
+                          ? Math.max(0, Number(consumption.consumption)).toFixed(2)
+                          : 'N/A'}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -247,7 +228,9 @@ export default function CustomerDashboard() {
                           ? format(new Date(bill.billMonth), 'MMM yyyy')
                           : 'N/A'}
                       </TableCell>
-                      <TableCell className="font-semibold">৳{bill.totalBill?.toFixed(2) || '0.00'}</TableCell>
+                      <TableCell className="font-semibold">
+                        ৳{bill.totalBill ? Number(bill.totalBill).toFixed(2) : '0.00'}
+                      </TableCell>
                       <TableCell>
                         <span
                           className={`px-2 py-1 rounded-full text-xs font-medium ${

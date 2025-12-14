@@ -68,6 +68,47 @@ export default function Login() {
   };
 
   const handleDemo = async (role: string) => {
+    // Handle customer portal demo login separately
+    if (role === 'customer') {
+      try {
+        setDemoLoading('customer');
+        setError('');
+        
+        // Get first active user for demo
+        const users = await api.users.getAll('active');
+        if (users.length === 0) {
+          toast.error('No active users found. Please create a household first.');
+          setDemoLoading(null);
+          return;
+        }
+
+        const demoUser = users[0];
+        const userPasswords = JSON.parse(localStorage.getItem('userPasswords') || '{}');
+        const demoPassword = userPasswords[demoUser.id] || 'demo123';
+
+        // If no password exists, set a default demo password
+        if (!userPasswords[demoUser.id]) {
+          userPasswords[demoUser.id] = demoPassword;
+          localStorage.setItem('userPasswords', JSON.stringify(userPasswords));
+        }
+
+        // Store authenticated customer user
+        localStorage.setItem('customerUser', JSON.stringify(demoUser));
+        localStorage.setItem('isCustomerAuthenticated', 'true');
+        
+        toast.success('Login successful!');
+        navigate('/customer/dashboard');
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Demo login failed';
+        setError(errorMessage);
+        toast.error(errorMessage);
+      } finally {
+        setDemoLoading(null);
+      }
+      return;
+    }
+
+    // Handle admin demo logins
     const credentials = demoCredentials[role];
     if (!credentials) {
       toast.error('Invalid demo role');
@@ -235,6 +276,14 @@ export default function Login() {
                 className="border-gray-300 text-gray-700 rounded-lg h-10 text-sm hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {demoLoading === 'general-info' ? 'Logging in...' : 'General Info Admin'}
+              </Button>
+              <Button 
+                onClick={() => handleDemo('customer')}
+                variant="outline"
+                disabled={loading || demoLoading !== null}
+                className="border-gray-300 text-gray-700 rounded-lg h-10 text-sm hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed col-span-2"
+              >
+                {demoLoading === 'customer' ? 'Logging in...' : 'Customer Portal'}
               </Button>
             </div>
           </div>

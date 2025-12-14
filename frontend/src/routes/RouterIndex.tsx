@@ -19,7 +19,6 @@ import { TariffConfiguration } from '../pages/TariffConfiguration';
 import { ApprovalQueue } from '../pages/ApprovalQueue';
 import { ApprovalHistory } from '../pages/ApprovalHistory';
 import { ProtectedRoute } from "../components/common/ProtectedRoute";
-import CustomerLogin from "../pages/CustomerLogin";
 import CustomerDashboard from "../pages/CustomerDashboard";
 import CustomerBillingHistory from "../pages/CustomerBillingHistory";
 import CustomerFeedback from "../pages/CustomerFeedback";
@@ -242,7 +241,6 @@ const RouterIndex = () => {
       </Route>
 
       {/* Customer Portal routes */}
-      <Route path="/customer/login" element={<CustomerLogin />} />
       <Route element={<CustomerPortalLayout />}>
         <Route 
           path="/customer/dashboard" 

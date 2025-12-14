@@ -301,7 +301,7 @@ export function ApprovalQueue() {
     },
     {
       successMessage: 'Consumption rejected successfully',
-      errorMessage: 'Failed to reject consumption',
+      // Remove errorMessage - we handle errors manually in catch block with custom logic
       invalidateQueries: [
         ['consumption'],
         ['approval-requests', 'pending'],

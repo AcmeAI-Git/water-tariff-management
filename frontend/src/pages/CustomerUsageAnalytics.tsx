@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Card } from '../components/ui/card';
-import { Droplet, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react';
+import { Droplet, TrendingUp, TrendingDown } from 'lucide-react';
 import { api } from '../services/api';
 import { useApiQuery } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
@@ -37,9 +37,11 @@ export default function CustomerUsageAnalytics() {
     const grouped: Record<string, number> = {};
     
     userConsumptions.forEach((c) => {
-      if (c.billMonth && c.consumption) {
+      if (c.billMonth && c.consumption !== undefined && c.consumption !== null) {
         const monthKey = format(new Date(c.billMonth), 'yyyy-MM');
-        grouped[monthKey] = (grouped[monthKey] || 0) + Number(c.consumption);
+        // Ensure consumption is never negative (handle data errors)
+        const consumptionValue = Math.max(0, Number(c.consumption));
+        grouped[monthKey] = (grouped[monthKey] || 0) + consumptionValue;
       }
     });
 
@@ -47,7 +49,7 @@ export default function CustomerUsageAnalytics() {
       .map(([month, consumption]) => ({
         month,
         monthLabel: format(new Date(month + '-01'), 'MMM yyyy'),
-        consumption: Number(consumption.toFixed(2)),
+        consumption: Number(Number(consumption).toFixed(2)),
       }))
       .sort((a, b) => a.month.localeCompare(b.month))
       .slice(-12); // Last 12 months
@@ -162,7 +164,7 @@ export default function CustomerUsageAnalytics() {
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card className="p-6 bg-white border border-gray-200">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-gray-600">Average Monthly</p>
@@ -188,27 +190,16 @@ export default function CustomerUsageAnalytics() {
             <p className="text-2xl font-semibold text-gray-900">{stats.lowest.value} m³</p>
             <p className="text-xs text-gray-500 mt-1">{stats.lowest.month}</p>
           </Card>
-
-          <Card className="p-6 bg-white border border-gray-200">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-gray-600">Trend</p>
-              {stats.trend === 'increasing' ? (
-                <TrendingUp className="text-orange-600" size={20} />
-              ) : stats.trend === 'decreasing' ? (
-                <TrendingDown className="text-green-600" size={20} />
-              ) : (
-                <AlertCircle className="text-gray-600" size={20} />
-              )}
-            </div>
-            <p className="text-2xl font-semibold text-gray-900 capitalize">{stats.trend}</p>
-          </Card>
         </div>
 
         {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Consumption Trends */}
           <Card className="p-6 bg-white border border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Consumption Trends (Last 12 Months)</h3>
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">Consumption Trends (Last 12 Months)</h3>
+              <p className="text-xs text-gray-500">Consumption (m³)</p>
+            </div>
             {monthlyData.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={monthlyData}>
@@ -221,7 +212,12 @@ export default function CustomerUsageAnalytics() {
                   <YAxis 
                     tick={{ fontSize: 12 }}
                     stroke="#6b7280"
-                    label={{ value: 'Consumption (m³)', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
+                    width={80}
+                    tickFormatter={(value) => {
+                      if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+                      if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
+                      return value.toString();
+                    }}
                   />
                   <Tooltip 
                     contentStyle={{ backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '8px' }}
@@ -244,7 +240,10 @@ export default function CustomerUsageAnalytics() {
 
           {/* Monthly Comparison */}
           <Card className="p-6 bg-white border border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Monthly Comparison</h3>
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">Monthly Comparison</h3>
+              <p className="text-xs text-gray-500">Consumption (m³)</p>
+            </div>
             {monthlyData.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={monthlyData}>
@@ -257,7 +256,12 @@ export default function CustomerUsageAnalytics() {
                   <YAxis 
                     tick={{ fontSize: 12 }}
                     stroke="#6b7280"
-                    label={{ value: 'Consumption (m³)', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
+                    width={80}
+                    tickFormatter={(value) => {
+                      if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+                      if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
+                      return value.toString();
+                    }}
                   />
                   <Tooltip 
                     contentStyle={{ backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '8px' }}
@@ -276,7 +280,10 @@ export default function CustomerUsageAnalytics() {
         {/* Seasonal Trends */}
         {seasonalTrends.length > 0 && (
           <Card className="p-6 bg-white border border-gray-200 mb-8">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Seasonal Trends</h3>
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">Seasonal Trends</h3>
+              <p className="text-xs text-gray-500">Avg Consumption (m³)</p>
+            </div>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={seasonalTrends}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -288,7 +295,12 @@ export default function CustomerUsageAnalytics() {
                 <YAxis 
                   tick={{ fontSize: 12 }}
                   stroke="#6b7280"
-                  label={{ value: 'Avg Consumption (m³)', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
+                  width={80}
+                  tickFormatter={(value) => {
+                    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+                    if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
+                    return value.toString();
+                  }}
                 />
                 <Tooltip 
                   contentStyle={{ backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '8px' }}
@@ -302,11 +314,10 @@ export default function CustomerUsageAnalytics() {
         {/* Conservation Recommendations */}
         <Card className="p-6 bg-white border border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Conservation Recommendations</h3>
-          <ul className="space-y-2">
+          <ul className="space-y-2 list-disc pl-6">
             {recommendations.map((rec, index) => (
-              <li key={index} className="flex items-start gap-2 text-sm text-gray-700">
-                <span className="text-primary mt-1">•</span>
-                <span>{rec}</span>
+              <li key={index} className="text-sm text-gray-700">
+                {rec}
               </li>
             ))}
           </ul>

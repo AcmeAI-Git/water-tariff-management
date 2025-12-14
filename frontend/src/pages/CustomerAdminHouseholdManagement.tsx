@@ -93,8 +93,7 @@ export function CustomerAdminHouseholdManagement() {
   const createMutation = useApiMutation(
     (data: Parameters<typeof api.users.create>[0]) => api.users.create(data),
     {
-      // Remove successMessage - we'll show toast after approval request creation
-      errorMessage: 'Failed to create household',
+      // Remove successMessage and errorMessage - we'll handle toasts manually for custom messages
       invalidateQueries: [['users'], ['users', 'pending'], ['users', 'active']],
     }
   );
@@ -114,7 +113,7 @@ export function CustomerAdminHouseholdManagement() {
   const createApprovalRequestMutation = useApiMutation(
     (data: Parameters<typeof api.approvalRequests.create>[0]) => api.approvalRequests.create(data),
     {
-      errorMessage: 'Failed to create approval request',
+      // Remove errorMessage - we'll handle toast manually for custom message
       invalidateQueries: [['approval-requests']],
     }
   );
@@ -246,6 +245,7 @@ export function CustomerAdminHouseholdManagement() {
         setIsDialogOpen(false);
       }
     } catch (error) {
+      // Error handling - mutations don't have errorMessage set, so we handle all errors here
       console.error('Failed to create household:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to create household';
       

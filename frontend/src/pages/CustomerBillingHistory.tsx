@@ -154,7 +154,7 @@ export default function CustomerBillingHistory() {
                       {bill.consumptionId ? 'N/A' : 'N/A'}
                     </TableCell>
                     <TableCell className="font-semibold text-gray-900">
-                      ৳{bill.totalBill?.toFixed(2) || '0.00'}
+                      ৳{bill.totalBill ? Number(bill.totalBill).toFixed(2) : '0.00'}
                     </TableCell>
                     <TableCell>
                       <span
