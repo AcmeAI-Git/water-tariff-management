@@ -134,20 +134,22 @@ export function MeterAdminDataEntry() {
       const normalizedStatusName = statusName?.toLowerCase();
 
       if (normalizedStatusName === 'approved') {
-        // Show modal asking to replace
-        setExistingApprovedConsumption(existingConsumption);
-        setShowReplaceModal(true);
-        return; // Don't submit yet, wait for user confirmation
+        // Backend blocks updating approved entries, so we can't replace them
+        toast.error(`A reading for ${billMonth} has already been approved for this household. Approved readings cannot be modified. Please contact an administrator if you need to make changes.`);
+        return;
       } else if (normalizedStatusName === 'pending') {
         // Pending entries should not be duplicated
         toast.error(`A reading for ${billMonth} is already pending approval for this household. Please wait for approval or contact an administrator.`);
         return;
       } else if (normalizedStatusName === 'rejected') {
-        // Rejected entries can be replaced with a new reading
-        // Continue with creation - backend should allow it
-        console.log('Creating new reading to replace rejected entry');
+        // Rejected entries: Since backend blocks all duplicates (until deployed),
+        // we need to UPDATE the rejected entry instead of creating new
+        // This works around the backend limitation
+        setExistingApprovedConsumption(existingConsumption);
+        setShowReplaceModal(true);
+        return; // Show modal to confirm replacement
       } else {
-        // Unknown status or no status - allow creation but warn
+        // Unknown status or no status - try to create, backend will handle validation
         console.warn('Existing consumption found with unknown status:', statusName);
       }
     }
@@ -160,13 +162,14 @@ export function MeterAdminDataEntry() {
     billMonthDate: string,
     currentReadingNum: number,
     previousReading: number,
-    approvedConsumption: Consumption | null
+    existingConsumption: Consumption | null
   ) => {
     try {
-      if (approvedConsumption) {
-        // Update existing approved consumption
+      if (existingConsumption) {
+        // Update existing consumption (rejected or pending only - backend blocks approved)
+        // Backend blocks creating duplicates, so we update rejected/pending entries instead
         await updateConsumptionMutation.mutateAsync({
-          id: approvedConsumption.id,
+          id: existingConsumption.id,
           currentReading: currentReadingNum,
           previousReading: previousReading > 0 ? previousReading : undefined,
         });
@@ -434,7 +437,7 @@ export function MeterAdminDataEntry() {
         </div>
       </div>
 
-      {/* Replace Approved Reading Modal */}
+      {/* Replace Rejected Reading Modal */}
       {showReplaceModal && existingApprovedConsumption && (
         <Dialog open={showReplaceModal} onOpenChange={(open) => {
           setShowReplaceModal(open);
@@ -444,9 +447,9 @@ export function MeterAdminDataEntry() {
         }}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Reading Already Approved</DialogTitle>
+              <DialogTitle>Reading Previously Rejected</DialogTitle>
               <DialogDescription>
-                A reading for {billMonth} has already been approved for this household.
+                A reading for {billMonth} was previously rejected for this household. You can update it with new values.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -516,7 +519,7 @@ export function MeterAdminDataEntry() {
               </div>
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
                 <p className="text-sm text-amber-800">
-                  <strong>Warning:</strong> Replacing an approved reading will update the existing record. This action cannot be undone.
+                  <strong>Note:</strong> Updating this reading will modify the existing rejected record. The status will remain as rejected until you send it for approval again from the Pending Submissions page.
                 </p>
               </div>
             </div>
@@ -544,7 +547,7 @@ export function MeterAdminDataEntry() {
                 disabled={updateConsumptionMutation.isPending || !existingApprovedConsumption}
                 className="bg-blue-600 hover:bg-blue-700 text-white"
               >
-                {updateConsumptionMutation.isPending ? 'Replacing...' : 'Replace Reading'}
+                {updateConsumptionMutation.isPending ? 'Updating...' : 'Update Reading'}
               </Button>
             </DialogFooter>
           </DialogContent>
