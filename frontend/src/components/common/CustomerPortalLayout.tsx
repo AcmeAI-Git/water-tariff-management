@@ -19,7 +19,7 @@ export default function CustomerPortalLayout() {
     if (page === 'logout') {
       localStorage.removeItem('customerUser');
       localStorage.removeItem('isCustomerAuthenticated');
-      navigate('/customer/login');
+      navigate('/login');
       return;
     }
 
