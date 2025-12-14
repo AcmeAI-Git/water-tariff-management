@@ -5,7 +5,7 @@ import { api } from '../services/api';
 import { useApiQuery, useAdminId } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { mapUserToHousehold } from '../utils/dataMappers';
-import { ApprovalStatus } from '../types';
+import type { ApprovalStatus } from '../types';
 
 export function CustomerAdminSubmissionHistory() {
   const adminId = useAdminId();

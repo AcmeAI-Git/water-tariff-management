@@ -8,7 +8,7 @@ import { api } from '../services/api';
 import { useApiQuery, useApiMutation, useAdminId } from '../hooks/useApiQuery';
 import { mapApprovalRequestToDisplay } from '../utils/dataMappers';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
-import type { User, Consumption, ApprovalRequest } from '../types';
+import type { User, Consumption, ApprovalRequest, ApprovalStatus } from '../types';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -66,13 +66,23 @@ export function ApprovalQueue() {
     // Add approval requests - filter to ensure only pending items are shown
     approvalRequests.forEach((request) => {
       // Safety check: only include items that are actually pending
-      const statusName = (request.approvalStatus as any)?.statusName || request.approvalStatus?.name;
-      if (statusName && statusName.toLowerCase() !== 'pending') {
-        return; // Skip non-pending items
+      // Backend uses statusName, frontend type supports both for compatibility
+      const approvalStatus = request.approvalStatus as ApprovalStatus | undefined;
+      const statusName = approvalStatus?.statusName || approvalStatus?.name;
+      
+      // Skip if status is not pending (case-insensitive)
+      if (!statusName || statusName.toLowerCase() !== 'pending') {
+        return;
       }
       
-      const requester = admins.find((a) => a.id === request.requestedBy);
-      const mapped = mapApprovalRequestToDisplay(request, requester?.fullName);
+      // Skip if already reviewed (has reviewer or reviewed date)
+      if (request.reviewedBy || request.reviewedAt) {
+        return;
+      }
+      
+      // Prioritize populated requester relation, fallback to admins array lookup
+      const requesterName = request.requester?.fullName || admins.find((a) => a.id === request.requestedBy)?.fullName;
+      const mapped = mapApprovalRequestToDisplay(request, requesterName);
       items.push({
         ...mapped,
         recordId: request.recordId,
