@@ -369,9 +369,9 @@ export function MeterAdminDataEntry() {
           {/* Divider */}
           <div className="border-t border-gray-200 mb-8"></div>
 
-          {/* Enter Data (Editable) */}
+          {/* Enter Data */}
           <div>
-            <p className="text-sm font-semibold text-gray-700 mb-3">New Reading Details (Editable)</p>
+            <p className="text-sm font-semibold text-gray-700 mb-3">New Reading Details</p>
             
             <div className="grid grid-cols-3 gap-4 items-end">
               <div className="space-y-2">

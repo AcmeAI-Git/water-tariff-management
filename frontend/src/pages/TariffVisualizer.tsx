@@ -10,6 +10,9 @@ import { useApiQuery, useApiMutation } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import type { BillCalculationResult } from '../types';
 
+const SEWERAGE_CHARGE = 100; // Taka
+const VAT_RATE = 0.15; // 15%
+
 export default function TariffVisualizer() {
   const [consumption, setConsumption] = useState(60);
   const [category, setCategory] = useState('residential');
@@ -159,13 +162,16 @@ export default function TariffVisualizer() {
     const wardMultiplier = typeof wardMultiplierRaw === 'number' 
       ? wardMultiplierRaw 
       : Number(wardMultiplierRaw) || 1;
-    const subtotal = baseCharge * wardMultiplier;
-    const vat = subtotal * 0.15;
+    const afterMultiplier = baseCharge * wardMultiplier;
+    const subtotal = afterMultiplier + SEWERAGE_CHARGE;
+    const vat = subtotal * VAT_RATE;
     const total = subtotal + vat;
 
     return {
       baseCharge,
       wardMultiplier: baseCharge * (wardMultiplier - 1),
+      afterMultiplier,
+      sewerageCharge: SEWERAGE_CHARGE,
       subtotal,
       vat,
       total,
@@ -187,15 +193,18 @@ export default function TariffVisualizer() {
     const tariffMultiplier = typeof tariffMultiplierRaw === 'number' 
       ? tariffMultiplierRaw 
       : Number(tariffMultiplierRaw) || 1;
-    const wardMultiplier = selectedWard ? (tariffMultiplier - 1) * baseCharge : 0;
-    const subtotal = baseCharge + wardMultiplier;
-    const vat = subtotal * 0.15;
+    const afterMultiplier = baseCharge * tariffMultiplier;
+    const wardMultiplierAmount = selectedWard ? (tariffMultiplier - 1) * baseCharge : 0;
+    const subtotal = afterMultiplier + SEWERAGE_CHARGE;
+    const vat = subtotal * VAT_RATE;
     const total = subtotal + vat;
 
     return {
       breakdown: calculationResult.breakdown || [],
       baseCharge,
-      wardMultiplier,
+      wardMultiplier: wardMultiplierAmount,
+      afterMultiplier,
+      sewerageCharge: SEWERAGE_CHARGE,
       subtotal,
       vat,
       total,
@@ -375,6 +384,20 @@ export default function TariffVisualizer() {
                     <span className="font-semibold text-gray-900 whitespace-nowrap">৳{exampleCalculation.wardMultiplier.toFixed(2)}</span>
                   </div>
                 )}
+                {selectedWard && (
+                  <div className="flex items-center justify-between text-sm gap-4">
+                    <span className="text-gray-600">After Ward Multiplier</span>
+                    <span className="font-semibold text-gray-900 whitespace-nowrap">৳{exampleCalculation.afterMultiplier.toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between text-sm gap-4">
+                  <span className="text-gray-600">Sewerage Charge</span>
+                  <span className="font-semibold text-gray-900 whitespace-nowrap">৳{exampleCalculation.sewerageCharge.toFixed(2)}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm gap-4">
+                  <span className="text-gray-600">Subtotal</span>
+                  <span className="font-semibold text-gray-900 whitespace-nowrap">৳{exampleCalculation.subtotal.toFixed(2)}</span>
+                </div>
                 <div className="flex items-center justify-between text-sm gap-4">
                   <span className="text-gray-600">VAT (15%)</span>
                   <span className="font-semibold text-gray-900 whitespace-nowrap">৳{exampleCalculation.vat.toFixed(2)}</span>
@@ -503,6 +526,26 @@ export default function TariffVisualizer() {
                     </Table>
                   </div>
                 )}
+
+                {/* After Multiplier and Sewerage Charge */}
+                <div className="px-6 py-4 border-t border-gray-100">
+                  <div className="space-y-2">
+                    {selectedWard && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600">After Ward Multiplier</span>
+                        <span className="font-semibold text-gray-900">৳{calculationBreakdown.afterMultiplier.toFixed(2)}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Sewerage Charge</span>
+                      <span className="font-semibold text-gray-900">৳{calculationBreakdown.sewerageCharge.toFixed(2)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm pt-2 border-t border-gray-100">
+                      <span className="font-semibold text-gray-900">Subtotal</span>
+                      <span className="font-semibold text-gray-900">৳{calculationBreakdown.subtotal.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
 
                 {/* VAT */}
                 <div className="flex items-center justify-between px-6 py-4">

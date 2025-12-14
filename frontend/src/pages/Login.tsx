@@ -49,7 +49,7 @@ export default function Login() {
       toast.success('Login successful!');
       
       // Navigate based on role
-      const roleName = admin.role?.name || admin.roleName || '';
+      const roleName = admin.role?.name || '';
       const route = getRouteForRole(roleName);
       
       // Debug logging (can be removed in production)
@@ -88,10 +88,10 @@ export default function Login() {
       localStorage.setItem('admin', JSON.stringify(admin));
       localStorage.setItem('isAuthenticated', 'true');
       
-      toast.success('Demo login successful!');
+      toast.success('Login successful!');
       
       // Navigate based on role (same logic as regular login)
-      const roleName = admin.role?.name || admin.roleName || '';
+      const roleName = admin.role?.name || '';
       const route = getRouteForRole(roleName);
       
       // Debug logging (can be removed in production)
@@ -103,7 +103,7 @@ export default function Login() {
     } catch (err) {
       const errorMessage = err instanceof Error 
         ? err.message 
-        : 'Demo login failed. Please ensure demo accounts are set up in the database.';
+        : 'Login failed. Please check your credentials.';
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
