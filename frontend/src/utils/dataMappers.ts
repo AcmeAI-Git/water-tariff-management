@@ -27,12 +27,12 @@ export interface DisplayApprovalRequest {
   id: string;
   module: string;
   requestedBy: string;
-  requestDate: string;
+  request: string;
   status: string;
   oldData: unknown;
   newData: unknown;
   reviewedBy?: string;
-  reviewedDate?: string;
+  review?: string;
   comments?: string;
 }
 
@@ -104,26 +104,28 @@ export function mapApprovalRequestToDisplay(
     id: `REQ-${String(request.id).padStart(3, '0')}`,
     module: request.moduleName || 'Unknown',
     requestedBy: adminName || `Admin #${request.requestedBy}`,
-    requestDate: request.requestedAt
+    request: request.requestedAt
       ? new Date(request.requestedAt).toLocaleString('en-US', {
           year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
+          month: 'short',
+          day: 'numeric',
           hour: '2-digit',
           minute: '2-digit',
+          second: '2-digit',
         })
       : '',
     status,
     oldData,
     newData,
     reviewedBy: request.reviewer?.fullName,
-    reviewedDate: request.reviewedAt
+    review: request.reviewedAt
       ? new Date(request.reviewedAt).toLocaleString('en-US', {
           year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
+          month: 'short',
+          day: 'numeric',
           hour: '2-digit',
           minute: '2-digit',
+          second: '2-digit',
         })
       : undefined,
     comments: request.comments || undefined,

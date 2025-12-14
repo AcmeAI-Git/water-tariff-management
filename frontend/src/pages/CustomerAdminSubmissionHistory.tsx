@@ -52,18 +52,24 @@ export function CustomerAdminSubmissionHistory() {
         meterNo: household?.meterNo || user?.meterNo || 'N/A',
         phone: household?.phone || user?.phone || 'N/A',
         address: household?.address || user?.address || 'N/A',
-        submissionDate: request.requestedAt
-          ? new Date(request.requestedAt).toLocaleDateString('en-US', {
+        submission: request.requestedAt
+          ? new Date(request.requestedAt).toLocaleString('en-US', {
               year: 'numeric',
               month: 'short',
               day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
             })
           : 'N/A',
-        reviewedDate: request.reviewedAt
-          ? new Date(request.reviewedAt).toLocaleDateString('en-US', {
+        review: request.reviewedAt
+          ? new Date(request.reviewedAt).toLocaleString('en-US', {
               year: 'numeric',
               month: 'short',
               day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
             })
           : null,
         status,
@@ -72,8 +78,8 @@ export function CustomerAdminSubmissionHistory() {
       };
     }).sort((a, b) => {
       // Sort by submission date (newest first)
-      const dateA = new Date(a.submissionDate).getTime();
-      const dateB = new Date(b.submissionDate).getTime();
+      const dateA = new Date(a.submission).getTime();
+      const dateB = new Date(b.submission).getTime();
       return dateB - dateA;
     });
   }, [approvalRequests, users]);
@@ -164,9 +170,9 @@ export function CustomerAdminSubmissionHistory() {
                 <TableHead className="text-sm font-semibold text-gray-700">Meter No</TableHead>
                 <TableHead className="text-sm font-semibold text-gray-700">Phone</TableHead>
                 <TableHead className="text-sm font-semibold text-gray-700">Address</TableHead>
-                <TableHead className="text-sm font-semibold text-gray-700">Submission Date</TableHead>
+                <TableHead className="text-sm font-semibold text-gray-700">Submission</TableHead>
                 <TableHead className="text-sm font-semibold text-gray-700">Status</TableHead>
-                <TableHead className="text-sm font-semibold text-gray-700">Reviewed Date</TableHead>
+                <TableHead className="text-sm font-semibold text-gray-700">Review</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -184,10 +190,10 @@ export function CustomerAdminSubmissionHistory() {
                     <TableCell className="text-sm text-gray-600 font-mono">{submission.meterNo}</TableCell>
                     <TableCell className="text-sm text-gray-600">{submission.phone}</TableCell>
                     <TableCell className="text-sm text-gray-600">{submission.address}</TableCell>
-                    <TableCell className="text-sm text-gray-600">{submission.submissionDate}</TableCell>
+                    <TableCell className="text-sm text-gray-600">{submission.submission}</TableCell>
                     <TableCell>{getStatusBadge(submission.status)}</TableCell>
                     <TableCell className="text-sm text-gray-600">
-                      {submission.reviewedDate || '-'}
+                      {submission.review || '-'}
                     </TableCell>
                   </TableRow>
                 ))

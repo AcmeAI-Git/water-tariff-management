@@ -17,7 +17,7 @@ interface ApprovalQueueItem {
   id: string;
   module: string;
   requestedBy: string;
-  requestDate: string;
+  request: string;
   status: string;
   recordId: number;
   recordType: 'approval-request' | 'household' | 'consumption';
@@ -104,13 +104,14 @@ export function ApprovalQueue() {
           id: `HOUSEHOLD-${household.id}`,
           module: 'Customer',
           requestedBy: 'Unknown', // Could be improved if we add createdBy to User entity
-          requestDate: household.createdAt 
+          request: household.createdAt 
             ? new Date(household.createdAt).toLocaleString('en-US', {
                 year: 'numeric',
                 month: 'short',
                 day: 'numeric',
                 hour: '2-digit',
                 minute: '2-digit',
+                second: '2-digit',
               })
             : 'N/A',
           status: 'Pending',
@@ -145,13 +146,14 @@ export function ApprovalQueue() {
           id: `CONSUMPTION-${consumption.id}`,
           module: 'Consumption',
           requestedBy: creator?.fullName || `Admin #${consumption.createdBy}`,
-          requestDate: consumption.createdAt
+          request: consumption.createdAt
             ? new Date(consumption.createdAt).toLocaleString('en-US', {
                 year: 'numeric',
                 month: 'short',
                 day: 'numeric',
                 hour: '2-digit',
                 minute: '2-digit',
+                second: '2-digit',
               })
             : 'N/A',
           status: 'Pending',
@@ -171,8 +173,8 @@ export function ApprovalQueue() {
 
     // Sort by request date (newest first)
     return items.sort((a, b) => {
-      const dateA = new Date(a.requestDate).getTime();
-      const dateB = new Date(b.requestDate).getTime();
+      const dateA = new Date(a.request).getTime();
+      const dateB = new Date(b.request).getTime();
       return dateB - dateA;
     });
   }, [approvalRequests, pendingHouseholds, pendingConsumptions, admins]);
@@ -492,7 +494,7 @@ export function ApprovalQueue() {
               <TableRow className="border-gray-200 bg-gray-50 hover:bg-gray-50">
                 <TableHead className="font-semibold text-gray-700">Module</TableHead>
                 <TableHead className="font-semibold text-gray-700">Requested By</TableHead>
-                <TableHead className="font-semibold text-gray-700">Request Date</TableHead>
+                <TableHead className="font-semibold text-gray-700">Request</TableHead>
                 <TableHead className="font-semibold text-gray-700">Status</TableHead>
                 <TableHead className="font-semibold text-gray-700 text-right">Action</TableHead>
               </TableRow>
@@ -509,7 +511,7 @@ export function ApprovalQueue() {
                   <TableRow key={request.id} className="border-gray-100">
                     <TableCell className="font-medium text-gray-900">{request.module}</TableCell>
                     <TableCell className="text-gray-600">{request.requestedBy}</TableCell>
-                    <TableCell className="text-gray-600">{request.requestDate}</TableCell>
+                    <TableCell className="text-gray-600">{request.request}</TableCell>
                     <TableCell>
                       <Badge 
                         variant="secondary" 
@@ -549,7 +551,7 @@ export function ApprovalQueue() {
             id: selectedRequest.id,
             module: selectedRequest.module,
             requestedBy: selectedRequest.requestedBy,
-            requestDate: selectedRequest.requestDate,
+            request: selectedRequest.request,
             oldData: selectedRequest.oldData,
             newData: selectedRequest.newData,
           }}

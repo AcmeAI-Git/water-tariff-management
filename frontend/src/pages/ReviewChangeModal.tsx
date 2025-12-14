@@ -9,7 +9,7 @@ interface ReviewChangeModalProps {
     id: string;
     module: string;
     requestedBy: string;
-    requestDate: string;
+    request: string;
     oldData: any;
     newData: any;
   };
@@ -198,8 +198,8 @@ export function ReviewChangeModal({ request, onClose, onApprove, onReject }: Rev
                 <p className="text-sm font-semibold text-gray-900">{request.requestedBy}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-600 mb-1">Request Date</p>
-                <p className="text-sm font-semibold text-gray-900">{request.requestDate}</p>
+                <p className="text-xs text-gray-600 mb-1">Request</p>
+                <p className="text-sm font-semibold text-gray-900">{request.request}</p>
               </div>
             </div>
           </div>

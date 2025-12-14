@@ -70,7 +70,8 @@ export const adminsApi = {
   },
 
   login: (data: LoginAdminDto): Promise<Admin> => {
-    return fetchService.post<Admin>("/admins/login", data);
+    // Use shorter timeout for login (15 seconds) for faster feedback
+    return fetchService.post<Admin>("/admins/login", data, { timeout: 15000 });
   },
 
   changePassword: (id: number, data: ChangePasswordDto): Promise<void> => {

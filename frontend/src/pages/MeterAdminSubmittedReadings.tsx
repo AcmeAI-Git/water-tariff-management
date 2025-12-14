@@ -39,9 +39,23 @@ export function MeterAdminSubmittedReadings() {
         meterNo: user?.meterNo || 'N/A',
         reading: currentReading.toFixed(2),
         month: billMonthDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' }),
-        submittedDate: consumption.createdAt 
-          ? new Date(consumption.createdAt).toLocaleDateString('en-US')
-          : billMonthDate.toLocaleDateString('en-US'),
+        submitted: consumption.createdAt 
+          ? new Date(consumption.createdAt).toLocaleString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+            })
+          : billMonthDate.toLocaleString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+            }),
         status,
       };
     }).reverse(); // Show most recent first
@@ -133,7 +147,7 @@ export function MeterAdminSubmittedReadings() {
                   <TableHead className="text-sm font-semibold text-gray-700">Meter No</TableHead>
                   <TableHead className="text-sm font-semibold text-gray-700">Reading (m³)</TableHead>
                   <TableHead className="text-sm font-semibold text-gray-700">Bill Month</TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700">Submitted Date</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">Submitted</TableHead>
                   <TableHead className="text-sm font-semibold text-gray-700">Status</TableHead>
                 </TableRow>
               </TableHeader>
@@ -152,7 +166,7 @@ export function MeterAdminSubmittedReadings() {
                       <TableCell className="text-sm text-gray-600 font-mono">{reading.meterNo}</TableCell>
                       <TableCell className="text-sm text-gray-600">{reading.reading}</TableCell>
                       <TableCell className="text-sm text-gray-600">{reading.month}</TableCell>
-                      <TableCell className="text-sm text-gray-600">{reading.submittedDate}</TableCell>
+                      <TableCell className="text-sm text-gray-600">{reading.submitted}</TableCell>
                       <TableCell>{getStatusBadge(reading.status)}</TableCell>
                     </TableRow>
                   ))

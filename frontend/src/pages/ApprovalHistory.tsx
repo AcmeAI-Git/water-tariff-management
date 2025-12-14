@@ -42,7 +42,7 @@ export function ApprovalHistory() {
       return {
         ...mapped,
         reviewedBy: reviewer?.fullName || mapped.reviewedBy,
-        reviewedDate: mapped.reviewedDate || '',
+        review: mapped.review || '',
         decision,
       };
     });
@@ -97,9 +97,9 @@ export function ApprovalHistory() {
               <TableRow className="border-gray-200 bg-gray-50 hover:bg-gray-50">
                 <TableHead className="font-semibold text-gray-700">Module</TableHead>
                 <TableHead className="font-semibold text-gray-700">Requested By</TableHead>
-                <TableHead className="font-semibold text-gray-700">Request Date</TableHead>
+                <TableHead className="font-semibold text-gray-700">Request</TableHead>
                 <TableHead className="font-semibold text-gray-700">My Decision</TableHead>
-                <TableHead className="font-semibold text-gray-700">Reviewed Date</TableHead>
+                <TableHead className="font-semibold text-gray-700">Review</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -114,7 +114,7 @@ export function ApprovalHistory() {
                   <TableRow key={item.id} className="border-gray-100">
                     <TableCell className="font-medium text-gray-900">{item.module}</TableCell>
                     <TableCell className="text-gray-600">{item.requestedBy}</TableCell>
-                    <TableCell className="text-gray-600">{item.requestDate}</TableCell>
+                    <TableCell className="text-gray-600">{item.request}</TableCell>
                     <TableCell>
                       <Badge 
                         variant="secondary" 
@@ -127,7 +127,7 @@ export function ApprovalHistory() {
                         {item.decision}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-gray-600">{item.reviewedDate}</TableCell>
+                    <TableCell className="text-gray-600">{item.review}</TableCell>
                   </TableRow>
                 ))
               )}
