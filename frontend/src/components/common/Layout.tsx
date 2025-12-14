@@ -52,6 +52,7 @@ export default function Layout({ children }: LayoutProps) {
       "customer-admin-pending": "/customer-admin/pending",
       "customer-admin-visualizer": "/customer-admin/visualizer",
       "customer-admin-metrics": "/customer-admin/metrics",
+      "customer-admin-billing": "/customer-admin/billing",
     };
     const path = map[id] ?? "/customer-admin/households";
     navigate(path);

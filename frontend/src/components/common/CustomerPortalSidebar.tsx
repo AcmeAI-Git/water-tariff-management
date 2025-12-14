@@ -1,35 +1,39 @@
-import { Users, TrendingUp, BarChart3, LogOut, Clock, FileText } from "lucide-react";
+import { Home, FileText, TrendingUp, BarChart3, MessageSquare, LogOut } from "lucide-react";
 
-interface CustomerAdminSidebarProps {
+interface CustomerPortalSidebarProps {
     activePage: string;
     onNavigate: (page: string) => void;
 }
 
-export function CustomerAdminSidebar({
+export function CustomerPortalSidebar({
     activePage,
     onNavigate,
-}: CustomerAdminSidebarProps) {
+}: CustomerPortalSidebarProps) {
     const menuItems = [
         {
-            id: "customer-admin-households",
-            label: "Household Management",
-            icon: Users,
+            id: "customer-dashboard",
+            label: "Dashboard",
+            icon: Home,
         },
         {
-            id: "customer-admin-pending",
-            label: "Submission History",
-            icon: Clock,
+            id: "customer-billing",
+            label: "Billing History",
+            icon: FileText,
         },
         {
-            id: "customer-admin-visualizer",
+            id: "customer-visualizer",
             label: "Tariff Visualizer",
             icon: TrendingUp,
         },
-        { id: "customer-admin-metrics", label: "My Metrics", icon: BarChart3 },
         {
-            id: "customer-admin-billing",
-            label: "Billing Management",
-            icon: FileText,
+            id: "customer-analytics",
+            label: "Usage Analytics",
+            icon: BarChart3,
+        },
+        {
+            id: "customer-feedback",
+            label: "Complaints & Feedback",
+            icon: MessageSquare,
         },
     ];
 
@@ -43,7 +47,7 @@ export function CustomerAdminSidebar({
                     </span>
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
-                    Customer Admin Portal
+                    Customer Portal
                 </p>
             </div>
 

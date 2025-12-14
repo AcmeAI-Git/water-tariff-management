@@ -36,6 +36,8 @@ export function CustomerAdminHouseholdManagement() {
     meterInstallDate: undefined as Date | undefined,
     zoneId: '',
     wardId: '',
+    password: '',
+    confirmPassword: '',
   });
 
   const [editFormData, setEditFormData] = useState({
@@ -159,6 +161,14 @@ export function CustomerAdminHouseholdManagement() {
       toast.error('Please select the meter installation date');
       return;
     }
+    if (!formData.password || formData.password.length < 6) {
+      toast.error('Please enter a password (minimum 6 characters)');
+      return;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
     
     if (!adminId) {
       toast.error('Admin ID not found. Please log in again.');
@@ -186,6 +196,11 @@ export function CustomerAdminHouseholdManagement() {
         wardId: parseInt(formData.wardId),
       });
 
+      // Store password in localStorage for demo login
+      const userPasswords = JSON.parse(localStorage.getItem('userPasswords') || '{}');
+      userPasswords[newUser.id] = formData.password;
+      localStorage.setItem('userPasswords', JSON.stringify(userPasswords));
+
       // Create approval request for the household
       try {
         await createApprovalRequestMutation.mutateAsync({
@@ -207,6 +222,8 @@ export function CustomerAdminHouseholdManagement() {
           meterInstallDate: undefined,
           zoneId: '',
           wardId: '',
+          password: '',
+          confirmPassword: '',
         });
         
         setIsDialogOpen(false);
@@ -496,6 +513,38 @@ export function CustomerAdminHouseholdManagement() {
                     />
                   </div>
                 </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                      Password *
+                    </Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={formData.password}
+                      onChange={(e) => handleInputChange('password', e.target.value)}
+                      placeholder="Enter password (min 6 characters)"
+                      className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">
+                      Confirm Password *
+                    </Label>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      value={formData.confirmPassword}
+                      onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                      placeholder="Confirm password"
+                      className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
+                      required
+                    />
+                  </div>
+                </div>
               </div>
 
               <DialogFooter>
@@ -510,7 +559,7 @@ export function CustomerAdminHouseholdManagement() {
                 <Button
                   type="submit"
                   onClick={handleSubmit}
-                  disabled={!formData.fullName || !formData.meterNo || !formData.phone || !formData.email || !formData.address || !formData.meterInstallDate || !formData.zoneId || !formData.wardId || createMutation.isPending}
+                  disabled={!formData.fullName || !formData.meterNo || !formData.phone || !formData.email || !formData.address || !formData.meterInstallDate || !formData.zoneId || !formData.wardId || !formData.password || !formData.confirmPassword || createMutation.isPending}
                   className="bg-primary hover:bg-primary-600 text-white rounded-lg h-10 px-5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {createMutation.isPending ? 'Adding...' : 'Add Household'}

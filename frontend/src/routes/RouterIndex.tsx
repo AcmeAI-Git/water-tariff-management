@@ -19,6 +19,14 @@ import { TariffConfiguration } from '../pages/TariffConfiguration';
 import { ApprovalQueue } from '../pages/ApprovalQueue';
 import { ApprovalHistory } from '../pages/ApprovalHistory';
 import { ProtectedRoute } from "../components/common/ProtectedRoute";
+import CustomerLogin from "../pages/CustomerLogin";
+import CustomerDashboard from "../pages/CustomerDashboard";
+import CustomerBillingHistory from "../pages/CustomerBillingHistory";
+import CustomerFeedback from "../pages/CustomerFeedback";
+import CustomerUsageAnalytics from "../pages/CustomerUsageAnalytics";
+import { CustomerAdminBillingManagement } from "../pages/CustomerAdminBillingManagement";
+import CustomerPortalLayout from "../components/common/CustomerPortalLayout";
+import { CustomerProtectedRoute } from "../components/common/CustomerProtectedRoute";
 
 const RouterIndex = () => {
   return (
@@ -134,6 +142,14 @@ const RouterIndex = () => {
             </ProtectedRoute>
           } 
         />
+        <Route 
+          path="/customer-admin/billing" 
+          element={
+            <ProtectedRoute allowedRoles={['customer-admin']}>
+              <CustomerAdminBillingManagement />
+            </ProtectedRoute>
+          } 
+        />
         
         {/* Tariff Admin routes - only accessible by tariff-admin role */}
         <Route 
@@ -223,6 +239,51 @@ const RouterIndex = () => {
         
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="*" element={<div>Path not found</div>} />
+      </Route>
+
+      {/* Customer Portal routes */}
+      <Route path="/customer/login" element={<CustomerLogin />} />
+      <Route element={<CustomerPortalLayout />}>
+        <Route 
+          path="/customer/dashboard" 
+          element={
+            <CustomerProtectedRoute>
+              <CustomerDashboard />
+            </CustomerProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/customer/billing" 
+          element={
+            <CustomerProtectedRoute>
+              <CustomerBillingHistory />
+            </CustomerProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/customer/visualizer" 
+          element={
+            <CustomerProtectedRoute>
+              <TariffVisualizer />
+            </CustomerProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/customer/analytics" 
+          element={
+            <CustomerProtectedRoute>
+              <CustomerUsageAnalytics />
+            </CustomerProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/customer/feedback" 
+          element={
+            <CustomerProtectedRoute>
+              <CustomerFeedback />
+            </CustomerProtectedRoute>
+          } 
+        />
       </Route>
     </Routes>
   );

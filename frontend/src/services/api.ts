@@ -347,12 +347,17 @@ export const consumptionApi = {
 
 // ==================== WATER BILLS ====================
 export const waterBillsApi = {
-  getAll: (): Promise<WaterBill[]> => {
-    return fetchService.get<WaterBill[]>("/water-bills");
+  getAll: (userId?: number): Promise<WaterBill[]> => {
+    const query = userId ? `?userId=${userId}` : "";
+    return fetchService.get<WaterBill[]>(`/water-bills${query}`);
   },
 
   getById: (id: number): Promise<WaterBill> => {
     return fetchService.get<WaterBill>(`/water-bills/${id}`);
+  },
+
+  getByUserId: (userId: number): Promise<WaterBill[]> => {
+    return fetchService.get<WaterBill[]>(`/water-bills?userId=${userId}`);
   },
 
   create: (data: CreateWaterBillDto): Promise<WaterBill> => {
