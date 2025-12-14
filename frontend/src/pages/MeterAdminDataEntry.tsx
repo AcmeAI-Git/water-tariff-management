@@ -15,6 +15,8 @@ export function MeterAdminDataEntry() {
   const [currentReading, setCurrentReading] = useState('');
   const [billMonth, setBillMonth] = useState('');
   const [verifiedUser, setVerifiedUser] = useState<User | null>(null);
+  const [existingApprovedConsumption, setExistingApprovedConsumption] = useState<Consumption | null>(null);
+  const [showReplaceModal, setShowReplaceModal] = useState(false);
   const adminId = useAdminId();
 
   // Hardcoded location for all meter readers
@@ -43,18 +45,23 @@ export function MeterAdminDataEntry() {
   const createConsumptionMutation = useApiMutation(
     (data: Parameters<typeof api.consumption.create>[0]) => api.consumption.create(data),
     {
-      successMessage: 'Meter reading submitted successfully',
+      successMessage: 'Meter reading saved successfully',
       errorMessage: 'Failed to submit meter reading',
       invalidateQueries: [['consumption']],
     }
   );
 
-  // Create approval request mutation
-  const createApprovalRequestMutation = useApiMutation(
-    (data: Parameters<typeof api.approvalRequests.create>[0]) => api.approvalRequests.create(data),
+  // Update consumption mutation
+  const updateConsumptionMutation = useApiMutation(
+    (data: { id: number; currentReading: number; previousReading?: number }) => 
+      api.consumption.update(data.id, {
+        currentReading: data.currentReading,
+        previousReading: data.previousReading,
+      }),
     {
-      errorMessage: 'Failed to create approval request',
-      invalidateQueries: [['approval-requests']],
+      successMessage: 'Reading updated successfully',
+      errorMessage: 'Failed to update reading',
+      invalidateQueries: [['consumption']],
     }
   );
 
@@ -101,7 +108,15 @@ export function MeterAdminDataEntry() {
     const previousReading = latestConsumption?.currentReading || 0;
 
     // Format bill month to YYYY-MM-DD (first day of month)
+    // Ensure it's a valid date format (ISO string)
     const billMonthDate = `${billMonth}-01`;
+    
+    // Validate date format
+    const dateObj = new Date(billMonthDate);
+    if (isNaN(dateObj.getTime())) {
+      toast.error('Invalid bill month format. Please select a valid month.');
+      return;
+    }
 
     // Check if consumption already exists for this user and month
     const existingConsumption = allConsumptions.find((c) => {
@@ -116,43 +131,80 @@ export function MeterAdminDataEntry() {
     if (existingConsumption) {
       const status = existingConsumption.approvalStatus as ApprovalStatus | undefined;
       const statusName = status?.statusName || status?.name;
+      const normalizedStatusName = statusName?.toLowerCase();
 
-      if (statusName?.toLowerCase() === 'approved') {
+      if (normalizedStatusName === 'approved') {
         // Show modal asking to replace
         setExistingApprovedConsumption(existingConsumption);
         setShowReplaceModal(true);
         return; // Don't submit yet, wait for user confirmation
+      } else if (normalizedStatusName === 'pending') {
+        // Pending entries should not be duplicated
+        toast.error(`A reading for ${billMonth} is already pending approval for this household. Please wait for approval or contact an administrator.`);
+        return;
+      } else if (normalizedStatusName === 'rejected') {
+        // Rejected entries can be replaced with a new reading
+        // Continue with creation - backend should allow it
+        console.log('Creating new reading to replace rejected entry');
+      } else {
+        // Unknown status or no status - allow creation but warn
+        console.warn('Existing consumption found with unknown status:', statusName);
       }
-      // If rejected, continue with creation (backend will allow it)
-      // If pending, backend will block it with error message
     }
 
     // Proceed with creation
-    await createOrUpdateConsumption(billMonthDate, currentReadingNum, previousReading);
+    await createOrUpdateConsumption(billMonthDate, currentReadingNum, previousReading, null);
   };
 
   const createOrUpdateConsumption = async (
     billMonthDate: string,
     currentReadingNum: number,
-    previousReading: number
+    previousReading: number,
+    approvedConsumption: Consumption | null
   ) => {
     try {
-      if (existingApprovedConsumption) {
+      if (approvedConsumption) {
         // Update existing approved consumption
         await updateConsumptionMutation.mutateAsync({
-          id: existingApprovedConsumption.id,
+          id: approvedConsumption.id,
           currentReading: currentReadingNum,
           previousReading: previousReading > 0 ? previousReading : undefined,
         });
       } else {
-        // Create new consumption
-        await createConsumptionMutation.mutateAsync({
-          userId: verifiedUser!.id,
-          createdBy: adminId!,
-          billMonth: billMonthDate,
-          currentReading: currentReadingNum,
-          previousReading: previousReading > 0 ? previousReading : undefined,
-        });
+        // Create new consumption - ensure all values are properly typed
+        const payload: {
+          userId: number;
+          createdBy: number;
+          billMonth: string;
+          currentReading: number;
+          previousReading?: number;
+        } = {
+          userId: Number(verifiedUser!.id),
+          createdBy: Number(adminId!),
+          billMonth: billMonthDate, // Format: YYYY-MM-DD
+          currentReading: Number(currentReadingNum),
+        };
+        
+        // Only include previousReading if it's greater than 0
+        if (previousReading > 0) {
+          payload.previousReading = Number(previousReading);
+        }
+        
+        // Validate payload before sending
+        if (!payload.userId || !payload.createdBy || !payload.billMonth || payload.currentReading === undefined || isNaN(payload.currentReading)) {
+          toast.error('Invalid form data. Please check all fields and try again.');
+          console.error('Invalid payload:', payload, {
+            userId: verifiedUser?.id,
+            adminId,
+            billMonthDate,
+            currentReadingNum,
+            previousReading
+          });
+          return;
+        }
+        
+        console.log('Sending consumption payload:', payload);
+        await createConsumptionMutation.mutateAsync(payload);
       }
 
       // Reset form
@@ -165,8 +217,12 @@ export function MeterAdminDataEntry() {
     } catch (error) {
       // Handle duplicate consumption error specifically
       const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Consumption creation error:', error);
+      
       if (errorMessage.includes('already exists') || errorMessage.includes('Consumption record already exists')) {
         toast.error(`A reading for ${billMonth} already exists for this household. Please use a different month or update the existing reading.`);
+      } else if (errorMessage.includes('Validation failed')) {
+        toast.error('Validation failed. Please check that all required fields are filled correctly.');
       }
       // Other errors are handled by the mutation hook's errorMessage
       // Don't reset form on error so user can correct and retry
@@ -476,13 +532,16 @@ export function MeterAdminDataEntry() {
               </Button>
               <Button
                 onClick={() => {
-                  createOrUpdateConsumption(
-                    `${billMonth}-01`,
-                    parseFloat(currentReading),
-                    previousReading
-                  );
+                  if (existingApprovedConsumption) {
+                    createOrUpdateConsumption(
+                      `${billMonth}-01`,
+                      parseFloat(currentReading),
+                      previousReading,
+                      existingApprovedConsumption
+                    );
+                  }
                 }}
-                disabled={updateConsumptionMutation.isPending}
+                disabled={updateConsumptionMutation.isPending || !existingApprovedConsumption}
                 className="bg-blue-600 hover:bg-blue-700 text-white"
               >
                 {updateConsumptionMutation.isPending ? 'Replacing...' : 'Replace Reading'}

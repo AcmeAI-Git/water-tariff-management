@@ -44,10 +44,23 @@ class FetchService {
     }
 
     private async handleResponse<T>(response: Response): Promise<T> {
-        const data: ApiResponse<T> = await response.json();
+        const data: ApiResponse<T> & { errors?: any[] } = await response.json();
         
         if (!response.ok || data.status === 'error') {
-            const errorMessage = data.message || `HTTP error! status: ${response.status}`;
+            let errorMessage = data.message || `HTTP error! status: ${response.status}`;
+            
+            // Include validation errors if present
+            if (data.errors && Array.isArray(data.errors) && data.errors.length > 0) {
+                const validationErrors = data.errors.map((err: any) => {
+                    if (typeof err === 'string') return err;
+                    if (err.property && err.constraints) {
+                        return `${err.property}: ${Object.values(err.constraints).join(', ')}`;
+                    }
+                    return JSON.stringify(err);
+                }).join('; ');
+                errorMessage = `${errorMessage} - ${validationErrors}`;
+            }
+            
             throw new Error(errorMessage);
         }
         
