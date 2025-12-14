@@ -8,7 +8,7 @@ import { api } from '../services/api';
 import { useApiQuery, useApiMutation, useAdminId } from '../hooks/useApiQuery';
 import { mapApprovalRequestToDisplay } from '../utils/dataMappers';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
-import type { User, Consumption, ApprovalRequest, ApprovalStatus } from '../types';
+import type { User, Consumption, ApprovalStatus } from '../types';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -385,7 +385,7 @@ export function ApprovalQueue() {
     setSelectedRequest(null);
   };
 
-  const handleApprove = async (request: ApprovalQueueItem, comments: string) => {
+  const handleApprove = async (request: ApprovalQueueItem) => {
     if (!adminId) {
       console.error('Admin ID not found');
       return;
@@ -401,7 +401,6 @@ export function ApprovalQueue() {
         await reviewApprovalRequestMutation.mutateAsync({
           id: numericId,
           status: 'Approved',
-          comments: comments || undefined,
         });
         
         // If it's a Customer module request, also activate the household
@@ -419,14 +418,12 @@ export function ApprovalQueue() {
           await reviewApprovalRequestMutation.mutateAsync({
             id: approvalRequest.id,
             status: 'Approved',
-            comments: comments || undefined,
           });
         }
       } else if (request.recordType === 'consumption') {
         // Approve consumption
         await approveConsumptionMutation.mutateAsync({
           id: request.recordId,
-          comments: comments || undefined,
         });
         // Also create/update approval request if it exists
         const approvalRequest = approvalRequests.find(
@@ -436,7 +433,6 @@ export function ApprovalQueue() {
           await reviewApprovalRequestMutation.mutateAsync({
             id: approvalRequest.id,
             status: 'Approved',
-            comments: comments || undefined,
           });
         }
       }
@@ -467,11 +463,14 @@ export function ApprovalQueue() {
     }
   };
 
-  const handleReject = async (request: ApprovalQueueItem, comments: string) => {
+  const handleReject = async (request: ApprovalQueueItem) => {
     if (!adminId) {
       console.error('Admin ID not found');
       return;
     }
+
+    // Close modal immediately to prevent double-clicks
+    setSelectedRequest(null);
 
     try {
       // Execute mutations first (wait for completion)
@@ -481,7 +480,6 @@ export function ApprovalQueue() {
         await reviewApprovalRequestMutation.mutateAsync({
           id: numericId,
           status: 'Rejected',
-          comments: comments || undefined,
         });
       } else if (request.recordType === 'household') {
         // When rejecting a household, we should:
@@ -501,7 +499,6 @@ export function ApprovalQueue() {
             await reviewApprovalRequestMutation.mutateAsync({
               id: approvalRequest.id,
               status: 'Rejected',
-              comments: comments || undefined,
             });
           }
           // If already rejected, skip silently (no error)
@@ -513,7 +510,6 @@ export function ApprovalQueue() {
         // Reject consumption
         await rejectConsumptionMutation.mutateAsync({
           id: request.recordId,
-          comments: comments || undefined,
         });
         // Also create/update approval request if it exists
         const approvalRequest = approvalRequests.find(
@@ -523,13 +519,9 @@ export function ApprovalQueue() {
           await reviewApprovalRequestMutation.mutateAsync({
             id: approvalRequest.id,
             status: 'Rejected',
-            comments: comments || undefined,
           });
         }
       }
-      
-      // Close modal immediately
-      setSelectedRequest(null);
       
       // Wait for backend to fully process (slightly longer delay to ensure transaction is committed)
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -569,6 +561,9 @@ export function ApprovalQueue() {
       queryClient.invalidateQueries({ queryKey: ['approval-requests', 'pending'] });
       queryClient.invalidateQueries({ queryKey: ['approval-requests', 'Customer'] });
       queryClient.invalidateQueries({ queryKey: ['users', 'pending'] });
+      
+      // Ensure modal stays closed even on error
+      setSelectedRequest(null);
     }
   };
 
@@ -673,8 +668,8 @@ export function ApprovalQueue() {
             newData: selectedRequest.newData,
           }}
           onClose={handleCloseModal}
-          onApprove={(_requestId, comments) => handleApprove(selectedRequest, comments)}
-          onReject={(_requestId, comments) => handleReject(selectedRequest, comments)}
+          onApprove={() => handleApprove(selectedRequest)}
+          onReject={() => handleReject(selectedRequest)}
           isLoading={isLoadingRecordData}
         />
       )}

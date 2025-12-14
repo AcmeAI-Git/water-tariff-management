@@ -1,8 +1,5 @@
 import { X } from 'lucide-react';
 import { Button } from '../components/ui/button';
-import { Textarea } from '../components/ui/textarea';
-import { Label } from '../components/ui/label';
-import { useState } from 'react';
 
 interface ReviewChangeModalProps {
   request: {
@@ -14,20 +11,18 @@ interface ReviewChangeModalProps {
     newData: any;
   };
   onClose: () => void;
-  onApprove: (requestId: string, comments: string) => void;
-  onReject: (requestId: string, comments: string) => void;
+  onApprove: (requestId: string) => void;
+  onReject: (requestId: string) => void;
   isLoading?: boolean;
 }
 
 export function ReviewChangeModal({ request, onClose, onApprove, onReject, isLoading = false }: ReviewChangeModalProps) {
-  const [comments, setComments] = useState('');
-
   const handleApprove = () => {
-    onApprove(request.id, comments);
+    onApprove(request.id);
   };
 
   const handleReject = () => {
-    onReject(request.id, comments);
+    onReject(request.id);
   };
 
   const renderDataComparison = () => {
@@ -218,20 +213,6 @@ export function ReviewChangeModal({ request, onClose, onApprove, onReject, isLoa
             ) : (
               renderDataComparison()
             )}
-          </div>
-
-          {/* Comments */}
-          <div className="space-y-2">
-            <Label htmlFor="comments" className="text-sm font-medium text-gray-700">
-              Comments
-            </Label>
-            <Textarea
-              id="comments"
-              placeholder="Add any comments or notes about this review..."
-              value={comments}
-              onChange={(e) => setComments(e.target.value)}
-              className="bg-white border-gray-300 rounded-lg min-h-[100px] focus:ring-2 focus:ring-[#4C6EF5]/20 focus:border-[#4C6EF5]"
-            />
           </div>
         </div>
 

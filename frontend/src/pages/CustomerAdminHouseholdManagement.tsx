@@ -91,7 +91,7 @@ export function CustomerAdminHouseholdManagement() {
   const createMutation = useApiMutation(
     (data: Parameters<typeof api.users.create>[0]) => api.users.create(data),
     {
-      successMessage: 'Household created successfully',
+      // Remove successMessage - we'll show toast after approval request creation
       errorMessage: 'Failed to create household',
       invalidateQueries: [['users'], ['users', 'pending'], ['users', 'active']],
     }
