@@ -306,6 +306,9 @@ export interface Consumption {
   consumption?: number;
   status?: string;
   createdAt?: string;
+  approvalStatusId?: number;
+  approvalStatus?: ApprovalStatus;
+  approvedBy?: number | null;
 }
 
 export interface CreateConsumptionDto {

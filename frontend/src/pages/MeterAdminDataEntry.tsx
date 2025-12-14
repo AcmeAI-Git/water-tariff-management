@@ -7,7 +7,8 @@ import { api } from '../services/api';
 import { useApiQuery, useApiMutation, useAdminId } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { toast } from 'sonner';
-import type { User, Consumption } from '../types';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import type { User, Consumption, ApprovalStatus } from '../types';
 
 export function MeterAdminDataEntry() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -25,19 +26,18 @@ export function MeterAdminDataEntry() {
     () => api.users.getAll()
   );
 
-  // Fetch user's previous consumption to get last reading
-  const { data: previousConsumptions = [] } = useApiQuery<Consumption[]>(
-    verifiedUser?.id ? ['consumption', verifiedUser.id] : ['consumption'],
-    () => {
-      if (!verifiedUser?.id) return Promise.resolve([]);
-      return api.consumption.getAll().then(consumptions => 
-        consumptions.filter(c => c.userId === verifiedUser.id).sort((a, b) => 
-          new Date(b.billMonth).getTime() - new Date(a.billMonth).getTime()
-        )
-      );
-    },
-    { enabled: !!verifiedUser?.id }
+  // Fetch all consumptions to check for duplicates and get previous reading
+  const { data: allConsumptions = [] } = useApiQuery<Consumption[]>(
+    ['consumption'],
+    () => api.consumption.getAll()
   );
+
+  // Get user's consumptions sorted by date
+  const previousConsumptions = verifiedUser?.id
+    ? allConsumptions
+        .filter(c => c.userId === verifiedUser.id)
+        .sort((a, b) => new Date(b.billMonth).getTime() - new Date(a.billMonth).getTime())
+    : [];
 
   // Create consumption mutation
   const createConsumptionMutation = useApiMutation(
@@ -103,33 +103,74 @@ export function MeterAdminDataEntry() {
     // Format bill month to YYYY-MM-DD (first day of month)
     const billMonthDate = `${billMonth}-01`;
 
-    // Create consumption record
-    const newConsumption = await createConsumptionMutation.mutateAsync({
-      userId: verifiedUser.id,
-      createdBy: adminId,
-      billMonth: billMonthDate,
-      currentReading: currentReadingNum,
-      previousReading: previousReading > 0 ? previousReading : undefined,
+    // Check if consumption already exists for this user and month
+    const existingConsumption = allConsumptions.find((c) => {
+      if (c.userId !== verifiedUser.id) return false;
+      // Compare bill months (handle both Date objects and strings)
+      const cBillMonth = typeof c.billMonth === 'string' 
+        ? c.billMonth 
+        : new Date(c.billMonth).toISOString().split('T')[0];
+      return cBillMonth === billMonthDate;
     });
 
-    // Create approval request for the consumption
-    try {
-      await createApprovalRequestMutation.mutateAsync({
-        moduleName: 'Consumption',
-        recordId: newConsumption.id,
-        requestedBy: adminId,
-      });
-    } catch (error) {
-      console.error('Failed to create approval request:', error);
-      // Don't fail the whole operation if approval request creation fails
+    if (existingConsumption) {
+      const status = existingConsumption.approvalStatus as ApprovalStatus | undefined;
+      const statusName = status?.statusName || status?.name;
+
+      if (statusName?.toLowerCase() === 'approved') {
+        // Show modal asking to replace
+        setExistingApprovedConsumption(existingConsumption);
+        setShowReplaceModal(true);
+        return; // Don't submit yet, wait for user confirmation
+      }
+      // If rejected, continue with creation (backend will allow it)
+      // If pending, backend will block it with error message
     }
 
-    // Reset form
-    setCurrentReading('');
-    setBillMonth('');
-    setVerifiedUser(null);
-    setSearchQuery('');
-    toast.success('Meter reading submitted for approval');
+    // Proceed with creation
+    await createOrUpdateConsumption(billMonthDate, currentReadingNum, previousReading);
+  };
+
+  const createOrUpdateConsumption = async (
+    billMonthDate: string,
+    currentReadingNum: number,
+    previousReading: number
+  ) => {
+    try {
+      if (existingApprovedConsumption) {
+        // Update existing approved consumption
+        await updateConsumptionMutation.mutateAsync({
+          id: existingApprovedConsumption.id,
+          currentReading: currentReadingNum,
+          previousReading: previousReading > 0 ? previousReading : undefined,
+        });
+      } else {
+        // Create new consumption
+        await createConsumptionMutation.mutateAsync({
+          userId: verifiedUser!.id,
+          createdBy: adminId!,
+          billMonth: billMonthDate,
+          currentReading: currentReadingNum,
+          previousReading: previousReading > 0 ? previousReading : undefined,
+        });
+      }
+
+      // Reset form
+      setCurrentReading('');
+      setBillMonth('');
+      setVerifiedUser(null);
+      setSearchQuery('');
+      setExistingApprovedConsumption(null);
+      setShowReplaceModal(false);
+    } catch (error) {
+      // Handle duplicate consumption error specifically
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('already exists') || errorMessage.includes('Consumption record already exists')) {
+        toast.error(`A reading for ${billMonth} already exists for this household. Please use a different month or update the existing reading.`);
+      }
+      // Other errors are handled by the mutation hook's errorMessage
+      // Don't reset form on error so user can correct and retry
+    }
   };
 
   // Ensure previousReading is a number
@@ -285,7 +326,7 @@ export function MeterAdminDataEntry() {
                   placeholder="e.g., 245.5"
                   value={currentReading}
                   onChange={(e) => setCurrentReading(e.target.value)}
-                  disabled={!verifiedUser || createConsumptionMutation.isPending}
+                  disabled={!verifiedUser || createConsumptionMutation.isPending || updateConsumptionMutation.isPending}
                   className={`rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500 ${
                     verifiedUser 
                       ? 'bg-gray-50 border-gray-300' 
@@ -303,7 +344,7 @@ export function MeterAdminDataEntry() {
                   type="month"
                   value={billMonth}
                   onChange={(e) => setBillMonth(e.target.value)}
-                  disabled={!verifiedUser || createConsumptionMutation.isPending}
+                  disabled={!verifiedUser || createConsumptionMutation.isPending || updateConsumptionMutation.isPending}
                   className={`rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500 ${
                     verifiedUser 
                       ? 'bg-gray-50 border-gray-300' 
@@ -315,15 +356,15 @@ export function MeterAdminDataEntry() {
               <div>
                 <Button 
                   onClick={handleSubmit}
-                  disabled={!verifiedUser || !currentReading || !billMonth || createConsumptionMutation.isPending}
+                  disabled={!verifiedUser || !currentReading || !billMonth || createConsumptionMutation.isPending || updateConsumptionMutation.isPending}
                   className={`w-full rounded-lg h-[42px] flex items-center justify-center gap-2 ${
-                    verifiedUser && currentReading && billMonth && !createConsumptionMutation.isPending
+                    verifiedUser && currentReading && billMonth && !createConsumptionMutation.isPending && !updateConsumptionMutation.isPending
                       ? 'bg-primary hover:bg-primary-600 text-white'
                       : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                   }`}
                 >
                   <Plus size={18} />
-                  {createConsumptionMutation.isPending ? 'Submitting...' : 'Submit Reading'}
+                  {createConsumptionMutation.isPending || updateConsumptionMutation.isPending ? 'Submitting...' : 'Submit Reading'}
                 </Button>
               </div>
             </div>
@@ -336,6 +377,120 @@ export function MeterAdminDataEntry() {
           </div>
         </div>
       </div>
+
+      {/* Replace Approved Reading Modal */}
+      {showReplaceModal && existingApprovedConsumption && (
+        <Dialog open={showReplaceModal} onOpenChange={(open) => {
+          setShowReplaceModal(open);
+          if (!open) {
+            setExistingApprovedConsumption(null);
+          }
+        }}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Reading Already Approved</DialogTitle>
+              <DialogDescription>
+                A reading for {billMonth} has already been approved for this household.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <p className="text-sm font-medium text-gray-700 mb-2">Existing Approved Reading:</p>
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Current Reading:</span>
+                    <span className="font-medium text-gray-900">
+                      {typeof existingApprovedConsumption.currentReading === 'number' 
+                        ? existingApprovedConsumption.currentReading.toFixed(2)
+                        : Number(existingApprovedConsumption.currentReading || 0).toFixed(2)} m³
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Previous Reading:</span>
+                    <span className="font-medium text-gray-900">
+                      {existingApprovedConsumption.previousReading 
+                        ? (typeof existingApprovedConsumption.previousReading === 'number'
+                            ? existingApprovedConsumption.previousReading.toFixed(2)
+                            : Number(existingApprovedConsumption.previousReading).toFixed(2))
+                        : 'N/A'} m³
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Consumption:</span>
+                    <span className="font-medium text-gray-900">
+                      {existingApprovedConsumption.consumption 
+                        ? (typeof existingApprovedConsumption.consumption === 'number'
+                            ? existingApprovedConsumption.consumption.toFixed(2)
+                            : Number(existingApprovedConsumption.consumption).toFixed(2))
+                        : 'N/A'} m³
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Bill Month:</span>
+                    <span className="font-medium text-gray-900">
+                      {new Date(existingApprovedConsumption.billMonth).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
+                    </span>
+                  </div>
+                  {existingApprovedConsumption.approvedBy && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Approved By:</span>
+                      <span className="font-medium text-gray-900">Admin #{existingApprovedConsumption.approvedBy}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-700 mb-2">New Reading:</p>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Current Reading:</span>
+                    <span className="font-medium text-blue-900">{currentReading} m³</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Previous Reading:</span>
+                    <span className="font-medium text-blue-900">
+                      {previousReading > 0 ? previousReading.toFixed(2) : 'N/A'} m³
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Bill Month:</span>
+                    <span className="font-medium text-blue-900">{billMonth}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <p className="text-sm text-amber-800">
+                  <strong>Warning:</strong> Replacing an approved reading will update the existing record. This action cannot be undone.
+                </p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowReplaceModal(false);
+                  setExistingApprovedConsumption(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  createOrUpdateConsumption(
+                    `${billMonth}-01`,
+                    parseFloat(currentReading),
+                    previousReading
+                  );
+                }}
+                disabled={updateConsumptionMutation.isPending}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                {updateConsumptionMutation.isPending ? 'Replacing...' : 'Replace Reading'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

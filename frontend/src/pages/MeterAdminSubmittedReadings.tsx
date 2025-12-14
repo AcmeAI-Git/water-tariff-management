@@ -2,10 +2,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Badge } from '../components/ui/badge';
 import { useMemo } from 'react';
 import { api } from '../services/api';
-import { useApiQuery } from '../hooks/useApiQuery';
+import { useApiQuery, useAdminId } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import type { ApprovalStatus } from '../types';
 
 export function MeterAdminSubmittedReadings() {
+  const adminId = useAdminId();
+
   // Fetch all consumption entries
   const { data: consumptions = [], isLoading: consumptionsLoading } = useApiQuery(
     ['consumption'],
@@ -18,29 +21,70 @@ export function MeterAdminSubmittedReadings() {
     () => api.users.getAll()
   );
 
-  // Map consumption to display format with user details
+  // Fetch approval requests for Consumption module requested by current admin
+  const { data: consumptionApprovalRequests = [], isLoading: approvalRequestsLoading } = useApiQuery(
+    ['approval-requests', 'Consumption', adminId ?? 'no-admin'],
+    () => api.approvalRequests.getAll({ moduleName: 'Consumption' }),
+    {
+      enabled: adminId !== null,
+    }
+  );
+
+  // Filter approval requests requested by current meter admin
+  const myApprovalRequests = useMemo(() => {
+    if (!adminId) return [];
+    return consumptionApprovalRequests.filter(req => req.requestedBy === adminId);
+  }, [consumptionApprovalRequests, adminId]);
+
+  // Map approval requests to display format with consumption details
   const submittedReadings = useMemo(() => {
-    return consumptions.map((consumption) => {
+    return myApprovalRequests.map((request) => {
+      // Find the consumption for this approval request
+      const consumption = consumptions.find((c) => c.id === request.recordId);
+      if (!consumption) return null; // Skip if consumption not found
+      
       const user = users.find((u) => u.id === consumption.userId);
       const billMonthDate = new Date(consumption.billMonth);
-      // Note: Backend may not have explicit approval status for consumption
-      // You may need to check approvalStatusId or similar field
-      const status = 'Pending'; // Default - adjust based on your backend structure
       
-      // Ensure currentReading is a number before calling toFixed
+      // Get status from approval request, not consumption
+      const approvalStatus = request.approvalStatus as ApprovalStatus | undefined;
+      const statusName = approvalStatus?.statusName || approvalStatus?.name || 'Pending';
+      const status = statusName === 'Pending' ? 'Pending' : 
+                     statusName === 'Approved' ? 'Approved' : 
+                     statusName === 'Rejected' ? 'Rejected' : 'Pending';
+      
+      // Ensure currentReading is a number
       const currentReading = typeof consumption.currentReading === 'number' 
         ? consumption.currentReading 
         : Number(consumption.currentReading) || 0;
       
+      // Use approval request's requestedAt as submission date
+      const submittedDate = request.requestedAt 
+        ? new Date(request.requestedAt)
+        : consumption.createdAt 
+          ? new Date(consumption.createdAt)
+          : billMonthDate;
+      
       return {
-        id: consumption.id,
+        id: request.id, // Use approval request ID
+        consumptionId: consumption.id,
         batchId: `BATCH-${consumption.id}`,
         householdName: user?.fullName || 'Unknown',
         meterNo: user?.meterNo || 'N/A',
         reading: currentReading.toFixed(2),
         month: billMonthDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' }),
-        submitted: consumption.createdAt 
-          ? new Date(consumption.createdAt).toLocaleString('en-US', {
+        submitted: submittedDate.toLocaleString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        }),
+        submittedTimestamp: submittedDate.getTime(),
+        status,
+        reviewedAt: request.reviewedAt 
+          ? new Date(request.reviewedAt).toLocaleString('en-US', {
               year: 'numeric',
               month: 'short',
               day: 'numeric',
@@ -48,18 +92,15 @@ export function MeterAdminSubmittedReadings() {
               minute: '2-digit',
               second: '2-digit',
             })
-          : billMonthDate.toLocaleString('en-US', {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-              second: '2-digit',
-            }),
-        status,
+          : null,
       };
-    }).reverse(); // Show most recent first
-  }, [consumptions, users]);
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null) // Remove nulls
+    .sort((a, b) => {
+      // Sort by submission date descending (newest first)
+      return b.submittedTimestamp - a.submittedTimestamp;
+    });
+  }, [myApprovalRequests, consumptions, users]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -90,7 +131,7 @@ export function MeterAdminSubmittedReadings() {
     }
   };
 
-  if (consumptionsLoading || usersLoading) {
+  if (consumptionsLoading || usersLoading || approvalRequestsLoading) {
     return (
       <div className="min-h-screen bg-app flex items-center justify-center">
         <LoadingSpinner />

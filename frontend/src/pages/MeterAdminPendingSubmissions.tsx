@@ -1,12 +1,16 @@
 import { Button } from '../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
-import { X } from 'lucide-react';
+import { X, Send } from 'lucide-react';
 import { useMemo } from 'react';
 import { api } from '../services/api';
-import { useApiQuery, useApiMutation } from '../hooks/useApiQuery';
+import { useApiQuery, useApiMutation, useAdminId } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import { toast } from 'sonner';
+import type { ApprovalStatus } from '../types';
 
 export function MeterAdminPendingSubmissions() {
+  const adminId = useAdminId();
+
   // Fetch all consumption entries
   const { data: consumptions = [], isLoading: consumptionsLoading } = useApiQuery(
     ['consumption'],
@@ -19,14 +23,37 @@ export function MeterAdminPendingSubmissions() {
     () => api.users.getAll()
   );
 
-  // Filter pending consumptions (those not yet approved)
-  // Note: Backend may not have explicit approval status, so we'll show all recent entries
-  // In a real system, you'd filter by approvalStatusId
-  const pendingConsumptions = useMemo(() => {
-    // For now, show all consumptions as pending
-    // You may need to add approval status filtering based on your backend structure
-    return consumptions.slice().reverse(); // Show most recent first
-  }, [consumptions]);
+  // Fetch approval requests for Consumption module to check which consumptions already have approval requests
+  const { data: consumptionApprovalRequests = [] } = useApiQuery(
+    ['approval-requests', 'Consumption'],
+    () => api.approvalRequests.getAll({ moduleName: 'Consumption' })
+  );
+
+  // Filter pending consumptions that don't have approval requests yet
+  // These are the ones that should appear in "Pending Submissions"
+  const consumptionsWithoutApprovalRequests = useMemo(() => {
+    return consumptions.filter((consumption) => {
+      // Check if status is pending
+      const status = consumption.approvalStatus as ApprovalStatus | undefined;
+      const statusName = status?.statusName || status?.name;
+      if (statusName?.toLowerCase() !== 'pending') {
+        return false; // Not pending, exclude
+      }
+      
+      // Check if this consumption already has an approval request
+      const hasApprovalRequest = consumptionApprovalRequests.some(
+        (req) => req.moduleName === 'Consumption' && req.recordId === consumption.id
+      );
+      
+      // Only include if pending AND no approval request exists yet
+      return !hasApprovalRequest;
+    }).sort((a, b) => {
+      // Sort by creation date descending (newest first)
+      const dateA = new Date(a.createdAt || 0).getTime();
+      const dateB = new Date(b.createdAt || 0).getTime();
+      return dateB - dateA;
+    });
+  }, [consumptions, consumptionApprovalRequests]);
 
   // Delete consumption mutation
   const deleteMutation = useApiMutation(
@@ -38,13 +65,49 @@ export function MeterAdminPendingSubmissions() {
     }
   );
 
+  // Batch create approval requests mutation
+  const batchCreateApprovalRequestsMutation = useApiMutation(
+    async (consumptionIds: number[]) => {
+      if (!adminId) throw new Error('Admin ID not found');
+      // Create approval requests for all consumptions
+      const promises = consumptionIds.map(id =>
+        api.approvalRequests.create({
+          moduleName: 'Consumption',
+          recordId: id,
+          requestedBy: adminId,
+        })
+      );
+      await Promise.all(promises);
+    },
+    {
+      successMessage: 'Batch sent for approval successfully',
+      errorMessage: 'Failed to send batch for approval',
+      invalidateQueries: [
+        ['approval-requests', 'Consumption'],
+        ['approval-requests', 'pending'],
+        ['approval-requests'],
+        ['consumption'],
+      ],
+    }
+  );
+
   const removeReading = async (id: number) => {
     await deleteMutation.mutateAsync(id);
   };
 
+  const handleSendBatchForApproval = async () => {
+    if (consumptionsWithoutApprovalRequests.length === 0) {
+      toast.error('No readings to send for approval');
+      return;
+    }
+    
+    const consumptionIds = consumptionsWithoutApprovalRequests.map(c => c.id);
+    await batchCreateApprovalRequestsMutation.mutateAsync(consumptionIds);
+  };
+
   // Map consumption to display format with user details
   const displayReadings = useMemo(() => {
-    return pendingConsumptions.map((consumption) => {
+    return consumptionsWithoutApprovalRequests.map((consumption) => {
       const user = users.find((u) => u.id === consumption.userId);
       const billMonthDate = new Date(consumption.billMonth);
       // Ensure currentReading is a number before calling toFixed
@@ -59,7 +122,7 @@ export function MeterAdminPendingSubmissions() {
         month: billMonthDate.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit' }),
       };
     });
-  }, [pendingConsumptions, users]);
+  }, [consumptionsWithoutApprovalRequests, users]);
 
   if (consumptionsLoading || usersLoading) {
     return (
@@ -80,7 +143,19 @@ export function MeterAdminPendingSubmissions() {
 
         {/* Pending Readings Table */}
         <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Readings Pending Submission</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Readings Pending Submission</h3>
+            {consumptionsWithoutApprovalRequests.length > 0 && (
+              <Button
+                onClick={handleSendBatchForApproval}
+                disabled={batchCreateApprovalRequestsMutation.isPending}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Send size={16} className="mr-2" />
+                Send Batch for Approval ({consumptionsWithoutApprovalRequests.length})
+              </Button>
+            )}
+          </div>
           
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             <Table>

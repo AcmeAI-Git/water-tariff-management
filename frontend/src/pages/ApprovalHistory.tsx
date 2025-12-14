@@ -43,8 +43,12 @@ export function ApprovalHistory() {
         ...mapped,
         reviewedBy: reviewer?.fullName || mapped.reviewedBy,
         review: mapped.review || '',
+        reviewedAt: request.reviewedAt ? new Date(request.reviewedAt).getTime() : 0,
         decision,
       };
+    }).sort((a, b) => {
+      // Sort by review date descending (newest first)
+      return b.reviewedAt - a.reviewedAt;
     });
   }, [reviewedRequests, admins]);
 
