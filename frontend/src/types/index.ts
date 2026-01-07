@@ -413,3 +413,97 @@ export interface UpdateNotificationDto {
   type?: string;
   isRead?: boolean;
 }
+
+// Zone Scoring Types
+export interface Area {
+  id: number;
+  name: string;
+  geojson: {
+    type: string;
+    coordinates: number[][][];
+  };
+}
+
+export interface ScoringParam {
+  id: number;
+  area: Area;
+  areaId: number;
+  landHomeRate: string;
+  landHomeRatePercentage: string;
+  landRate: string;
+  landRatePercentage: string;
+  landTaxRate: string;
+  landTaxRatePercentage: string;
+  buildingTaxRateUpto120sqm: string;
+  buildingTaxRateUpto120sqmPercentage: string;
+  buildingTaxRateUpto200sqm: string;
+  buildingTaxRateUpto200sqmPercentage: string;
+  buildingTaxRateAbove200sqm: string;
+  buildingTaxRateAbove200sqmPercentage: string;
+  highIncomeGroupConnectionPercentage: string;
+  geoMean: string;
+  ruleSetId: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ZoneScoringRuleSet {
+  id: number;
+  title: string;
+  description: string;
+  status: string;
+  scoringParams: ScoringParam[];
+  effectiveFrom: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateZoneScoringRuleSetDto {
+  title: string;
+  description?: string;
+  status?: string;
+  scoringParams?: CreateScoringParamDto[];
+}
+
+export interface UpdateZoneScoringRuleSetDto {
+  title?: string;
+  description?: string;
+  status?: string;
+  scoringParams?: CreateScoringParamDto[];
+}
+
+export interface CreateScoringParamDto {
+  areaId: number;
+  landHomeRate: string;
+  landHomeRatePercentage: string;
+  landRate: string;
+  landRatePercentage: string;
+  landTaxRate: string;
+  landTaxRatePercentage: string;
+  buildingTaxRateUpto120sqm: string;
+  buildingTaxRateUpto120sqmPercentage: string;
+  buildingTaxRateUpto200sqm: string;
+  buildingTaxRateUpto200sqmPercentage: string;
+  buildingTaxRateAbove200sqm: string;
+  buildingTaxRateAbove200sqmPercentage: string;
+  highIncomeGroupConnectionPercentage: string;
+  geoMean: string;
+}
+
+export interface CreateAreaDto {
+  name: string;
+  geojson: {
+    type: string;
+    coordinates: number[][][];
+  };
+  zoneId?: number;
+}
+
+export interface UpdateAreaDto {
+  name?: string;
+  geojson?: {
+    type: string;
+    coordinates: number[][][];
+  };
+  zoneId?: number;
+}

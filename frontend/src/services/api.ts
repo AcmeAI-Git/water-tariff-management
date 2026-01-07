@@ -44,6 +44,13 @@ import type {
   Notification,
   CreateNotificationDto,
   UpdateNotificationDto,
+  ZoneScoringRuleSet,
+  ScoringParam,
+  Area,
+  CreateZoneScoringRuleSetDto,
+  UpdateZoneScoringRuleSetDto,
+  CreateAreaDto,
+  UpdateAreaDto,
 } from "../types";
 
 // ==================== ADMINS ====================
@@ -455,6 +462,56 @@ export const notificationsApi = {
   },
 };
 
+// ==================== ZONE SCORING ====================
+export const zoneScoringApi = {
+  getAll: (): Promise<ZoneScoringRuleSet[]> => {
+    return fetchService.get<ZoneScoringRuleSet[]>('/zone-scoring');
+  },
+
+  getById: (id: number): Promise<ZoneScoringRuleSet> => {
+    return fetchService.get<ZoneScoringRuleSet>(`/zone-scoring/${id}`);
+  },
+
+  create: (data: CreateZoneScoringRuleSetDto): Promise<ZoneScoringRuleSet> => {
+    return fetchService.post<ZoneScoringRuleSet>('/zone-scoring', data);
+  },
+
+  update: (id: number, data: UpdateZoneScoringRuleSetDto): Promise<ZoneScoringRuleSet> => {
+    return fetchService.put<ZoneScoringRuleSet>(`/zone-scoring/${id}`, data);
+  },
+
+  delete: (id: number): Promise<void> => {
+    return fetchService.delete<void>(`/zone-scoring/${id}`);
+  },
+};
+
+// ==================== AREA ====================
+export const areaApi = {
+  getAll: (): Promise<Area[]> => {
+    return fetchService.get<Area[]>('/area');
+  },
+
+  getById: (id: number): Promise<Area> => {
+    return fetchService.get<Area>(`/area/${id}`);
+  },
+
+  getByZone: (zoneId: number): Promise<Area[]> => {
+    return fetchService.get<Area[]>(`/area/zone/${zoneId}`);
+  },
+
+  create: (data: CreateAreaDto): Promise<Area> => {
+    return fetchService.post<Area>('/area', data);
+  },
+
+  update: (id: number, data: UpdateAreaDto): Promise<Area> => {
+    return fetchService.put<Area>(`/area/${id}`, data);
+  },
+
+  delete: (id: number): Promise<void> => {
+    return fetchService.delete<void>(`/area/${id}`);
+  },
+};
+
 // Export all APIs as a single object for convenience
 export const api = {
   admins: adminsApi,
@@ -470,6 +527,8 @@ export const api = {
   waterBills: waterBillsApi,
   auditLogs: auditLogsApi,
   notifications: notificationsApi,
+  zoneScoring: zoneScoringApi,
+  area: areaApi,
 };
 
 export default api;
