@@ -16,6 +16,9 @@ import Layout from "../components/common/Layout";
 import { TariffAdminMyMetrics } from '../pages/TariffAdminMyMetrics';
 import { TariffAdminTariffHistory } from '../pages/TariffAdminTariffHistory';
 import { TariffConfiguration } from '../pages/TariffConfiguration';
+import { ZoneScoringList } from '../pages/ZoneScoringList';
+import { ZoneScoringCreate } from '../pages/ZoneScoringCreate';
+import { ZoneScoringView } from '../pages/ZoneScoringView';
 import { ApprovalQueue } from '../pages/ApprovalQueue';
 import { ApprovalHistory } from '../pages/ApprovalHistory';
 import { ProtectedRoute } from "../components/common/ProtectedRoute";
@@ -180,6 +183,30 @@ const RouterIndex = () => {
           element={
             <ProtectedRoute allowedRoles={['tariff-admin']}>
               <TariffAdminMyMetrics />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/tariff-admin/zone-scoring" 
+          element={
+            <ProtectedRoute allowedRoles={['tariff-admin']}>
+              <ZoneScoringList />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/tariff-admin/zone-scoring/create" 
+          element={
+            <ProtectedRoute allowedRoles={['tariff-admin']}>
+              <ZoneScoringCreate />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/tariff-admin/zone-scoring/:id" 
+          element={
+            <ProtectedRoute allowedRoles={['tariff-admin']}>
+              <ZoneScoringView />
             </ProtectedRoute>
           } 
         />
