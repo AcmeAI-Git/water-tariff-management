@@ -22,38 +22,60 @@ export function ScoringParameterFormFields({
   const getPercentageValue = (field: string): string => {
     if (!showPercentages || !calculatedParams.length) return '0';
     
+    let param: ScoringParam | undefined;
+    
     // If editing, find the param by ID
     if (editingParamId) {
-      const param = calculatedParams.find(p => p.id === editingParamId);
-      if (!param) return '0';
-      
-      const percentageMap: Record<string, keyof ScoringParam> = {
-        landHomeRate: 'landHomeRatePercentage',
-        landRate: 'landRatePercentage',
-        landTaxRate: 'landTaxRatePercentage',
-        buildingTaxRateUpto120sqm: 'buildingTaxRateUpto120sqmPercentage',
-        buildingTaxRateUpto200sqm: 'buildingTaxRateUpto200sqmPercentage',
-        buildingTaxRateAbove200sqm: 'buildingTaxRateAbove200sqmPercentage',
-        highIncomeGroupConnectionPercentage: 'highIncomeGroupConnectionPercentage',
-      };
-      
-      const percentageField = percentageMap[field];
-      return percentageField ? (param[percentageField] as string) || '0' : '0';
+      param = calculatedParams.find(p => p.id === editingParamId);
+    } else {
+      // For new params (add modal), find by matching areaId
+      const areaId = (values as any).areaId;
+      if (areaId) {
+        param = calculatedParams.find(p => p.areaId === areaId);
+      }
     }
     
-    return '0';
+    if (!param) return '0';
+    
+    const percentageMap: Record<string, keyof ScoringParam> = {
+      landHomeRate: 'landHomeRatePercentage',
+      landRate: 'landRatePercentage',
+      landTaxRate: 'landTaxRatePercentage',
+      buildingTaxRateUpto120sqm: 'buildingTaxRateUpto120sqmPercentage',
+      buildingTaxRateUpto200sqm: 'buildingTaxRateUpto200sqmPercentage',
+      buildingTaxRateAbove200sqm: 'buildingTaxRateAbove200sqmPercentage',
+      highIncomeGroupConnectionPercentage: 'highIncomeGroupConnectionPercentage',
+    };
+    
+    const percentageField = percentageMap[field];
+    return percentageField ? (param[percentageField] as string) || '0' : '0';
   };
 
   const getGeoMeanValue = (): string => {
-    if (!calculatedParams.length || !editingParamId) return '0';
-    const param = calculatedParams.find(p => p.id === editingParamId);
+    if (!calculatedParams.length) return '0';
+    
+    let param: ScoringParam | undefined;
+    
+    // If editing, find the param by ID
+    if (editingParamId) {
+      param = calculatedParams.find(p => p.id === editingParamId);
+    } else {
+      // For new params (add modal), find by matching areaId
+      const areaId = (values as any).areaId;
+      if (areaId) {
+        param = calculatedParams.find(p => p.areaId === areaId);
+      }
+    }
+    
     return param?.geoMean || '0';
   };
 
+  const gridCols = showPercentages ? 'grid-cols-2' : 'grid-cols-1';
+  
   return (
     <div className="space-y-6">
       {/* Land + Home Rate */}
-      <div className="grid grid-cols-2 gap-4 items-end">
+      <div className={`grid ${gridCols} gap-4 items-end`}>
         <div className="space-y-2">
           <Label className="text-sm font-medium text-gray-700">
             Land+Home Rate (BDT/sqm) <span className="text-red-500">*</span>
@@ -79,7 +101,7 @@ export function ScoringParameterFormFields({
       </div>
 
       {/* Land Rate */}
-      <div className="grid grid-cols-2 gap-4 items-end">
+      <div className={`grid ${gridCols} gap-4 items-end`}>
         <div className="space-y-2">
           <Label className="text-sm font-medium text-gray-700">
             Land Rate (BDT/sqm) <span className="text-red-500">*</span>
@@ -105,7 +127,7 @@ export function ScoringParameterFormFields({
       </div>
 
       {/* Land Tax Rate */}
-      <div className="grid grid-cols-2 gap-4 items-end">
+      <div className={`grid ${gridCols} gap-4 items-end`}>
         <div className="space-y-2">
           <Label className="text-sm font-medium text-gray-700">
             Land Tax Rate (BDT/sqm) <span className="text-red-500">*</span>
@@ -131,7 +153,7 @@ export function ScoringParameterFormFields({
       </div>
 
       {/* Building Tax Rate (≤120sqm) */}
-      <div className="grid grid-cols-2 gap-4 items-end">
+      <div className={`grid ${gridCols} gap-4 items-end`}>
         <div className="space-y-2">
           <Label className="text-sm font-medium text-gray-700">
             Building Tax Rate (≤120sqm) (BDT/sqm) <span className="text-red-500">*</span>
@@ -157,7 +179,7 @@ export function ScoringParameterFormFields({
       </div>
 
       {/* Building Tax Rate (≤200sqm) */}
-      <div className="grid grid-cols-2 gap-4 items-end">
+      <div className={`grid ${gridCols} gap-4 items-end`}>
         <div className="space-y-2">
           <Label className="text-sm font-medium text-gray-700">
             Building Tax Rate (≤200sqm) (BDT/sqm) <span className="text-red-500">*</span>
@@ -183,7 +205,7 @@ export function ScoringParameterFormFields({
       </div>
 
       {/* Building Tax Rate (>200sqm) */}
-      <div className="grid grid-cols-2 gap-4 items-end">
+      <div className={`grid ${gridCols} gap-4 items-end`}>
         <div className="space-y-2">
           <Label className="text-sm font-medium text-gray-700">
             Building Tax Rate (&gt;200sqm) (BDT/sqm) <span className="text-red-500">*</span>
@@ -209,7 +231,7 @@ export function ScoringParameterFormFields({
       </div>
 
       {/* High Income Group Connection */}
-      <div className="grid grid-cols-2 gap-4 items-end">
+      <div className={`grid ${gridCols} gap-4 items-end`}>
         <div className="space-y-2">
           <Label className="text-sm font-medium text-gray-700">
             High Income Group Connection Count <span className="text-red-500">*</span>

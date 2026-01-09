@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Plus, Edit, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { api } from '../services/api';
 import { useApiQuery, useApiMutation } from '../hooks/useApiQuery';
 import LoadingSpinner from '../components/common/LoadingSpinner';
@@ -10,6 +10,8 @@ import { StatusBadge } from '../components/zoneScoring/StatusBadge';
 import { DeleteConfirmationDialog } from '../components/zoneScoring/DeleteConfirmationDialog';
 import { PageHeader } from '../components/zoneScoring/PageHeader';
 import { EmptyState } from '../components/zoneScoring/EmptyState';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Label } from '../components/ui/label';
 import type { ZoneScoringRuleSet } from '../types';
 
 export function ZoneScoringList() {
@@ -31,6 +33,56 @@ export function ZoneScoringList() {
       invalidateQueries: [['zone-scoring']],
     }
   );
+
+  const updateZoneScoringMutation = useApiMutation(
+    ({ id, data }: { id: number; data: Parameters<typeof api.zoneScoring.update>[1] }) => api.zoneScoring.update(id, data),
+    {
+      successMessage: 'Ruleset updated successfully',
+      errorMessage: 'Failed to update ruleset',
+      invalidateQueries: [['zone-scoring']],
+    }
+  );
+
+  // Get approved ruleset (this is the active one)
+  const approvedRuleset = useMemo(() => {
+    return zoneScoringRuleSets.find(rs => rs.status === 'approved') || null;
+  }, [zoneScoringRuleSets]);
+
+  const handleSetApprovedRuleset = async (rulesetId: string) => {
+    const selectedId = parseInt(rulesetId);
+    if (isNaN(selectedId)) return;
+
+    // Don't do anything if selecting the same approved ruleset
+    if (approvedRuleset?.id === selectedId) return;
+
+    try {
+      // Set all other approved rulesets to draft
+      const otherApprovedRulesets = zoneScoringRuleSets.filter(
+        rs => rs.id !== selectedId && rs.status === 'approved'
+      );
+      
+      // Use mutations for all updates to ensure proper error handling
+      for (const otherRuleset of otherApprovedRulesets) {
+        await updateZoneScoringMutation.mutateAsync({
+          id: otherRuleset.id,
+          data: {
+            status: 'draft'
+          },
+        });
+      }
+
+      // Set the selected ruleset to approved
+      await updateZoneScoringMutation.mutateAsync({
+        id: selectedId,
+        data: {
+          status: 'approved'
+        },
+      });
+    } catch (error) {
+      console.error('Error setting approved ruleset:', error);
+      alert('Failed to update approved ruleset. Please try again.');
+    }
+  };
 
   const handleDelete = (ruleset: ZoneScoringRuleSet) => {
     setRulesetToDelete(ruleset);
@@ -61,15 +113,45 @@ export function ZoneScoringList() {
           showBackButton={false}
         />
 
-        {/* Create Button */}
-        <div className="mb-6">
-          <Button 
-            onClick={() => navigate('/tariff-admin/zone-scoring/create')}
-            className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-11 px-6 flex items-center gap-2"
-          >
-            <Plus size={18} />
-            Create New Ruleset
-          </Button>
+        {/* Active Ruleset Selector and Create Button */}
+        <div className="mb-6 flex items-start gap-4">
+          <div className="flex-1 max-w-md">
+            <Label className="text-sm font-medium text-gray-700 mb-2 block">
+              Approved Ruleset
+            </Label>
+            <Select 
+              value={approvedRuleset?.id.toString() || ''} 
+              onValueChange={handleSetApprovedRuleset}
+              disabled={updateZoneScoringMutation.isPending}
+            >
+              <SelectTrigger className="w-full border-gray-300 rounded-lg h-11 bg-white">
+                <SelectValue placeholder="Select approved ruleset" />
+              </SelectTrigger>
+              <SelectContent className="bg-white border border-gray-200 shadow-lg">
+                {zoneScoringRuleSets.map((rs) => (
+                  <SelectItem 
+                    key={rs.id} 
+                    value={rs.id.toString()} 
+                    className="bg-white hover:bg-gray-50 cursor-pointer"
+                  >
+                    {rs.title} {rs.status === 'approved' && '(Approved)'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-gray-500 mt-1">
+              Only one ruleset can be approved at a time. Selecting a new approved ruleset will set the current one to draft.
+            </p>
+          </div>
+          <div className="pt-7">
+            <Button 
+              onClick={() => navigate('/tariff-admin/zone-scoring/create')}
+              className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-11 px-6 flex items-center gap-2"
+            >
+              <Plus size={18} />
+              Create New Ruleset
+            </Button>
+          </div>
         </div>
 
         {/* Rulesets Table */}
@@ -101,7 +183,7 @@ export function ZoneScoringList() {
                       {ruleset.title}
                     </TableCell>
                     <TableCell>
-                      <StatusBadge status={ruleset.status as 'active' | 'draft' | 'inactive'} />
+                      <StatusBadge status={ruleset.status as 'draft' | 'pending' | 'approved'} />
                     </TableCell>
                     <TableCell className="text-sm text-gray-600">
                       {ruleset.description || <span className="text-gray-400 italic">No description</span>}

@@ -2,18 +2,19 @@ import type { ScoringParam, CreateScoringParamDto } from '../types';
 
 /**
  * Calculate percentages and geometric mean for scoring parameters
+ * Matches Excel formula: percentage = value / SUM(all_values) * 100
  */
 export function calculatePercentages(params: ScoringParam[]): ScoringParam[] {
   if (params.length === 0) return params;
   
-  // Get max values for each column
-  const maxLandHomeRate = Math.max(...params.map(p => parseFloat(p.landHomeRate) || 0));
-  const maxLandRate = Math.max(...params.map(p => parseFloat(p.landRate) || 0));
-  const maxLandTaxRate = Math.max(...params.map(p => parseFloat(p.landTaxRate) || 0));
-  const maxBuildingTax120 = Math.max(...params.map(p => parseFloat(p.buildingTaxRateUpto120sqm) || 0));
-  const maxBuildingTax200 = Math.max(...params.map(p => parseFloat(p.buildingTaxRateUpto200sqm) || 0));
-  const maxBuildingTaxAbove200 = Math.max(...params.map(p => parseFloat(p.buildingTaxRateAbove200sqm) || 0));
-  const maxHighIncome = Math.max(...params.map(p => parseFloat(p.highIncomeGroupConnectionPercentage) || 0));
+  // Get sum of all values for each column (matching Excel: SUM(G2:G95))
+  const sumLandHomeRate = params.reduce((sum, p) => sum + (parseFloat(p.landHomeRate) || 0), 0);
+  const sumLandRate = params.reduce((sum, p) => sum + (parseFloat(p.landRate) || 0), 0);
+  const sumLandTaxRate = params.reduce((sum, p) => sum + (parseFloat(p.landTaxRate) || 0), 0);
+  const sumBuildingTax120 = params.reduce((sum, p) => sum + (parseFloat(p.buildingTaxRateUpto120sqm) || 0), 0);
+  const sumBuildingTax200 = params.reduce((sum, p) => sum + (parseFloat(p.buildingTaxRateUpto200sqm) || 0), 0);
+  const sumBuildingTaxAbove200 = params.reduce((sum, p) => sum + (parseFloat(p.buildingTaxRateAbove200sqm) || 0), 0);
+  const sumHighIncome = params.reduce((sum, p) => sum + (parseFloat(p.highIncomeGroupConnectionPercentage) || 0), 0);
   
   // Calculate percentages and geomean for each param
   return params.map(param => {
@@ -25,13 +26,14 @@ export function calculatePercentages(params: ScoringParam[]): ScoringParam[] {
     const buildingTaxAbove200 = parseFloat(param.buildingTaxRateAbove200sqm) || 0;
     const highIncome = parseFloat(param.highIncomeGroupConnectionPercentage) || 0;
     
-    const landHomeRatePct = maxLandHomeRate > 0 ? (landHomeRate / maxLandHomeRate) * 100 : 0;
-    const landRatePct = maxLandRate > 0 ? (landRate / maxLandRate) * 100 : 0;
-    const landTaxRatePct = maxLandTaxRate > 0 ? (landTaxRate / maxLandTaxRate) * 100 : 0;
-    const buildingTax120Pct = maxBuildingTax120 > 0 ? (buildingTax120 / maxBuildingTax120) * 100 : 0;
-    const buildingTax200Pct = maxBuildingTax200 > 0 ? (buildingTax200 / maxBuildingTax200) * 100 : 0;
-    const buildingTaxAbove200Pct = maxBuildingTaxAbove200 > 0 ? (buildingTaxAbove200 / maxBuildingTaxAbove200) * 100 : 0;
-    const highIncomePct = maxHighIncome > 0 ? (highIncome / maxHighIncome) * 100 : 0;
+    // Calculate percentage as: value / SUM(all_values) * 100 (matching Excel formula)
+    const landHomeRatePct = sumLandHomeRate > 0 ? (landHomeRate / sumLandHomeRate) * 100 : 0;
+    const landRatePct = sumLandRate > 0 ? (landRate / sumLandRate) * 100 : 0;
+    const landTaxRatePct = sumLandTaxRate > 0 ? (landTaxRate / sumLandTaxRate) * 100 : 0;
+    const buildingTax120Pct = sumBuildingTax120 > 0 ? (buildingTax120 / sumBuildingTax120) * 100 : 0;
+    const buildingTax200Pct = sumBuildingTax200 > 0 ? (buildingTax200 / sumBuildingTax200) * 100 : 0;
+    const buildingTaxAbove200Pct = sumBuildingTaxAbove200 > 0 ? (buildingTaxAbove200 / sumBuildingTaxAbove200) * 100 : 0;
+    const highIncomePct = sumHighIncome > 0 ? (highIncome / sumHighIncome) * 100 : 0;
     
     // Calculate geometric mean of all percentages (convert to decimal first)
     const percentages = [

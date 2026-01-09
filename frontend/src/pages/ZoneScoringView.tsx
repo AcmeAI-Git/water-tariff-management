@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, Edit } from 'lucide-react';
 import { useState, useMemo, useRef } from 'react';
 import { api } from '../services/api';
 import { useApiQuery, useApiMutation } from '../hooks/useApiQuery';
@@ -12,6 +12,10 @@ import { ScrollNavigationControls } from '../components/zoneScoring/ScrollNaviga
 import { PageHeader } from '../components/zoneScoring/PageHeader';
 import { EmptyState } from '../components/zoneScoring/EmptyState';
 import { StatusBadge } from '../components/zoneScoring/StatusBadge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { calculatePercentages, initializeScoringParam, mapScoringParamsToDto } from '../utils/zoneScoringUtils';
 import type { ZoneScoringRuleSet, ScoringParam, Area, CreateScoringParamDto } from '../types';
 
@@ -24,6 +28,10 @@ export function ZoneScoringView() {
   const [editingParamValues, setEditingParamValues] = useState<Partial<ScoringParam> | null>(null);
   const [isEditParamModalOpen, setIsEditParamModalOpen] = useState(false);
   const [isAddParamModalOpen, setIsAddParamModalOpen] = useState(false);
+  const [isEditRuleSetModalOpen, setIsEditRuleSetModalOpen] = useState(false);
+  const [editRuleSetTitle, setEditRuleSetTitle] = useState('');
+  const [editRuleSetDescription, setEditRuleSetDescription] = useState('');
+  const [editRuleSetStatus, setEditRuleSetStatus] = useState('');
   const [newParam, setNewParam] = useState<CreateScoringParamDto>(
     initializeScoringParam()
   );
@@ -42,6 +50,13 @@ export function ZoneScoringView() {
   );
   const areas: Area[] = (areasData ?? []) as Area[];
 
+  // Fetch all rulesets to check for active ones
+  const { data: allRulesetsData } = useApiQuery<ZoneScoringRuleSet[]>(
+    ['zone-scoring'],
+    () => api.zoneScoring.getAll()
+  );
+  const allRulesets: ZoneScoringRuleSet[] = (allRulesetsData ?? []) as ZoneScoringRuleSet[];
+
   // Mutations
   const updateZoneScoringMutation = useApiMutation(
     ({ id, data }: { id: number; data: Parameters<typeof api.zoneScoring.update>[1] }) => api.zoneScoring.update(id, data),
@@ -52,20 +67,43 @@ export function ZoneScoringView() {
     }
   );
 
-  // Calculate percentages for current rule set (with real-time updates when editing)
+  // Calculate percentages for current rule set (with real-time updates when editing or adding)
   const calculatedParams = useMemo(() => {
-    if (!rulesetData || !rulesetData.scoringParams) return [];
+    if (!rulesetData || !rulesetData.scoringParams) {
+      // If no ruleset data but we're adding a param, calculate with just the new param
+      if (newParam.areaId && newParam.areaId !== 0) {
+        const tempParam: ScoringParam = {
+          ...newParam,
+          id: 0,
+          area: areas.find(a => a.id === newParam.areaId),
+          ruleSetId: 0,
+        } as ScoringParam;
+        return calculatePercentages([tempParam]);
+      }
+      return [];
+    }
+    
+    let paramsToCalculate = rulesetData.scoringParams;
     
     // If editing, use the edited values for calculations
-    let paramsToCalculate = rulesetData.scoringParams;
     if (editingParam && editingParamValues) {
       paramsToCalculate = rulesetData.scoringParams.map(p => 
         p.id === editingParam.id ? { ...p, ...editingParamValues } : p
       );
     }
+    // If adding a new param, include it in the calculation
+    else if (newParam.areaId && newParam.areaId !== 0) {
+      const tempParam: ScoringParam = {
+        ...newParam,
+        id: 0,
+        area: areas.find(a => a.id === newParam.areaId),
+        ruleSetId: rulesetData.id,
+      } as ScoringParam;
+      paramsToCalculate = [...rulesetData.scoringParams, tempParam];
+    }
     
     return calculatePercentages(paramsToCalculate);
-  }, [rulesetData, editingParam, editingParamValues]);
+  }, [rulesetData, editingParam, editingParamValues, newParam, areas]);
 
   const handleEditParam = (param: ScoringParam) => {
     setEditingParam(param);
@@ -151,6 +189,57 @@ export function ZoneScoringView() {
     }
   };
 
+  const handleEditRuleSet = () => {
+    if (!rulesetData) return;
+    setEditRuleSetTitle(rulesetData.title);
+    setEditRuleSetDescription(rulesetData.description || '');
+    setEditRuleSetStatus(rulesetData.status);
+    setIsEditRuleSetModalOpen(true);
+  };
+
+  const handleSaveRuleSet = async () => {
+    if (!rulesetData) return;
+
+    if (!editRuleSetTitle.trim()) {
+      alert('Please enter a title');
+      return;
+    }
+
+    try {
+      // If setting to approved, deactivate all other approved rulesets first
+      if (editRuleSetStatus === 'approved') {
+        const otherApprovedRulesets = allRulesets.filter(
+          rs => rs.id !== rulesetData.id && rs.status === 'approved'
+        );
+        
+        // Set all other approved rulesets to draft
+        for (const otherRuleset of otherApprovedRulesets) {
+          await updateZoneScoringMutation.mutateAsync({
+            id: otherRuleset.id,
+            data: {
+              status: 'draft'
+            },
+          });
+        }
+      }
+
+      // Update the current ruleset
+      await updateZoneScoringMutation.mutateAsync({
+        id: rulesetData.id,
+        data: {
+          title: editRuleSetTitle.trim(),
+          description: editRuleSetDescription.trim() || undefined,
+          status: editRuleSetStatus,
+        },
+      });
+
+      setIsEditRuleSetModalOpen(false);
+    } catch (error) {
+      console.error('Error updating ruleset:', error);
+      alert('Failed to update ruleset');
+    }
+  };
+
   if (rulesetLoading || areasLoading) {
     return (
       <div className="min-h-screen bg-[#f8f9fb] flex items-center justify-center">
@@ -180,8 +269,17 @@ export function ZoneScoringView() {
           description={rulesetData.description || 'No description'}
           backUrl="/tariff-admin/zone-scoring"
         >
-          <div className="mt-2">
-            <StatusBadge status={rulesetData.status as 'active' | 'draft' | 'inactive'} />
+          <div className="mt-2 flex items-center gap-3">
+            <StatusBadge status={rulesetData.status as 'draft' | 'pending' | 'approved'} />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleEditRuleSet}
+              className="border-gray-300 text-gray-700 rounded-lg h-8 px-3 bg-white hover:bg-gray-50 inline-flex items-center gap-1.5"
+            >
+              <Edit size={14} />
+              Edit Ruleset
+            </Button>
           </div>
         </PageHeader>
 
@@ -244,7 +342,81 @@ export function ZoneScoringView() {
           areas={areas}
           onAdd={handleAddParameter}
           isPending={updateZoneScoringMutation.isPending}
+          calculatedParams={calculatedParams}
         />
+
+        {/* Edit Ruleset Modal */}
+        <Dialog open={isEditRuleSetModalOpen} onOpenChange={setIsEditRuleSetModalOpen}>
+          <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold text-gray-900">
+                Edit Ruleset Details
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-4 space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="ruleset-title" className="text-sm font-medium text-gray-700">
+                  Title *
+                </Label>
+                <Input
+                  id="ruleset-title"
+                  value={editRuleSetTitle}
+                  onChange={(e) => setEditRuleSetTitle(e.target.value)}
+                  placeholder="e.g., DWASA Zone Scoring 2026"
+                  className="border-gray-300 rounded-lg h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ruleset-description" className="text-sm font-medium text-gray-700">
+                  Description
+                </Label>
+                <Input
+                  id="ruleset-description"
+                  value={editRuleSetDescription}
+                  onChange={(e) => setEditRuleSetDescription(e.target.value)}
+                  placeholder="Optional description"
+                  className="border-gray-300 rounded-lg h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ruleset-status" className="text-sm font-medium text-gray-700">
+                  Status *
+                </Label>
+                <Select value={editRuleSetStatus} onValueChange={setEditRuleSetStatus}>
+                  <SelectTrigger className="w-full border-gray-300 rounded-lg h-11">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="approved">Approved</SelectItem>
+                  </SelectContent>
+                </Select>
+                {editRuleSetStatus === 'approved' && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Note: Setting this to approved will automatically set all other approved rulesets to draft.
+                  </p>
+                )}
+              </div>
+            </div>
+            <DialogFooter className="gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsEditRuleSetModalOpen(false)}
+                className="border-gray-300 text-gray-700 rounded-lg h-10 px-6 bg-white hover:bg-gray-50"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSaveRuleSet}
+                disabled={updateZoneScoringMutation.isPending || !editRuleSetTitle.trim()}
+                className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-10 px-6 disabled:opacity-50"
+              >
+                {updateZoneScoringMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
