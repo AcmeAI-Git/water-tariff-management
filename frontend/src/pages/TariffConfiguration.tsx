@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Plus, Edit, Calendar as CalendarIcon } from 'lucide-react';
+import { Plus, Edit, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { Calendar } from '../components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
@@ -13,7 +13,7 @@ import { useApiQuery, useApiMutation, useAdminId } from '../hooks/useApiQuery';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { format } from 'date-fns';
 import { cn } from '../utils/utils';
-import type { TariffPlan, Zone, ZoneScoringRuleSet, Area, CreateZoneScoringRuleSetDto, CreateScoringParamDto, UpdateZoneScoringRuleSetDto, ScoringParam } from '../types';
+import type { TariffPlan, Zone, ZoneScoringRuleSet, Area, CreateZoneScoringRuleSetDto, CreateScoringParamDto, ScoringParam } from '../types';
 
 export function TariffConfiguration() {
   const [activeTab, setActiveTab] = useState<'residential' | 'commercial' | 'zone-scoring' | 'zone-categories'>('residential');
@@ -31,7 +31,6 @@ export function TariffConfiguration() {
   
   // Zone Scoring UI States
   const [selectedRuleSetId, setSelectedRuleSetId] = useState<number | null>(null);
-  const [editingParamId, setEditingParamId] = useState<number | null>(null);
   const [editingParamValues, setEditingParamValues] = useState<Partial<ScoringParam> | null>(null);
   const [isEditParamModalOpen, setIsEditParamModalOpen] = useState(false);
   const [editingParam, setEditingParam] = useState<ScoringParam | null>(null);
@@ -60,9 +59,9 @@ export function TariffConfiguration() {
     createNewArea: false,
   });
   
-  // Refs for scrollbar sync
+  // Refs for table scrolling
   const tableScrollRef = useRef<HTMLDivElement>(null);
-  const topScrollRef = useRef<HTMLDivElement>(null);
+  const [scrollPosition, setScrollPosition] = useState({ left: 0, maxScroll: 0, canScrollLeft: false, canScrollRight: false });
   
   // Form states for Tariff Plan (multiple slabs)
   const [planName, setPlanName] = useState('');
@@ -180,75 +179,84 @@ export function TariffConfiguration() {
     
     // If editing, use the edited values for calculations
     let paramsToCalculate = activeRuleSet.scoringParams;
-    if (editingParamId && editingParamValues) {
+    if (editingParam && editingParamValues) {
       paramsToCalculate = activeRuleSet.scoringParams.map(p => 
-        p.id === editingParamId ? { ...p, ...editingParamValues } : p
+        p.id === editingParam.id ? { ...p, ...editingParamValues } : p
       );
     }
     
     return calculatePercentages(paramsToCalculate);
-  }, [activeRuleSet, editingParamId, editingParamValues]);
+  }, [activeRuleSet, editingParam, editingParamValues]);
 
-  // Sync top and bottom scrollbars
+  // Track scroll position and update navigation controls
   useEffect(() => {
     const tableScroll = tableScrollRef.current;
-    const topScroll = topScrollRef.current;
-    
-    if (!tableScroll || !topScroll) return;
+    if (!tableScroll) return;
 
-    // Calculate actual table width dynamically
-    const updateScrollbarWidth = () => {
-      const table = tableScroll.querySelector('table');
-      if (table) {
-        const tableWidth = table.scrollWidth;
-        const topScrollContent = topScroll.querySelector('div');
-        if (topScrollContent) {
-          topScrollContent.style.width = `${tableWidth}px`;
-        }
-      }
+    const updateScrollInfo = () => {
+      const scrollLeft = tableScroll.scrollLeft;
+      const scrollWidth = tableScroll.scrollWidth;
+      const clientWidth = tableScroll.clientWidth;
+      const maxScroll = scrollWidth - clientWidth;
+      
+      setScrollPosition({
+        left: scrollLeft,
+        maxScroll,
+        canScrollLeft: scrollLeft > 0,
+        canScrollRight: scrollLeft < maxScroll - 1, // -1 for floating point precision
+      });
     };
 
-    // Initial calculation
-    updateScrollbarWidth();
-
-    const handleTableScroll = () => {
-      if (topScroll) {
-        topScroll.scrollLeft = tableScroll.scrollLeft;
-      }
+    const handleScroll = () => {
+      updateScrollInfo();
     };
 
-    const handleTopScroll = () => {
-      if (tableScroll) {
-        tableScroll.scrollLeft = topScroll.scrollLeft;
-      }
-    };
-
-    tableScroll.addEventListener('scroll', handleTableScroll);
-    topScroll.addEventListener('scroll', handleTopScroll);
-    
-    // Recalculate on resize and when params change
     const handleResize = () => {
-      updateScrollbarWidth();
+      updateScrollInfo();
     };
+
+    // Initial update
+    const timeoutId = setTimeout(updateScrollInfo, 100);
     
+    tableScroll.addEventListener('scroll', handleScroll, { passive: true });
     window.addEventListener('resize', handleResize);
     
-    // Use MutationObserver to detect table changes
-    const observer = new MutationObserver(() => {
-      updateScrollbarWidth();
-    });
+    // Use ResizeObserver to detect table size changes
+    const table = tableScroll.querySelector('table');
+    let resizeObserver: ResizeObserver | null = null;
     
-    if (tableScroll) {
-      observer.observe(tableScroll, { childList: true, subtree: true });
+    if (table) {
+      resizeObserver = new ResizeObserver(() => {
+        updateScrollInfo();
+      });
+      resizeObserver.observe(table);
     }
     
     return () => {
-      tableScroll.removeEventListener('scroll', handleTableScroll);
-      topScroll.removeEventListener('scroll', handleTopScroll);
+      tableScroll.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', handleResize);
-      observer.disconnect();
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+      clearTimeout(timeoutId);
     };
   }, [calculatedParams]);
+
+  // Scroll navigation functions
+  const scrollTable = (direction: 'left' | 'right', amount: number = 300) => {
+    const tableScroll = tableScrollRef.current;
+    if (!tableScroll) return;
+    
+    const currentScroll = tableScroll.scrollLeft;
+    const newScroll = direction === 'left' 
+      ? Math.max(0, currentScroll - amount)
+      : Math.min(tableScroll.scrollWidth - tableScroll.clientWidth, currentScroll + amount);
+    
+    tableScroll.scrollTo({
+      left: newScroll,
+      behavior: 'smooth'
+    });
+  };
 
   // Fetch areas
   const { data: areasData, isLoading: areasLoading } = useApiQuery<Area[]>(
@@ -296,14 +304,6 @@ export function TariffConfiguration() {
     }
   );
 
-  const deleteZoneScoringMutation = useApiMutation(
-    (id: number) => api.zoneScoring.delete(id),
-    {
-      successMessage: 'Zone scoring rule set deleted successfully',
-      errorMessage: 'Failed to delete zone scoring rule set',
-      invalidateQueries: [['zone-scoring']],
-    }
-  );
 
   // Area mutations
   const createAreaMutation = useApiMutation(
@@ -571,29 +571,30 @@ export function TariffConfiguration() {
       
       const calculatedNewParam = calculatePercentages(paramsToCalculate)[0];
       
-      // Add new param to existing params
-      const updatedParams = [
-        ...(currentRuleSet.scoringParams || []).map(p => ({
-          areaId: p.areaId,
-          landHomeRate: p.landHomeRate,
-          landRate: p.landRate,
-          landTaxRate: p.landTaxRate,
-          buildingTaxRateUpto120sqm: p.buildingTaxRateUpto120sqm,
-          buildingTaxRateUpto200sqm: p.buildingTaxRateUpto200sqm,
-          buildingTaxRateAbove200sqm: p.buildingTaxRateAbove200sqm,
-          highIncomeGroupConnectionPercentage: p.highIncomeGroupConnectionPercentage,
-        })),
-        {
-          areaId: calculatedNewParam.areaId,
-          landHomeRate: calculatedNewParam.landHomeRate,
-          landRate: calculatedNewParam.landRate,
-          landTaxRate: calculatedNewParam.landTaxRate,
-          buildingTaxRateUpto120sqm: calculatedNewParam.buildingTaxRateUpto120sqm,
-          buildingTaxRateUpto200sqm: calculatedNewParam.buildingTaxRateUpto200sqm,
-          buildingTaxRateAbove200sqm: calculatedNewParam.buildingTaxRateAbove200sqm,
-          highIncomeGroupConnectionPercentage: calculatedNewParam.highIncomeGroupConnectionPercentage,
-        },
+      // Add new param to existing params - recalculate all percentages
+      const allParams = [
+        ...(currentRuleSet.scoringParams || []),
+        calculatedNewParam,
       ];
+      const recalculatedAllParams = calculatePercentages(allParams);
+      
+      const updatedParams: CreateScoringParamDto[] = recalculatedAllParams.map(p => ({
+        areaId: p.areaId,
+        landHomeRate: p.landHomeRate,
+        landHomeRatePercentage: p.landHomeRatePercentage,
+        landRate: p.landRate,
+        landRatePercentage: p.landRatePercentage,
+        landTaxRate: p.landTaxRate,
+        landTaxRatePercentage: p.landTaxRatePercentage,
+        buildingTaxRateUpto120sqm: p.buildingTaxRateUpto120sqm,
+        buildingTaxRateUpto120sqmPercentage: p.buildingTaxRateUpto120sqmPercentage,
+        buildingTaxRateUpto200sqm: p.buildingTaxRateUpto200sqm,
+        buildingTaxRateUpto200sqmPercentage: p.buildingTaxRateUpto200sqmPercentage,
+        buildingTaxRateAbove200sqm: p.buildingTaxRateAbove200sqm,
+        buildingTaxRateAbove200sqmPercentage: p.buildingTaxRateAbove200sqmPercentage,
+        highIncomeGroupConnectionPercentage: p.highIncomeGroupConnectionPercentage,
+        geoMean: p.geoMean,
+      }));
 
       // Update rule set with new params
       await updateZoneScoringMutation.mutateAsync({
@@ -1266,21 +1267,41 @@ export function TariffConfiguration() {
                     Add Parameter
                   </Button>
                 </div>
-                {/* Top Scrollbar Wrapper */}
-                <div className="relative">
-                  <div ref={topScrollRef} className="overflow-x-auto overflow-y-hidden mb-2" style={{ scrollbarWidth: 'thin', height: '17px' }} id="zone-scoring-top-scroll">
-                    <div style={{ height: '1px', width: '2000px' }}></div>
+                {/* Scroll Navigation Controls */}
+                {scrollPosition.maxScroll > 0 && (
+                  <div className="flex items-center justify-between gap-4 mb-3 px-1">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => scrollTable('left')}
+                        disabled={!scrollPosition.canScrollLeft}
+                        className="h-9 px-3 border-gray-300 disabled:opacity-50"
+                      >
+                        <ChevronLeft size={16} />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => scrollTable('right')}
+                        disabled={!scrollPosition.canScrollRight}
+                        className="h-9 px-3 border-gray-300 disabled:opacity-50"
+                      >
+                        <ChevronRight size={16} />
+                      </Button>
+                    </div>
+                    <div className="text-xs text-gray-500 flex items-center gap-2">
+                      <span>
+                        {Math.round((scrollPosition.left / Math.max(scrollPosition.maxScroll, 1)) * 100)}% scrolled
+                      </span>
+                    </div>
                   </div>
-                  <div ref={tableScrollRef} className="overflow-x-auto" id="zone-scoring-table-scroll">
+                )}
+                <div ref={tableScrollRef} className="overflow-x-auto" id="zone-scoring-table-scroll">
                     <Table>
                         <TableHeader>
                           <TableRow className="border-gray-200 bg-gray-50">
-                            <TableHead className="text-sm font-semibold text-gray-700 whitespace-nowrap">Zone</TableHead>
-                            <TableHead className="text-sm font-semibold text-gray-700 whitespace-nowrap">DMA</TableHead>
-                            <TableHead className="text-sm font-semibold text-gray-700 whitespace-nowrap">Ward</TableHead>
                             <TableHead className="text-sm font-semibold text-gray-700 whitespace-nowrap">Area Name</TableHead>
-                            <TableHead className="text-sm font-semibold text-gray-700 whitespace-nowrap">Thana</TableHead>
-                            <TableHead className="text-sm font-semibold text-gray-700 whitespace-nowrap">Sub-Registry<br/>Office</TableHead>
                             <TableHead className="text-sm font-semibold text-gray-700 whitespace-nowrap">Land+Home Rate<br/>(BDT/sqm)</TableHead>
                             <TableHead className="text-sm font-semibold text-gray-700 whitespace-nowrap">% of Land+Home</TableHead>
                             <TableHead className="text-sm font-semibold text-gray-700 whitespace-nowrap">Land Rate<br/>(BDT/sqm)</TableHead>
@@ -1294,9 +1315,7 @@ export function TariffConfiguration() {
                             <TableHead className="text-sm font-semibold text-gray-700 whitespace-nowrap">Building Tax<br/>(&gt;200sqm)</TableHead>
                             <TableHead className="text-sm font-semibold text-gray-700 whitespace-nowrap">% Building Tax<br/>(&gt;200sqm)</TableHead>
                             <TableHead className="text-sm font-semibold text-gray-700 whitespace-nowrap">High Income<br/>Count</TableHead>
-                                <TableHead className="text-sm font-semibold text-gray-700 whitespace-nowrap">% High Income</TableHead>
-                            <TableHead className="text-sm font-semibold text-gray-700 whitespace-nowrap">House Rent<br/>Rate</TableHead>
-                            <TableHead className="text-sm font-semibold text-gray-700 whitespace-nowrap">% of House Rent</TableHead>
+                            <TableHead className="text-sm font-semibold text-gray-700 whitespace-nowrap">% High Income</TableHead>
                             <TableHead className="text-sm font-semibold text-gray-700 whitespace-nowrap">GeoMean</TableHead>
                             <TableHead className="text-sm font-semibold text-gray-700 whitespace-nowrap">Zone Score</TableHead>
                             <TableHead className="text-sm font-semibold text-gray-700 text-center whitespace-nowrap">Action</TableHead>
@@ -1314,28 +1333,8 @@ export function TariffConfiguration() {
                             
                             return (
                               <TableRow key={param.id} className="border-gray-100">
-                                <TableCell className="text-sm text-gray-600 whitespace-nowrap">
-                                  {/* Zone - not in API yet */}
-                                  <span className="text-gray-400">N/A</span>
-                                </TableCell>
-                                <TableCell className="text-sm text-gray-600 whitespace-nowrap">
-                                  {/* DMA - not in API yet */}
-                                  <span className="text-gray-400">N/A</span>
-                                </TableCell>
-                                <TableCell className="text-sm text-gray-600 whitespace-nowrap">
-                                  {/* Ward - not in API yet */}
-                                  <span className="text-gray-400">N/A</span>
-                                </TableCell>
                                 <TableCell className="text-sm font-medium text-gray-900 whitespace-nowrap">
                                   {param.area?.name || `Area ${param.areaId}`}
-                                </TableCell>
-                                <TableCell className="text-sm text-gray-600 whitespace-nowrap">
-                                  {/* Thana - not in API yet */}
-                                  <span className="text-gray-400">N/A</span>
-                                </TableCell>
-                                <TableCell className="text-sm text-gray-600 whitespace-nowrap">
-                                  {/* Sub-Registry Office - not in API yet */}
-                                  <span className="text-gray-400">N/A</span>
                                 </TableCell>
                                 <TableCell className="text-sm text-gray-900 whitespace-nowrap">
                                   {param.landHomeRate}
@@ -1380,14 +1379,6 @@ export function TariffConfiguration() {
                                   {param.highIncomeGroupConnectionPercentage}%
                                 </TableCell>
                                 <TableCell className="text-sm text-gray-600 whitespace-nowrap">
-                                  {/* House Rent Rate - not in API yet */}
-                                  <span className="text-gray-400">N/A</span>
-                                </TableCell>
-                                <TableCell className="text-sm text-gray-600 whitespace-nowrap">
-                                  {/* % of House Rent Rate - not in API yet */}
-                                  <span className="text-gray-400">N/A</span>
-                                </TableCell>
-                                <TableCell className="text-sm text-gray-600 whitespace-nowrap">
                                   {param.geoMean}
                                 </TableCell>
                                 <TableCell className="text-sm text-gray-600 whitespace-nowrap">
@@ -1422,7 +1413,6 @@ export function TariffConfiguration() {
                         </TableBody>
                       </Table>
                   </div>
-                </div>
               </div>
             )}
           </div>
