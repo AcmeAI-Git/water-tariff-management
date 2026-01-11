@@ -483,6 +483,16 @@ export const zoneScoringApi = {
   delete: (id: number): Promise<void> => {
     return fetchService.delete<void>(`/zone-scoring/${id}`);
   },
+
+  // Publish endpoint - makes a ruleset active/published
+  publish: (id: number): Promise<ZoneScoringRuleSet> => {
+    return fetchService.patch<ZoneScoringRuleSet>(`/zone-scoring/publish/${id}`, {});
+  },
+
+  // Status endpoint - updates the status of a ruleset
+  updateStatus: (id: number, status: string): Promise<ZoneScoringRuleSet> => {
+    return fetchService.patch<ZoneScoringRuleSet>(`/zone-scoring/status/${id}`, { status });
+  },
 };
 
 // ==================== AREA ====================

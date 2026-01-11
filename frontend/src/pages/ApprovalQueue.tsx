@@ -341,6 +341,36 @@ export function ApprovalQueue() {
             previousReading: consumption.previousReading,
             consumption: consumption.consumption,
           };
+        } else if (request.module === 'ZoneScoring') {
+          // Fetch zone scoring ruleset data
+          const ruleset = await api.zoneScoring.getById(request.recordId);
+          newData = {
+            title: ruleset.title,
+            description: ruleset.description || '',
+            status: ruleset.status,
+            effectiveFrom: ruleset.effectiveFrom || '',
+            createdAt: ruleset.createdAt,
+            updatedAt: ruleset.updatedAt,
+            scoringParams: ruleset.scoringParams?.map((param: any) => ({
+              areaId: param.areaId,
+              areaName: param.area?.name || `Area ${param.areaId}`,
+              landHomeRate: param.landHomeRate,
+              landHomeRatePercentage: param.landHomeRatePercentage,
+              landRate: param.landRate,
+              landRatePercentage: param.landRatePercentage,
+              landTaxRate: param.landTaxRate,
+              landTaxRatePercentage: param.landTaxRatePercentage,
+              buildingTaxRateUpto120sqm: param.buildingTaxRateUpto120sqm,
+              buildingTaxRateUpto120sqmPercentage: param.buildingTaxRateUpto120sqmPercentage,
+              buildingTaxRateUpto200sqm: param.buildingTaxRateUpto200sqm,
+              buildingTaxRateUpto200sqmPercentage: param.buildingTaxRateUpto200sqmPercentage,
+              buildingTaxRateAbove200sqm: param.buildingTaxRateAbove200sqm,
+              buildingTaxRateAbove200sqmPercentage: param.buildingTaxRateAbove200sqmPercentage,
+              highIncomeGroupConnectionPercentage: param.highIncomeGroupConnectionPercentage,
+              geoMean: param.geoMean,
+            })) || [],
+            totalParameters: ruleset.scoringParams?.length || 0,
+          };
         }
         
         // Update request with fetched data
@@ -389,6 +419,11 @@ export function ApprovalQueue() {
         if ((request.module === 'Customer' || approvalRequest?.moduleName === 'Customer') && request.recordId) {
           await activateHouseholdMutation.mutateAsync(request.recordId);
         }
+        
+        // If it's a ZoneScoring module request, also update the ruleset status to approved
+        if ((request.module === 'ZoneScoring' || approvalRequest?.moduleName === 'ZoneScoring') && request.recordId) {
+          await api.zoneScoring.updateStatus(request.recordId, 'approved');
+        }
       } else if (request.recordType === 'household') {
         // Activate household
         await activateHouseholdMutation.mutateAsync(request.recordId);
@@ -428,6 +463,7 @@ export function ApprovalQueue() {
         queryClient.invalidateQueries({ queryKey: ['users', 'active'], refetchType: 'active' }),
         queryClient.invalidateQueries({ queryKey: ['users'], refetchType: 'active' }),
         queryClient.invalidateQueries({ queryKey: ['consumption'], refetchType: 'active' }),
+        queryClient.invalidateQueries({ queryKey: ['zone-scoring'], refetchType: 'active' }),
       ]);
       
       // Explicitly refetch to ensure data is fresh
@@ -437,6 +473,7 @@ export function ApprovalQueue() {
         queryClient.refetchQueries({ queryKey: ['users', 'pending'] }),
         queryClient.refetchQueries({ queryKey: ['users', 'active'] }),
         queryClient.refetchQueries({ queryKey: ['consumption'] }),
+        queryClient.refetchQueries({ queryKey: ['zone-scoring'] }),
       ]);
       
       setSelectedRequest(null);

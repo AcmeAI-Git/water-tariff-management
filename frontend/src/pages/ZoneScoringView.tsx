@@ -15,7 +15,6 @@ import { StatusBadge } from '../components/zoneScoring/StatusBadge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { calculatePercentages, initializeScoringParam, mapScoringParamsToDto } from '../utils/zoneScoringUtils';
 import type { ZoneScoringRuleSet, ScoringParam, Area, CreateScoringParamDto } from '../types';
 
@@ -31,7 +30,6 @@ export function ZoneScoringView() {
   const [isEditRuleSetModalOpen, setIsEditRuleSetModalOpen] = useState(false);
   const [editRuleSetTitle, setEditRuleSetTitle] = useState('');
   const [editRuleSetDescription, setEditRuleSetDescription] = useState('');
-  const [editRuleSetStatus, setEditRuleSetStatus] = useState('');
   const [newParam, setNewParam] = useState<CreateScoringParamDto>(
     initializeScoringParam()
   );
@@ -193,7 +191,6 @@ export function ZoneScoringView() {
     if (!rulesetData) return;
     setEditRuleSetTitle(rulesetData.title);
     setEditRuleSetDescription(rulesetData.description || '');
-    setEditRuleSetStatus(rulesetData.status);
     setIsEditRuleSetModalOpen(true);
   };
 
@@ -206,30 +203,12 @@ export function ZoneScoringView() {
     }
 
     try {
-      // If setting to approved, deactivate all other approved rulesets first
-      if (editRuleSetStatus === 'approved') {
-        const otherApprovedRulesets = allRulesets.filter(
-          rs => rs.id !== rulesetData.id && rs.status === 'approved'
-        );
-        
-        // Set all other approved rulesets to draft
-        for (const otherRuleset of otherApprovedRulesets) {
-          await updateZoneScoringMutation.mutateAsync({
-            id: otherRuleset.id,
-            data: {
-              status: 'draft'
-            },
-          });
-        }
-      }
-
-      // Update the current ruleset
+      // Update the current ruleset (status cannot be changed here - only through approval workflow)
       await updateZoneScoringMutation.mutateAsync({
         id: rulesetData.id,
         data: {
           title: editRuleSetTitle.trim(),
           description: editRuleSetDescription.trim() || undefined,
-          status: editRuleSetStatus,
         },
       });
 
@@ -378,26 +357,19 @@ export function ZoneScoringView() {
                   className="border-gray-300 rounded-lg h-11"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="ruleset-status" className="text-sm font-medium text-gray-700">
-                  Status *
-                </Label>
-                <Select value={editRuleSetStatus} onValueChange={setEditRuleSetStatus}>
-                  <SelectTrigger className="w-full border-gray-300 rounded-lg h-11">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="approved">Approved</SelectItem>
-                  </SelectContent>
-                </Select>
-                {editRuleSetStatus === 'approved' && (
-                  <p className="text-xs text-amber-600 mt-1">
-                    Note: Setting this to approved will automatically set all other approved rulesets to draft.
+              {rulesetData && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700">
+                    Status
+                  </Label>
+                  <div className="pt-2">
+                    <StatusBadge status={rulesetData.status as 'draft' | 'pending' | 'approved'} />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Status can only be changed through the approval workflow. Use "Send for Approval" from the rulesets list.
                   </p>
-                )}
-              </div>
+                </div>
+              )}
             </div>
             <DialogFooter className="gap-2">
               <Button

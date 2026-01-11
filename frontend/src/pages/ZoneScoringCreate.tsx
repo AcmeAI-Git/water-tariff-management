@@ -17,7 +17,6 @@ export function ZoneScoringCreate() {
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [status, setStatus] = useState<'draft' | 'pending' | 'approved'>('draft');
   const [scoringParams, setScoringParams] = useState<CreateScoringParamDto[]>([]);
   const [isAddParamModalOpen, setIsAddParamModalOpen] = useState(false);
   const [newParam, setNewParam] = useState<CreateScoringParamDto>(initializeScoringParam());
@@ -33,27 +32,11 @@ export function ZoneScoringCreate() {
   );
   const areas: Area[] = (areasData ?? []) as Area[];
 
-  // Fetch all rulesets to check for active ones
-  const { data: allRulesetsData } = useApiQuery(
-    ['zone-scoring'],
-    () => api.zoneScoring.getAll()
-  );
-  const allRulesets = (allRulesetsData ?? []) as any[];
-
   const createZoneScoringMutation = useApiMutation(
     (data: CreateZoneScoringRuleSetDto) => api.zoneScoring.create(data),
     {
       successMessage: 'Zone scoring rule set created successfully',
       errorMessage: 'Failed to create zone scoring rule set',
-      invalidateQueries: [['zone-scoring']],
-    }
-  );
-
-  const updateZoneScoringMutation = useApiMutation(
-    ({ id, data }: { id: number; data: Parameters<typeof api.zoneScoring.update>[1] }) => api.zoneScoring.update(id, data),
-    {
-      successMessage: 'Ruleset updated successfully',
-      errorMessage: 'Failed to update ruleset',
       invalidateQueries: [['zone-scoring']],
     }
   );
@@ -276,27 +259,10 @@ export function ZoneScoringCreate() {
     }
 
     try {
-      // If setting to approved, deactivate all other approved rulesets first
-      if (status === 'approved') {
-        const otherApprovedRulesets = allRulesets.filter(
-          rs => rs.status === 'approved'
-        );
-        
-        // Set all other approved rulesets to draft
-        for (const otherRuleset of otherApprovedRulesets) {
-          await updateZoneScoringMutation.mutateAsync({
-            id: otherRuleset.id,
-            data: {
-              status: 'draft'
-            },
-          });
-        }
-      }
-
       await createZoneScoringMutation.mutateAsync({
         title: title.trim(),
         description: description.trim() || undefined,
-        status,
+        status: 'draft',
         scoringParams,
       });
       navigate('/tariff-admin/zone-scoring');
@@ -343,27 +309,6 @@ export function ZoneScoringCreate() {
                 className="w-full border border-gray-300 rounded-lg p-3 min-h-[100px] text-sm"
                 rows={4}
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="status" className="text-sm font-medium text-gray-700">
-                Status
-              </Label>
-              <Select value={status} onValueChange={(value: 'draft' | 'pending' | 'approved') => setStatus(value)}>
-                <SelectTrigger className="w-full border-gray-300 rounded-lg h-11">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-white">
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                </SelectContent>
-              </Select>
-              {status === 'approved' && (
-                <p className="text-xs text-amber-600 mt-1">
-                  Note: Only one ruleset can be approved at a time. Setting this to approved will automatically set any other approved ruleset to draft.
-                </p>
-              )}
             </div>
           </div>
 

@@ -126,6 +126,27 @@ class FetchService {
         return this.handleResponse<T>(response);
     }
 
+    async patch<T>(
+        endpoint: string,
+        data: any,
+        options: FetchOptions = {}
+    ): Promise<T> {
+        const { timeout = this.defaultTimeout, ...fetchOptions } = options;
+        const response = await this.fetchWithTimeout(
+            `${this.baseUrl}${endpoint}`,
+            {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    ...fetchOptions.headers,
+                },
+                body: JSON.stringify(data),
+            },
+            timeout
+        );
+        return this.handleResponse<T>(response);
+    }
+
     async delete<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
         const { timeout = this.defaultTimeout, ...fetchOptions } = options;
         const response = await this.fetchWithTimeout(
