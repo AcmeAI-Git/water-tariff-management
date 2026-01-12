@@ -505,10 +505,17 @@ export function ApprovalQueue() {
       if (recordType === 'approval-request') {
         // Extract numeric ID from "REQ-001" format
         const numericId = parseInt(requestToReject.id.replace('REQ-', ''));
+        const approvalRequest = approvalRequests.find((req) => req.id === numericId);
+        
         await reviewApprovalRequestMutation.mutateAsync({
           id: numericId,
           status: 'Rejected',
         });
+        
+        // If it's a ZoneScoring module request, also update the ruleset status back to draft
+        if ((requestToReject.module === 'ZoneScoring' || approvalRequest?.moduleName === 'ZoneScoring') && recordId) {
+          await api.zoneScoring.updateStatus(recordId, 'draft');
+        }
       } else if (recordType === 'household') {
         // When rejecting a household, we should:
         // 1. Update the approval request status to Rejected (if it exists and is pending)
@@ -572,6 +579,10 @@ export function ApprovalQueue() {
           queryKey: ['users', 'pending'],
           type: 'active',
           exact: false  // Ensure all users queries are refetched
+        }),
+        queryClient.refetchQueries({ 
+          queryKey: ['zone-scoring'],
+          type: 'active'
         }),
       ]);
     } catch (error) {

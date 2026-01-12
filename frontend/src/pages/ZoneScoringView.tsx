@@ -1,9 +1,9 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
-import { Plus, Edit } from 'lucide-react';
+import { Plus, Edit, Upload, Download, X, Trash2 } from 'lucide-react';
 import { useState, useMemo, useRef } from 'react';
 import { api } from '../services/api';
-import { useApiQuery, useApiMutation } from '../hooks/useApiQuery';
+import { useApiQuery, useApiMutation, useAdminId } from '../hooks/useApiQuery';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { ScoringParametersTable } from '../components/zoneScoring/ScoringParametersTable';
 import { EditParameterModal } from '../components/zoneScoring/EditParameterModal';
@@ -16,12 +16,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { calculatePercentages, initializeScoringParam, mapScoringParamsToDto } from '../utils/zoneScoringUtils';
+import { parseScoringParamsCSV, generateCSVTemplate } from '../utils/csvParser';
 import type { ZoneScoringRuleSet, ScoringParam, Area, CreateScoringParamDto } from '../types';
 
 export function ZoneScoringView() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const tableScrollRef = useRef<HTMLDivElement>(null);
+  const adminId = useAdminId();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [editingParam, setEditingParam] = useState<ScoringParam | null>(null);
   const [editingParamValues, setEditingParamValues] = useState<Partial<ScoringParam> | null>(null);
@@ -33,6 +36,9 @@ export function ZoneScoringView() {
   const [newParam, setNewParam] = useState<CreateScoringParamDto>(
     initializeScoringParam()
   );
+  const [csvUploadError, setCsvUploadError] = useState<string | null>(null);
+  const [csvUploadSuccess, setCsvUploadSuccess] = useState<string | null>(null);
+  const [isParsingCSV, setIsParsingCSV] = useState(false);
 
   // Fetch ruleset by ID
   const { data: rulesetData, isLoading: rulesetLoading } = useApiQuery<ZoneScoringRuleSet>(
@@ -61,7 +67,7 @@ export function ZoneScoringView() {
     {
       successMessage: 'Zone scoring rule set updated successfully',
       errorMessage: 'Failed to update zone scoring rule set',
-      invalidateQueries: [['zone-scoring'], ['zone-scoring', id]],
+      invalidateQueries: [['zone-scoring'], ['zone-scoring', id], ['approval-requests'], ['approval-requests', 'pending']],
     }
   );
 
@@ -120,10 +126,38 @@ export function ZoneScoringView() {
   const handleSaveEdit = async (updatedParams: ScoringParam[]) => {
     if (!rulesetData) return;
     
+    // Check for and handle pending approval requests
+    try {
+      const approvalRequests = await api.approvalRequests.getAll({ moduleName: 'ZoneScoring' });
+      const pendingRequest = approvalRequests.find(
+        req => req.recordId === rulesetData.id && 
+        req.moduleName === 'ZoneScoring' &&
+        (req.approvalStatus?.statusName === 'Pending' || req.approvalStatus?.name === 'Pending')
+      );
+
+      // If pending approval request exists, reject it to avoid orphaned state
+      if (pendingRequest && adminId) {
+        try {
+          await api.approvalRequests.review(pendingRequest.id, {
+            reviewedBy: adminId,
+            status: 'Rejected',
+            comments: 'Automatically rejected due to parameter modification - ruleset set to draft'
+          });
+        } catch (error) {
+          console.warn('Failed to reject pending approval request:', error);
+          // Continue with update even if approval request rejection fails
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to check for pending approval requests:', error);
+      // Continue with update even if approval request check fails
+    }
+    
     await updateZoneScoringMutation.mutateAsync({
       id: rulesetData.id,
       data: {
         scoringParams: mapScoringParamsToDto(updatedParams),
+        status: 'draft', // Automatically set to draft when parameters are modified
       },
     });
     
@@ -171,11 +205,39 @@ export function ZoneScoringView() {
       
       const updatedParams = mapScoringParamsToDto(recalculatedAllParams);
 
+      // Check for and handle pending approval requests
+      try {
+        const approvalRequests = await api.approvalRequests.getAll({ moduleName: 'ZoneScoring' });
+        const pendingRequest = approvalRequests.find(
+          req => req.recordId === rulesetData.id && 
+          req.moduleName === 'ZoneScoring' &&
+          (req.approvalStatus?.statusName === 'Pending' || req.approvalStatus?.name === 'Pending')
+        );
+
+        // If pending approval request exists, reject it to avoid orphaned state
+        if (pendingRequest && adminId) {
+          try {
+            await api.approvalRequests.review(pendingRequest.id, {
+              reviewedBy: adminId,
+              status: 'Rejected',
+              comments: 'Automatically rejected due to parameter addition - ruleset set to draft'
+            });
+          } catch (error) {
+            console.warn('Failed to reject pending approval request:', error);
+            // Continue with update even if approval request rejection fails
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to check for pending approval requests:', error);
+        // Continue with update even if approval request check fails
+      }
+
       // Update rule set with new params
       await updateZoneScoringMutation.mutateAsync({
         id: rulesetData.id,
         data: {
           scoringParams: updatedParams,
+          status: 'draft', // Automatically set to draft when parameters are added
         },
       });
 
@@ -219,6 +281,251 @@ export function ZoneScoringView() {
     }
   };
 
+  const handleRemoveParameter = async (paramId: number) => {
+    if (!rulesetData) return;
+
+    // Confirm deletion
+    if (!confirm('Are you sure you want to remove this parameter? This will set the ruleset status to draft and require re-approval.')) {
+      return;
+    }
+
+    try {
+      // Get current rule set with all params
+      const currentRuleSet = await api.zoneScoring.getById(rulesetData.id);
+      
+      // Remove the parameter
+      const remainingParams = (currentRuleSet.scoringParams || []).filter(p => p.id !== paramId);
+      
+      if (remainingParams.length === 0) {
+        alert('Cannot remove the last parameter. A ruleset must have at least one parameter.');
+        return;
+      }
+
+      // Recalculate percentages for remaining params
+      const recalculatedParams = calculatePercentages(remainingParams);
+      const updatedParams = mapScoringParamsToDto(recalculatedParams);
+
+      // Check for and handle pending approval requests
+      try {
+        const approvalRequests = await api.approvalRequests.getAll({ moduleName: 'ZoneScoring' });
+        const pendingRequest = approvalRequests.find(
+          req => req.recordId === rulesetData.id && 
+          req.moduleName === 'ZoneScoring' &&
+          (req.approvalStatus?.statusName === 'Pending' || req.approvalStatus?.name === 'Pending')
+        );
+
+        // If pending approval request exists, reject it to avoid orphaned state
+        if (pendingRequest && adminId) {
+          try {
+            await api.approvalRequests.review(pendingRequest.id, {
+              reviewedBy: adminId,
+              status: 'Rejected',
+              comments: 'Automatically rejected due to parameter removal - ruleset set to draft'
+            });
+          } catch (error) {
+            console.warn('Failed to reject pending approval request:', error);
+            // Continue with update even if approval request rejection fails
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to check for pending approval requests:', error);
+        // Continue with update even if approval request check fails
+      }
+
+      // Update rule set with remaining params
+      await updateZoneScoringMutation.mutateAsync({
+        id: rulesetData.id,
+        data: {
+          scoringParams: updatedParams,
+          status: 'draft', // Automatically set to draft when parameters are removed
+        },
+      });
+    } catch (error) {
+      console.error('Error removing parameter:', error);
+      alert('Failed to remove parameter');
+    }
+  };
+
+  const handleCSVUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !rulesetData) return;
+
+    // Reset messages
+    setCsvUploadError(null);
+    setCsvUploadSuccess(null);
+    setIsParsingCSV(true);
+
+    try {
+      // Parse CSV
+      const result = await parseScoringParamsCSV(file, areas);
+
+      if (!result.success || result.data.length === 0) {
+        const errorMsg = result.errors.length > 0
+          ? result.errors.join('; ')
+          : 'Failed to parse CSV file';
+        setCsvUploadError(errorMsg);
+        setIsParsingCSV(false);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+        return;
+      }
+
+      // Check for duplicate areas in CSV
+      const duplicateAreasInCSV = result.data.filter((param, index, self) =>
+        self.findIndex(p => p.areaId === param.areaId) !== index
+      );
+
+      if (duplicateAreasInCSV.length > 0) {
+        const duplicateIds = [...new Set(duplicateAreasInCSV.map(p => p.areaId))];
+        const duplicateNames = duplicateIds.map(id => {
+          const area = areas.find(a => a.id === id);
+          return area?.name || `Area ${id}`;
+        });
+        setCsvUploadError(`Duplicate areas found in CSV: ${duplicateNames.join(', ')}`);
+        setIsParsingCSV(false);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+        return;
+      }
+
+      // Get current ruleset data to merge with
+      const currentRuleSet = await api.zoneScoring.getById(rulesetData.id);
+      const existingParams = currentRuleSet.scoringParams || [];
+
+      // Separate CSV params into those that update existing vs those that are new
+      const existingParamIds = new Set(existingParams.map(p => p.areaId));
+      const csvParamsToAdd: CreateScoringParamDto[] = [];
+      const csvParamsToUpdate: CreateScoringParamDto[] = [];
+
+      result.data.forEach(csvParam => {
+        if (existingParamIds.has(csvParam.areaId)) {
+          csvParamsToUpdate.push(csvParam);
+        } else {
+          csvParamsToAdd.push(csvParam);
+        }
+      });
+
+      // Merge: update existing + add new
+      const updatedParams = existingParams.map(existing => {
+        const csvUpdate = csvParamsToUpdate.find(c => c.areaId === existing.areaId);
+        if (csvUpdate) {
+          // Update existing parameter with CSV values
+          return {
+            ...existing,
+            landHomeRate: csvUpdate.landHomeRate,
+            landRate: csvUpdate.landRate,
+            landTaxRate: csvUpdate.landTaxRate,
+            buildingTaxRateUpto120sqm: csvUpdate.buildingTaxRateUpto120sqm,
+            buildingTaxRateUpto200sqm: csvUpdate.buildingTaxRateUpto200sqm,
+            buildingTaxRateAbove200sqm: csvUpdate.buildingTaxRateAbove200sqm,
+            highIncomeGroupConnectionPercentage: csvUpdate.highIncomeGroupConnectionPercentage,
+          };
+        }
+        return existing;
+      });
+
+      // Add new parameters from CSV
+      const allParams: ScoringParam[] = [
+        ...updatedParams,
+        ...csvParamsToAdd.map(csv => ({
+          ...csv,
+          id: 0, // New params don't have ID yet
+          area: areas.find(a => a.id === csv.areaId),
+          areaId: csv.areaId,
+          ruleSetId: rulesetData.id,
+          landHomeRatePercentage: '',
+          landRatePercentage: '',
+          landTaxRatePercentage: '',
+          buildingTaxRateUpto120sqmPercentage: '',
+          buildingTaxRateUpto200sqmPercentage: '',
+          buildingTaxRateAbove200sqmPercentage: '',
+          geoMean: '',
+        } as ScoringParam))
+      ];
+
+      // Recalculate percentages for all parameters
+      const recalculated = calculatePercentages(allParams);
+
+      // Check for and handle pending approval requests
+      try {
+        const approvalRequests = await api.approvalRequests.getAll({ moduleName: 'ZoneScoring' });
+        const pendingRequest = approvalRequests.find(
+          req => req.recordId === rulesetData.id && 
+          req.moduleName === 'ZoneScoring' &&
+          (req.approvalStatus?.statusName === 'Pending' || req.approvalStatus?.name === 'Pending')
+        );
+
+        // If pending approval request exists, reject it to avoid orphaned state
+        if (pendingRequest && adminId) {
+          try {
+            await api.approvalRequests.review(pendingRequest.id, {
+              reviewedBy: adminId,
+              status: 'Rejected',
+              comments: 'Automatically rejected due to CSV upload - ruleset modified and set to draft'
+            });
+          } catch (error) {
+            console.warn('Failed to reject pending approval request:', error);
+            // Continue with update even if approval request rejection fails
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to check for pending approval requests:', error);
+        // Continue with update even if approval request check fails
+      }
+
+      // Update ruleset with merged params and set status to draft
+      await updateZoneScoringMutation.mutateAsync({
+        id: rulesetData.id,
+        data: {
+          scoringParams: mapScoringParamsToDto(recalculated),
+          status: 'draft', // Automatically set to draft
+        },
+      });
+
+      const updatedCount = csvParamsToUpdate.length;
+      const addedCount = csvParamsToAdd.length;
+      let successMsg = `Successfully imported ${result.data.length} parameter(s)`;
+      if (updatedCount > 0 && addedCount > 0) {
+        successMsg += ` (${updatedCount} updated, ${addedCount} added)`;
+      } else if (updatedCount > 0) {
+        successMsg += ` (${updatedCount} updated)`;
+      } else if (addedCount > 0) {
+        successMsg += ` (${addedCount} added)`;
+      }
+      successMsg += '. Ruleset status changed to Draft - please send for approval again.';
+      
+      setCsvUploadSuccess(successMsg);
+      
+      // Show warnings if any
+      if (result.warnings.length > 0) {
+        console.warn('CSV import warnings:', result.warnings);
+      }
+    } catch (error) {
+      setCsvUploadError(`Failed to process CSV: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsParsingCSV(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleDownloadTemplate = () => {
+    const template = generateCSVTemplate();
+    const blob = new Blob([template], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'zone_scoring_template.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   if (rulesetLoading || areasLoading) {
     return (
       <div className="min-h-screen bg-[#f8f9fb] flex items-center justify-center">
@@ -249,7 +556,7 @@ export function ZoneScoringView() {
           backUrl="/tariff-admin/zone-scoring"
         >
           <div className="mt-2 flex items-center gap-3">
-            <StatusBadge status={rulesetData.status as 'draft' | 'pending' | 'approved'} />
+            <StatusBadge status={rulesetData.status as 'draft' | 'pending' | 'approved' | 'active' | 'published'} />
             <Button
               variant="outline"
               size="sm"
@@ -271,23 +578,96 @@ export function ZoneScoringView() {
           />
         ) : (
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Zone Scoring Parameters ({calculatedParams.length} total)
-              </h3>
-              <Button 
-                onClick={() => setIsAddParamModalOpen(true)}
-                className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-10 px-4 flex items-center gap-2"
-              >
-                <Plus size={16} />
-                Add Parameter
-              </Button>
+            <div className="px-6 py-4 border-b border-gray-200">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Zone Scoring Parameters ({calculatedParams.length} total)
+                </h3>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleDownloadTemplate}
+                    className="border-gray-300 text-gray-700 rounded-lg h-10 px-4 flex items-center gap-2 bg-white hover:bg-gray-50"
+                  >
+                    <Download size={16} />
+                    Download Template
+                  </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".csv"
+                    onChange={handleCSVUpload}
+                    className="hidden"
+                    id="csv-upload-input-edit"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={areas.length === 0 || isParsingCSV}
+                    className="border-gray-300 text-gray-700 rounded-lg h-10 px-4 flex items-center gap-2 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Upload size={16} />
+                    {isParsingCSV ? 'Parsing...' : 'Upload CSV'}
+                  </Button>
+                  <Button 
+                    onClick={() => setIsAddParamModalOpen(true)}
+                    className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-10 px-4 flex items-center gap-2"
+                  >
+                    <Plus size={16} />
+                    Add Parameter
+                  </Button>
+                </div>
+              </div>
+
+              {/* CSV Upload Messages */}
+              {csvUploadError && (
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-red-800">CSV Upload Error</p>
+                      <p className="text-sm text-red-700 mt-1">{csvUploadError}</p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setCsvUploadError(null)}
+                      className="h-6 w-6 p-0 text-red-600 hover:text-red-800"
+                    >
+                      <X size={16} />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {csvUploadSuccess && (
+                <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-green-800">CSV Upload Success</p>
+                      <p className="text-sm text-green-700 mt-1">{csvUploadSuccess}</p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setCsvUploadSuccess(null)}
+                      className="h-6 w-6 p-0 text-green-600 hover:text-green-800"
+                    >
+                      <X size={16} />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
             <ScrollNavigationControls tableScrollRef={tableScrollRef} calculatedParams={calculatedParams} />
             <div ref={tableScrollRef} className="overflow-x-auto" id="zone-scoring-table-scroll">
               <ScoringParametersTable 
                 calculatedParams={calculatedParams}
                 onEditParam={handleEditParam}
+                onRemoveParam={handleRemoveParameter}
               />
             </div>
           </div>
@@ -363,7 +743,7 @@ export function ZoneScoringView() {
                     Status
                   </Label>
                   <div className="pt-2">
-                    <StatusBadge status={rulesetData.status as 'draft' | 'pending' | 'approved'} />
+                    <StatusBadge status={rulesetData.status as 'draft' | 'pending' | 'approved' | 'active' | 'published'} />
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
                     Status can only be changed through the approval workflow. Use "Send for Approval" from the rulesets list.

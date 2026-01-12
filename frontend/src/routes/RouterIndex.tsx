@@ -45,14 +45,6 @@ const RouterIndex = () => {
           } 
         />
         <Route 
-          path="/admin/meter-readers" 
-          element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <MeterReaderManagement />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
           path="/admin/agents" 
           element={
             <ProtectedRoute allowedRoles={['admin']}>
@@ -69,9 +61,9 @@ const RouterIndex = () => {
           } 
         />
         
-        {/* Meter Admin routes - only accessible by meter-admin role */}
+        {/* Meter Reader routes - only accessible by meter-admin role */}
         <Route 
-          path="/meter-admin/entry" 
+          path="/meter-reader/entry" 
           element={
             <ProtectedRoute allowedRoles={['meter-admin']}>
               <MeterAdminDataEntry />
@@ -79,7 +71,7 @@ const RouterIndex = () => {
           } 
         />
         <Route 
-          path="/meter-admin/pending" 
+          path="/meter-reader/pending" 
           element={
             <ProtectedRoute allowedRoles={['meter-admin']}>
               <MeterAdminPendingSubmissions />
@@ -87,7 +79,7 @@ const RouterIndex = () => {
           } 
         />
         <Route 
-          path="/meter-admin/submitted" 
+          path="/meter-reader/submitted" 
           element={
             <ProtectedRoute allowedRoles={['meter-admin']}>
               <MeterAdminSubmittedReadings />
@@ -95,7 +87,7 @@ const RouterIndex = () => {
           } 
         />
         <Route 
-          path="/meter-admin/visualizer" 
+          path="/meter-reader/visualizer" 
           element={
             <ProtectedRoute allowedRoles={['meter-admin']}>
               <TariffVisualizer />
@@ -103,7 +95,7 @@ const RouterIndex = () => {
           } 
         />
         <Route 
-          path="/meter-admin/metrics" 
+          path="/meter-reader/metrics" 
           element={
             <ProtectedRoute allowedRoles={['meter-admin']}>
               <MeterAdminMetrics />
@@ -237,9 +229,9 @@ const RouterIndex = () => {
           } 
         />
         
-        {/* General Info Admin routes - only accessible by general-info role */}
+        {/* General Admin routes - only accessible by general-info role */}
         <Route 
-          path="/general-info/dashboard" 
+          path="/general-admin/dashboard" 
           element={
             <ProtectedRoute allowedRoles={['general-info']}>
               <Dashboard />
@@ -247,7 +239,7 @@ const RouterIndex = () => {
           } 
         />
         <Route 
-          path="/general-info/meter-readers" 
+          path="/general-admin/meter-readers" 
           element={
             <ProtectedRoute allowedRoles={['general-info']}>
               <MeterReaderManagement />
@@ -255,7 +247,7 @@ const RouterIndex = () => {
           } 
         />
         <Route 
-          path="/general-info/audit" 
+          path="/general-admin/audit" 
           element={
             <ProtectedRoute allowedRoles={['general-info']}>
               <SystemAuditLog />

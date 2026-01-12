@@ -282,7 +282,7 @@ export function TariffConfiguration() {
                             {effectiveFrom ? format(effectiveFrom, "PPP") : "Pick a date"}
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
+                        <PopoverContent className="w-auto p-0 bg-white border border-gray-200 shadow-lg" align="start">
                           <Calendar
                             mode="single"
                             selected={effectiveFrom}
@@ -310,7 +310,7 @@ export function TariffConfiguration() {
                             {effectiveTo ? format(effectiveTo, "PPP") : "Pick a date"}
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
+                        <PopoverContent className="w-auto p-0 bg-white border border-gray-200 shadow-lg" align="start">
                           <Calendar
                             mode="single"
                             selected={effectiveTo}

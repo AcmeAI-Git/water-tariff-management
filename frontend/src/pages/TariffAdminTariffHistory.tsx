@@ -1,11 +1,18 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Badge } from '../components/ui/badge';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { api } from '../services/api';
 import { useApiQuery } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import { Input } from '../components/ui/input';
+import { Dropdown } from '../components/ui/Dropdown';
+import { Button } from '../components/ui/button';
+import { Search, X } from 'lucide-react';
 
 export function TariffAdminTariffHistory() {
+  const [ruleTypeFilter, setRuleTypeFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   // Fetch all tariff plans
   const { data: tariffPlans = [], isLoading } = useApiQuery(
     ['tariff-plans'],
@@ -57,6 +64,46 @@ export function TariffAdminTariffHistory() {
     });
   }, [tariffPlans]);
 
+  // Apply filters
+  const filteredRecords = useMemo(() => {
+    return historyRecords.filter((record) => {
+      // Rule type filter
+      if (ruleTypeFilter !== 'all' && record.ruleType !== ruleTypeFilter) {
+        return false;
+      }
+
+      // Status filter
+      if (statusFilter !== 'all' && record.status !== statusFilter) {
+        return false;
+      }
+
+      // Search query filter
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const matchesSearch = 
+          record.ruleType?.toLowerCase().includes(query) ||
+          record.details?.toLowerCase().includes(query) ||
+          record.newValue?.toLowerCase().includes(query) ||
+          record.approvalStatus?.toLowerCase().includes(query);
+        if (!matchesSearch) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [historyRecords, ruleTypeFilter, statusFilter, searchQuery]);
+
+  // Check if any filters are active
+  const hasActiveFilters = ruleTypeFilter !== 'all' || statusFilter !== 'all' || searchQuery.trim() !== '';
+
+  // Clear all filters
+  const clearFilters = () => {
+    setRuleTypeFilter('all');
+    setStatusFilter('all');
+    setSearchQuery('');
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Active':
@@ -85,6 +132,63 @@ export function TariffAdminTariffHistory() {
           <p className="text-sm text-gray-500">View all tariff plan changes and their effective periods</p>
         </div>
 
+        {/* Filters */}
+        <div className="mb-6 flex items-center gap-3">
+          {/* Search Bar */}
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <Input
+              type="text"
+              placeholder="Search by rule type, details, value..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 bg-white border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
+            />
+          </div>
+
+          {/* Rule Type Filter */}
+          <div className="w-48">
+            <Dropdown
+              options={[
+                { value: 'all', label: 'All Rule Types' },
+                { value: 'Plan', label: 'Plan' },
+                { value: 'Slab', label: 'Slab' }
+              ]}
+              value={ruleTypeFilter}
+              onChange={setRuleTypeFilter}
+              placeholder="Filter by Rule Type"
+              className="bg-white border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
+            />
+          </div>
+
+          {/* Status Filter */}
+          <div className="w-48">
+            <Dropdown
+              options={[
+                { value: 'all', label: 'All Status' },
+                { value: 'Active', label: 'Active' },
+                { value: 'Expired', label: 'Expired' }
+              ]}
+              value={statusFilter}
+              onChange={setStatusFilter}
+              placeholder="Filter by Status"
+              className="bg-white border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
+            />
+          </div>
+
+          {/* Clear Filters Button */}
+          {hasActiveFilters && (
+            <Button
+              variant="outline"
+              onClick={clearFilters}
+              className="h-11 px-4 border-gray-300 hover:bg-gray-50"
+            >
+              <X size={16} className="mr-2" />
+              Clear Filters
+            </Button>
+          )}
+        </div>
+
         {/* Table */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <Table>
@@ -99,14 +203,14 @@ export function TariffAdminTariffHistory() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {historyRecords.length === 0 ? (
+              {filteredRecords.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center text-gray-500 py-8">
                     No tariff history found
                   </TableCell>
                 </TableRow>
               ) : (
-                historyRecords.map((record) => (
+                filteredRecords.map((record) => (
                   <TableRow key={record.id} className="border-gray-100">
                     <TableCell className="text-sm font-medium text-gray-900">{record.ruleType}</TableCell>
                     <TableCell className="text-sm text-gray-600">{record.details}</TableCell>

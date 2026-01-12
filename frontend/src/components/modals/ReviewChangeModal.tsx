@@ -58,6 +58,39 @@ export function ReviewChangeModal({ request, onClose, onApprove, onReject, isLoa
       }
     };
 
+    // Format value for display
+    const formatValue = (key: string, value: unknown): string => {
+      if (value === null || value === undefined) {
+        return '-';
+      }
+      
+      // Handle arrays
+      if (Array.isArray(value)) {
+        if (key === 'scoringParams' && value.length > 0) {
+          // Special handling for scoringParams - show summary
+          return `${value.length} parameter(s)`;
+        }
+        return `${value.length} item(s)`;
+      }
+      
+      // Handle objects
+      if (typeof value === 'object') {
+        return '[Object]';
+      }
+      
+      // Handle dates
+      if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
+        try {
+          const date = new Date(value);
+          return date.toLocaleString();
+        } catch {
+          return String(value);
+        }
+      }
+      
+      return String(value);
+    };
+
     // Early return if newData is invalid
     if (!isValidObject(request.newData)) {
       return (
@@ -88,12 +121,56 @@ export function ReviewChangeModal({ request, onClose, onApprove, onReject, isLoa
               {safeObjectEntries(newData).length === 0 ? (
                 <p className="text-sm text-gray-500 italic">No data fields available</p>
               ) : (
-                safeObjectEntries(newData).map(([key, value]) => (
-                  <div key={key} className="flex items-start justify-between py-1.5 border-b border-green-100 last:border-0">
-                    <span className="text-sm text-gray-600 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
-                    <span className="text-sm font-medium text-gray-900 text-right ml-4">{String(value ?? '-')}</span>
-                  </div>
-                ))
+                safeObjectEntries(newData).map(([key, value]) => {
+                  const formattedValue = formatValue(key, value);
+                  const isArray = Array.isArray(value);
+                  const isScoringParams = key === 'scoringParams' && isArray && value.length > 0;
+                  
+                  return (
+                    <div key={key} className="py-2 border-b border-green-100 last:border-0">
+                      <div className="flex items-start justify-between">
+                        <span className="text-sm text-gray-600 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
+                        <span className="text-sm font-medium text-gray-900 text-right ml-4">
+                          {formattedValue}
+                        </span>
+                      </div>
+                      {isScoringParams && (
+                        <div className="mt-2 pl-4 text-xs text-gray-500">
+                          <details className="cursor-pointer">
+                            <summary className="text-gray-600 hover:text-gray-800">View parameters ({value.length})</summary>
+                            <div className="mt-2 space-y-1 max-h-60 overflow-y-auto">
+                              {(value as any[]).slice(0, 10).map((param: any, idx: number) => (
+                                <div key={idx} className="text-xs bg-white p-2 rounded border border-gray-200">
+                                  <div className="font-medium">{param.areaName || `Area ${param.areaId}`}</div>
+                                  <div className="text-gray-600 mt-1">
+                                    Land+Home: {param.landHomeRate}, Land: {param.landRate}, Tax: {param.landTaxRate}
+                                  </div>
+                                </div>
+                              ))}
+                              {value.length > 10 && (
+                                <details className="mt-2 cursor-pointer">
+                                  <summary className="text-gray-600 hover:text-gray-800 font-medium">
+                                    ... and {value.length - 10} more (click to expand)
+                                  </summary>
+                                  <div className="mt-2 space-y-1">
+                                    {(value as any[]).slice(10).map((param: any, idx: number) => (
+                                      <div key={idx + 10} className="text-xs bg-white p-2 rounded border border-gray-200">
+                                        <div className="font-medium">{param.areaName || `Area ${param.areaId}`}</div>
+                                        <div className="text-gray-600 mt-1">
+                                          Land+Home: {param.landHomeRate}, Land: {param.landRate}, Tax: {param.landTaxRate}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </details>
+                              )}
+                            </div>
+                          </details>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
               )}
             </div>
           </div>
@@ -127,7 +204,7 @@ export function ReviewChangeModal({ request, onClose, onApprove, onReject, isLoa
                   <span className={`text-sm font-medium text-right ml-4 ${
                     isChanged ? 'text-red-700 line-through' : 'text-gray-900'
                   }`}>
-                    {oldValue !== undefined ? String(oldValue) : '-'}
+                    {oldValue !== undefined ? formatValue(key as string, oldValue) : '-'}
                   </span>
                 </div>
               );
@@ -153,7 +230,7 @@ export function ReviewChangeModal({ request, onClose, onApprove, onReject, isLoa
                   <span className={`text-sm font-medium text-right ml-4 ${
                     isChanged ? 'text-green-700 font-semibold' : 'text-gray-900'
                   }`}>
-                    {newValue !== undefined ? String(newValue) : '-'}
+                    {newValue !== undefined ? formatValue(key as string, newValue) : '-'}
                   </span>
                 </div>
               );

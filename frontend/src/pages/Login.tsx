@@ -243,7 +243,7 @@ export default function Login() {
                 disabled={loading || demoLoading !== null}
                 className="border-gray-300 text-gray-700 rounded-lg h-10 text-sm hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {demoLoading === 'meter-admin' ? 'Logging in...' : 'Meter Admin'}
+                {demoLoading === 'meter-admin' ? 'Logging in...' : 'Meter Reader'}
               </Button>
               <Button 
                 onClick={() => handleDemo('customer-admin')}
@@ -275,7 +275,7 @@ export default function Login() {
                 disabled={loading || demoLoading !== null}
                 className="border-gray-300 text-gray-700 rounded-lg h-10 text-sm hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {demoLoading === 'general-info' ? 'Logging in...' : 'General Info Admin'}
+                {demoLoading === 'general-info' ? 'Logging in...' : 'General Admin'}
               </Button>
               <Button 
                 onClick={() => handleDemo('customer')}

@@ -150,7 +150,7 @@ export function ZoneScoringList() {
                       {ruleset.title}
                     </TableCell>
                     <TableCell>
-                      <StatusBadge status={ruleset.status as 'draft' | 'pending' | 'approved'} />
+                      <StatusBadge status={ruleset.status as 'draft' | 'pending' | 'approved' | 'active' | 'published'} />
                     </TableCell>
                     <TableCell className="text-sm text-gray-600">
                       {ruleset.description || <span className="text-gray-400 italic">No description</span>}
@@ -198,6 +198,11 @@ export function ZoneScoringList() {
                               <CheckCircle size={14} />
                               Set as Active
                             </Button>
+                          )}
+                          {(ruleset.status === 'active' || ruleset.status === 'published') && (
+                            <span className="text-xs text-gray-500 px-3 py-2 whitespace-nowrap">
+                              Active
+                            </span>
                           )}
                         </div>
                         <Button 

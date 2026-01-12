@@ -20,7 +20,10 @@ export function ScoringParameterFormFields({
   showReadOnlyFields = false,
 }: ScoringParameterFormFieldsProps) {
   const getPercentageValue = (field: string): string => {
-    if (!showPercentages || !calculatedParams.length) return '0';
+    if (!showPercentages || !calculatedParams.length) return '-';
+    
+    // If there's only one parameter, percentages are meaningless (would be 100%)
+    if (calculatedParams.length <= 1) return '-';
     
     let param: ScoringParam | undefined;
     
@@ -35,7 +38,7 @@ export function ScoringParameterFormFields({
       }
     }
     
-    if (!param) return '0';
+    if (!param) return '-';
     
     const percentageMap: Record<string, keyof ScoringParam> = {
       landHomeRate: 'landHomeRatePercentage',
@@ -48,11 +51,29 @@ export function ScoringParameterFormFields({
     };
     
     const percentageField = percentageMap[field];
-    return percentageField ? (param[percentageField] as string) || '0' : '0';
+    return percentageField ? (param[percentageField] as string) || '-' : '-';
   };
 
   const getGeoMeanValue = (): string => {
-    if (!calculatedParams.length) return '0';
+    if (!calculatedParams.length) return '-';
+    
+    // If there's only one parameter, geoMean is meaningless
+    if (calculatedParams.length <= 1) return '-';
+    
+    // For new params (add modal), check if all required fields are filled
+    if (!editingParamId) {
+      const hasAllRequiredFields = 
+        values.landHomeRate && 
+        values.landRate && 
+        values.landTaxRate && 
+        values.buildingTaxRateUpto120sqm && 
+        values.buildingTaxRateUpto200sqm && 
+        values.buildingTaxRateAbove200sqm && 
+        values.highIncomeGroupConnectionPercentage;
+      
+      // Don't show GeoMean until all required fields are filled
+      if (!hasAllRequiredFields) return '-';
+    }
     
     let param: ScoringParam | undefined;
     
@@ -67,7 +88,7 @@ export function ScoringParameterFormFields({
       }
     }
     
-    return param?.geoMean || '0';
+    return param?.geoMean || '-';
   };
 
   const gridCols = showPercentages ? 'grid-cols-2' : 'grid-cols-1';

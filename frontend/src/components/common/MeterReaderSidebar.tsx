@@ -1,58 +1,39 @@
 import {
-    Home,
-    Users,
-    ClipboardList,
+    Gauge,
+    BarChart3,
+    TrendingUp,
+    FileCheck,
+    Clock,
     LogOut,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 
-export type GeneralInfoAdminSidebarProps = {
-    activePage?: string;
-    onNavigate?: (page: string) => void;
-};
+interface MeterReaderSidebarProps {
+    activePage: string;
+    onNavigate: (page: string) => void;
+}
 
-export function GeneralInfoAdminSidebar({ activePage, onNavigate }: GeneralInfoAdminSidebarProps) {
-    const navigate = useNavigate();
-    const qc = useQueryClient();
-
-    const routeMap: Record<string, string> = {
-        dashboard: "/general-info/dashboard",
-        users: "/general-info/meter-readers",
-        audit: "/general-info/audit",
-    };
-
-    const handleNav = (id: string) => {
-        if (onNavigate) {
-            try {
-                onNavigate(id);
-            } catch {
-                // Ignore handler errors
-            }
-        }
-
-        if (id === "logout") {
-            localStorage.removeItem("authToken");
-            sessionStorage.clear();
-            try {
-                qc?.clear?.();
-            } catch {
-                // Ignore query client errors
-            }
-            toast("Logged out");
-            navigate("/login");
-            return;
-        }
-
-        const path = routeMap[id] ?? "/";
-        navigate(path);
-    };
-
+export function MeterReaderSidebar({
+    activePage,
+    onNavigate,
+}: MeterReaderSidebarProps) {
     const menuItems = [
-        { id: "dashboard", label: "Dashboard", icon: Home },
-        { id: "users", label: "Meter Reader Management", icon: Users },
-        { id: "audit", label: "System Audit Log", icon: ClipboardList },
+        { id: "meter-reader-entry", label: "Meter Data Entry", icon: Gauge },
+        {
+            id: "meter-reader-pending",
+            label: "Pending Submissions",
+            icon: Clock,
+        },
+        {
+            id: "meter-reader-submitted",
+            label: "Submission History",
+            icon: FileCheck,
+        },
+        {
+            id: "meter-reader-visualizer",
+            label: "Tariff Visualizer",
+            icon: BarChart3,
+        },
+        { id: "meter-reader-metrics", label: "My Metrics", icon: TrendingUp },
     ];
 
     return (
@@ -64,6 +45,7 @@ export function GeneralInfoAdminSidebar({ activePage, onNavigate }: GeneralInfoA
                         Water Tariff
                     </span>
                 </div>
+                <p className="text-xs text-gray-500 mt-1">Meter Reader Portal</p>
             </div>
 
             {/* Navigation */}
@@ -74,15 +56,15 @@ export function GeneralInfoAdminSidebar({ activePage, onNavigate }: GeneralInfoA
                     return (
                         <button
                             key={item.id}
-                            onClick={() => handleNav(item.id)}
+                            onClick={() => onNavigate(item.id)}
                             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-1 transition-all ${
                                 isActive
                                     ? "bg-primary text-white"
                                     : "text-gray-700 hover:bg-gray-50"
                             }`}
                         >
-                            <Icon size={20} strokeWidth={isActive ? 2.5 : 2} className="flex-shrink-0" />
-                            <span className="text-[0.9375rem] font-medium whitespace-nowrap text-left">
+                            <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+                            <span className="text-[0.9375rem] font-medium">
                                 {item.label}
                             </span>
                         </button>
@@ -93,7 +75,7 @@ export function GeneralInfoAdminSidebar({ activePage, onNavigate }: GeneralInfoA
             {/* Bottom Section */}
             <div className="px-4 pb-6 border-t border-gray-200 pt-4">
                 <button
-                    onClick={() => handleNav("logout")}
+                    onClick={() => onNavigate("logout")}
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-red-50 hover:text-red-600 transition-all"
                 >
                     <LogOut size={20} strokeWidth={2} />

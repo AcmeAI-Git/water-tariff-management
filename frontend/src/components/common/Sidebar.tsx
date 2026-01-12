@@ -1,6 +1,5 @@
 import {
     Home,
-    Users,
     Users2,
     ClipboardList,
     LogOut,
@@ -20,7 +19,6 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
 
     const routeMap: Record<string, string> = {
         dashboard: "/admin/dashboard",
-        users: "/admin/meter-readers",
         agents: "/admin/agents",
         audit: "/admin/audit",
     };
@@ -53,7 +51,6 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
 
     const menuItems = [
         { id: "dashboard", label: "Dashboard", icon: Home },
-        { id: "users", label: "Meter Reader Management", icon: Users },
         { id: "agents", label: "Agent Management", icon: Users2 },
         { id: "audit", label: "System Audit Log", icon: ClipboardList },
     ];

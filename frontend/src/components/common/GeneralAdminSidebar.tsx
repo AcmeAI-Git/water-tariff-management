@@ -1,39 +1,58 @@
-﻿import {
-    Gauge,
-    BarChart3,
-    TrendingUp,
-    FileCheck,
-    Clock,
+import {
+    Home,
+    Users,
+    ClipboardList,
     LogOut,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
-interface MeterAdminSidebarProps {
-    activePage: string;
-    onNavigate: (page: string) => void;
-}
+export type GeneralAdminSidebarProps = {
+    activePage?: string;
+    onNavigate?: (page: string) => void;
+};
 
-export function MeterAdminSidebar({
-    activePage,
-    onNavigate,
-}: MeterAdminSidebarProps) {
+export function GeneralAdminSidebar({ activePage, onNavigate }: GeneralAdminSidebarProps) {
+    const navigate = useNavigate();
+    const qc = useQueryClient();
+
+    const routeMap: Record<string, string> = {
+        dashboard: "/general-admin/dashboard",
+        users: "/general-admin/meter-readers",
+        audit: "/general-admin/audit",
+    };
+
+    const handleNav = (id: string) => {
+        if (onNavigate) {
+            try {
+                onNavigate(id);
+            } catch {
+                // Ignore handler errors
+            }
+        }
+
+        if (id === "logout") {
+            localStorage.removeItem("authToken");
+            sessionStorage.clear();
+            try {
+                qc?.clear?.();
+            } catch {
+                // Ignore query client errors
+            }
+            toast("Logged out");
+            navigate("/login");
+            return;
+        }
+
+        const path = routeMap[id] ?? "/";
+        navigate(path);
+    };
+
     const menuItems = [
-        { id: "meter-admin-entry", label: "Meter Data Entry", icon: Gauge },
-        {
-            id: "meter-admin-pending",
-            label: "Pending Submissions",
-            icon: Clock,
-        },
-        {
-            id: "meter-admin-submitted",
-            label: "Submission History",
-            icon: FileCheck,
-        },
-        {
-            id: "meter-admin-visualizer",
-            label: "Tariff Visualizer",
-            icon: BarChart3,
-        },
-        { id: "meter-admin-metrics", label: "My Metrics", icon: TrendingUp },
+        { id: "dashboard", label: "Dashboard", icon: Home },
+        { id: "users", label: "Meter Reader Management", icon: Users },
+        { id: "audit", label: "System Audit Log", icon: ClipboardList },
     ];
 
     return (
@@ -45,7 +64,6 @@ export function MeterAdminSidebar({
                         Water Tariff
                     </span>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Meter Admin Portal</p>
             </div>
 
             {/* Navigation */}
@@ -56,15 +74,15 @@ export function MeterAdminSidebar({
                     return (
                         <button
                             key={item.id}
-                            onClick={() => onNavigate(item.id)}
+                            onClick={() => handleNav(item.id)}
                             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-1 transition-all ${
                                 isActive
                                     ? "bg-primary text-white"
                                     : "text-gray-700 hover:bg-gray-50"
                             }`}
                         >
-                            <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-                            <span className="text-[0.9375rem] font-medium">
+                            <Icon size={20} strokeWidth={isActive ? 2.5 : 2} className="flex-shrink-0" />
+                            <span className="text-[0.9375rem] font-medium whitespace-nowrap text-left">
                                 {item.label}
                             </span>
                         </button>
@@ -75,7 +93,7 @@ export function MeterAdminSidebar({
             {/* Bottom Section */}
             <div className="px-4 pb-6 border-t border-gray-200 pt-4">
                 <button
-                    onClick={() => onNavigate("logout")}
+                    onClick={() => handleNav("logout")}
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-red-50 hover:text-red-600 transition-all"
                 >
                     <LogOut size={20} strokeWidth={2} />

@@ -24,7 +24,12 @@ export async function parseScoringParamsCSV(
 
   try {
     // Read file content
-    const text = await readFileAsText(file);
+    let text = await readFileAsText(file);
+    
+    // Remove BOM (Byte Order Mark) if present (Excel sometimes adds this)
+    if (text.charCodeAt(0) === 0xFEFF) {
+      text = text.slice(1);
+    }
     
     // Parse CSV
     const rows = parseCSV(text);
@@ -36,11 +41,24 @@ export async function parseScoringParamsCSV(
 
     // Get headers (first row)
     const headers = rows[0];
+    
+    // Debug: Log headers to help diagnose issues
+    if (headers.length === 0) {
+      errors.push('CSV file has no headers');
+      return { success: false, data: [], errors, warnings };
+    }
+    
     const normalizedHeaders = normalizeHeaders(headers);
     
     // Check if areaName is provided instead of areaId
-    const hasAreaName = !!normalizedHeaders['areaName'];
-    const hasAreaId = !!normalizedHeaders['areaId'];
+    // Use 'in' operator to check for key existence, not truthiness (since index 0 is falsy)
+    const hasAreaName = 'areaName' in normalizedHeaders;
+    const hasAreaId = 'areaId' in normalizedHeaders;
+    
+    // Debug: Log normalized headers for troubleshooting
+    if (!hasAreaName && !hasAreaId) {
+      warnings.push(`Found headers: ${headers.join(', ')}. Normalized headers: ${Object.keys(normalizedHeaders).join(', ')}`);
+    }
     
     // Validate required columns
     const requiredColumns = [
@@ -57,6 +75,12 @@ export async function parseScoringParamsCSV(
     
     if (!hasAreaId && !hasAreaName) {
       missingColumns.push('areaId or areaName');
+      // Add helpful debug info
+      const foundHeaders = headers.map((h, i) => `"${h}" (normalized: "${h.toLowerCase().trim()}")`).join(', ');
+      errors.push(`Missing required columns: ${missingColumns.join(', ')}`);
+      errors.push(`Found headers: [${foundHeaders}]`);
+      errors.push(`Normalized header keys: [${Object.keys(normalizedHeaders).join(', ')}]`);
+      return { success: false, data: [], errors, warnings };
     }
 
     if (missingColumns.length > 0) {
@@ -124,6 +148,18 @@ export async function parseScoringParamsCSV(
       }
       if (landTaxRate && isNaN(parseFloat(landTaxRate))) {
         rowErrors.push(`Row ${i + 1}: landTaxRate must be a number`);
+      }
+      if (buildingTaxRateUpto120sqm && isNaN(parseFloat(buildingTaxRateUpto120sqm))) {
+        rowErrors.push(`Row ${i + 1}: buildingTaxRateUpto120sqm must be a number`);
+      }
+      if (buildingTaxRateUpto200sqm && isNaN(parseFloat(buildingTaxRateUpto200sqm))) {
+        rowErrors.push(`Row ${i + 1}: buildingTaxRateUpto200sqm must be a number`);
+      }
+      if (buildingTaxRateAbove200sqm && isNaN(parseFloat(buildingTaxRateAbove200sqm))) {
+        rowErrors.push(`Row ${i + 1}: buildingTaxRateAbove200sqm must be a number`);
+      }
+      if (highIncomeGroupConnectionPercentage && isNaN(parseFloat(highIncomeGroupConnectionPercentage))) {
+        rowErrors.push(`Row ${i + 1}: highIncomeGroupConnectionPercentage must be a number`);
       }
 
       // Ensure areaId is valid
@@ -218,7 +254,13 @@ function parseCSV(text: string): string[][] {
         }
       } else if (char === ',' && !inQuotes) {
         // End of field
-        row.push(current.trim());
+        let field = current.trim();
+        // Remove surrounding quotes if present
+        if ((field.startsWith('"') && field.endsWith('"')) ||
+            (field.startsWith("'") && field.endsWith("'"))) {
+          field = field.slice(1, -1).trim();
+        }
+        row.push(field);
         current = '';
       } else {
         current += char;
@@ -226,7 +268,13 @@ function parseCSV(text: string): string[][] {
     }
     
     // Add last field
-    row.push(current.trim());
+    let lastField = current.trim();
+    // Remove surrounding quotes if present
+    if ((lastField.startsWith('"') && lastField.endsWith('"')) ||
+        (lastField.startsWith("'") && lastField.endsWith("'"))) {
+      lastField = lastField.slice(1, -1).trim();
+    }
+    row.push(lastField);
     rows.push(row);
   }
   
@@ -248,22 +296,51 @@ function normalizeHeaders(headers: string[]): { [key: string]: number } {
     buildingTaxRateUpto120sqm: ['buildingtaxrateupto120sqm', 'building_tax_rate_upto_120sqm', 'building tax rate upto 120sqm', 'building tax (≤120sqm)', 'building tax rate ≤120sqm (bdt/sqm)', 'building tax rate ≤120sqm (bdt per sqm)'],
     buildingTaxRateUpto200sqm: ['buildingtaxrateupto200sqm', 'building_tax_rate_upto_200sqm', 'building tax rate upto 200sqm', 'building tax (≤200sqm)', 'building tax rate ≤200sqm (bdt/sqm)', 'building tax rate ≤200sqm (bdt per sqm)'],
     buildingTaxRateAbove200sqm: ['buildingtaxrateabove200sqm', 'building_tax_rate_above_200sqm', 'building tax rate above 200sqm', 'building tax (>200sqm)', 'building tax rate >200sqm (bdt/sqm)', 'building tax rate >200sqm (bdt per sqm)'],
-    highIncomeGroupConnectionPercentage: ['highincomegroupconnectionpercentage', 'high_income_group_connection_percentage', 'high income group connection percentage', 'high income', 'high income group connection count'],
+    highIncomeGroupConnectionPercentage: ['highincomegroupconnectionpercentage', 'high_income_group_connection_percentage', 'high income group connection percentage', 'high income group connection percentage (bdt/sqm)', 'high income group connection percentage (bdt per sqm)', 'high income', 'high income group connection count', 'high income group connection count (bdt/sqm)', 'high income group connection count (bdt per sqm)'],
   };
 
   headers.forEach((header, index) => {
-    const normalizedHeader = header.toLowerCase().trim();
+    // Remove quotes if present (Excel sometimes adds quotes)
+    let cleanHeader = header.trim();
+    if ((cleanHeader.startsWith('"') && cleanHeader.endsWith('"')) ||
+        (cleanHeader.startsWith("'") && cleanHeader.endsWith("'"))) {
+      cleanHeader = cleanHeader.slice(1, -1).trim();
+    }
+    
+    const normalizedHeader = cleanHeader.toLowerCase().trim();
+    let matched = false;
     
     // Check each possible mapping
     for (const [key, variations] of Object.entries(headerMap)) {
+      // Check exact match first (most reliable)
       if (variations.includes(normalizedHeader)) {
         normalized[key] = index;
-        return;
+        matched = true;
+        break;
       }
+      
+      // Check if any variation matches when we remove parenthetical content
+      // This handles cases where the header has extra text like "(BDT/sqm)"
+      const cleanHeaderNoParens = normalizedHeader.replace(/\s*\([^)]*\)\s*/g, '').trim();
+      
+      for (const variation of variations) {
+        const cleanVariation = variation.replace(/\s*\([^)]*\)\s*/g, '').trim();
+        
+        // Exact match after cleaning
+        if (cleanHeaderNoParens === cleanVariation) {
+          normalized[key] = index;
+          matched = true;
+          break;
+        }
+      }
+      
+      if (matched) break;
     }
     
-    // If no match found, use direct lowercase match
-    normalized[normalizedHeader] = index;
+    // If no match found, use direct lowercase match as fallback
+    if (!matched) {
+      normalized[normalizedHeader] = index;
+    }
   });
 
   return normalized;
@@ -288,7 +365,7 @@ export function generateCSVTemplate(): string {
     'Building Tax Rate ≤120sqm (BDT/sqm)',
     'Building Tax Rate ≤200sqm (BDT/sqm)',
     'Building Tax Rate >200sqm (BDT/sqm)',
-    'High Income Group Connection Count'
+    'High Income Group Connection Percentage'
   ];
   
   const exampleRow = [

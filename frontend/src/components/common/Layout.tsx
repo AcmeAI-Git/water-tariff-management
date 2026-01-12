@@ -1,11 +1,11 @@
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import type { ReactNode } from "react";
 import { Sidebar } from "./Sidebar";
-import { MeterAdminSidebar } from "./MeterAdminSidebar";
+import { MeterReaderSidebar } from "./MeterReaderSidebar";
 import { CustomerAdminSidebar } from "./CustomerAdminSidebar";
 import { TariffAdminSidebar } from "./TariffAdminSidebar";
 import { ApprovalAdminSidebar } from "./ApprovalAdminSidebar";
-import { GeneralInfoAdminSidebar } from "./GeneralInfoAdminSidebar";
+import { GeneralAdminSidebar } from "./GeneralAdminSidebar";
 
 export type LayoutProps = { children?: ReactNode };
 
@@ -13,16 +13,16 @@ export default function Layout({ children }: LayoutProps) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
 
-  const isMeterAdmin = pathname.startsWith("/meter-admin");
+  const isMeterAdmin = pathname.startsWith("/meter-reader");
   const isCustomerAdmin = pathname.startsWith("/customer-admin");
   const isTariffAdmin = pathname.startsWith("/tariff-admin");
   const isApprovalAdmin = pathname.startsWith("/approval-admin");
-  const isGeneralInfoAdmin = pathname.startsWith("/general-info");
+  const isGeneralInfoAdmin = pathname.startsWith("/general-admin");
   const isSuperAdmin = pathname.startsWith("/admin");
 
-  // meter admin helper
+  // meter reader helper
   const meterActive = isMeterAdmin
-    ? pathname.replace("/meter-admin/", "").replace(/\/.*$/, "")
+    ? pathname.replace("/meter-reader/", "").replace(/\/.*$/, "")
     : "";
 
   const handleMeterNavigate = (id: string) => {
@@ -32,7 +32,7 @@ export default function Layout({ children }: LayoutProps) {
       navigate("/login");
       return;
     }
-    navigate("/meter-admin/" + id.replace(/^meter-admin-/, ""));
+    navigate("/meter-reader/" + id.replace(/^meter-reader-/, ""));
   };
 
   // customer admin helper
@@ -70,13 +70,13 @@ export default function Layout({ children }: LayoutProps) {
     ? (() => {
         if (pathname.startsWith("/tariff-admin/zone-scoring")) return "zone-scoring";
         const match = pathname.match(/^\/tariff-admin\/(\w+)/);
-        if (!match) return "tariff-config";
+        if (!match) return "zone-scoring";
         switch (match[1]) {
           case "config": return "tariff-config";
           case "history": return "tariff-history";
           case "visualizer": return "tariff-visualizer";
           case "metrics": return "my-metrics";
-          default: return "tariff-config";
+          default: return "zone-scoring";
         }
       })()
     : "";
@@ -88,7 +88,7 @@ export default function Layout({ children }: LayoutProps) {
       navigate("/login");
       return;
     }
-    const path = tariffRouteMap[id] ?? "/tariff-admin/config";
+    const path = tariffRouteMap[id] ?? "/tariff-admin/zone-scoring";
     navigate(path);
   };
 
@@ -112,10 +112,10 @@ export default function Layout({ children }: LayoutProps) {
       })()
     : "";
 
-  // General Info admin helpers
+  // General admin helpers
   const generalInfoActive = isGeneralInfoAdmin
     ? (() => {
-        const match = pathname.match(/^\/general-info\/(\w+)/);
+        const match = pathname.match(/^\/general-admin\/(\w+)/);
         if (!match) return "dashboard";
         switch (match[1]) {
           case "dashboard": return "dashboard";
@@ -130,7 +130,6 @@ export default function Layout({ children }: LayoutProps) {
   const superAdminActive = isSuperAdmin
     ? (() => {
         if (pathname.startsWith("/admin/dashboard")) return "dashboard";
-        if (pathname.startsWith("/admin/meter-readers")) return "users";
         if (pathname.startsWith("/admin/agents")) return "agents";
         if (pathname.startsWith("/admin/audit")) return "audit";
         return "dashboard";
@@ -146,7 +145,6 @@ export default function Layout({ children }: LayoutProps) {
     }
     const routeMap: Record<string, string> = {
       dashboard: "/admin/dashboard",
-      users: "/admin/meter-readers",
       agents: "/admin/agents",
       audit: "/admin/audit",
     };
@@ -158,7 +156,7 @@ export default function Layout({ children }: LayoutProps) {
     <div className="min-h-screen flex">
       <aside className="w-[260px] fixed inset-y-0 left-0 bg-white shadow z-20">
         {isMeterAdmin ? (
-          <MeterAdminSidebar activePage={"meter-admin-" + meterActive} onNavigate={handleMeterNavigate} />
+          <MeterReaderSidebar activePage={"meter-reader-" + meterActive} onNavigate={handleMeterNavigate} />
         ) : isCustomerAdmin ? (
           <CustomerAdminSidebar activePage={customerActive ? `customer-admin-${customerActive}` : "customer-admin-households"} onNavigate={handleCustomerNavigate} />
         ) : isTariffAdmin ? (
@@ -166,7 +164,7 @@ export default function Layout({ children }: LayoutProps) {
         ) : isApprovalAdmin ? (
           <ApprovalAdminSidebar activePage={approvalActive} />
         ) : isGeneralInfoAdmin ? (
-          <GeneralInfoAdminSidebar activePage={generalInfoActive} />
+          <GeneralAdminSidebar activePage={generalInfoActive} />
         ) : (
           <Sidebar activePage={superAdminActive} onNavigate={handleSuperAdminNavigate} />
         )}
