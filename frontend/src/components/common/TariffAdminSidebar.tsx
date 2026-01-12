@@ -1,4 +1,4 @@
-import { BarChart3, Clock, TrendingUp, LogOut, Layers } from 'lucide-react';
+import { BarChart3, Clock, TrendingUp, LogOut, Layers, MapPin } from 'lucide-react';
 
 interface TariffAdminSidebarProps {
   currentPage: string;
@@ -9,6 +9,7 @@ interface TariffAdminSidebarProps {
 export function TariffAdminSidebar({ currentPage, onNavigate, onLogout }: TariffAdminSidebarProps) {
   const menuItems = [
     { id: 'zone-scoring', label: 'Zone Scoring', icon: Layers },
+    { id: 'area-management', label: 'Area Management', icon: MapPin },
     { id: 'tariff-config', label: 'Tariff Configuration', icon: BarChart3 },
     { id: 'tariff-history', label: 'Tariff History', icon: Clock },
     { id: 'tariff-visualizer', label: 'Tariff Visualizer', icon: TrendingUp },
