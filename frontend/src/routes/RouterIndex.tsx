@@ -19,7 +19,7 @@ import { TariffConfiguration } from '../pages/TariffConfiguration';
 import { ZoneScoringList } from '../pages/ZoneScoringList';
 import { ZoneScoringCreate } from '../pages/ZoneScoringCreate';
 import { ZoneScoringView } from '../pages/ZoneScoringView';
-import { AreaManagement } from '../pages/AreaManagement';
+import { LocationManagement } from '../pages/LocationManagement';
 import { ApprovalQueue } from '../pages/ApprovalQueue';
 import { ApprovalHistory } from '../pages/ApprovalHistory';
 import { ProtectedRoute } from "../components/common/ProtectedRoute";
@@ -204,12 +204,17 @@ const RouterIndex = () => {
           } 
         />
         <Route 
-          path="/tariff-admin/areas" 
+          path="/tariff-admin/location-management" 
           element={
             <ProtectedRoute allowedRoles={['tariff-admin']}>
-              <AreaManagement />
+              <LocationManagement />
             </ProtectedRoute>
           } 
+        />
+        {/* Redirect old route to new route */}
+        <Route 
+          path="/tariff-admin/areas" 
+          element={<Navigate to="/tariff-admin/location-management" replace />}
         />
         
         {/* Approval Admin routes - only accessible by approval-admin role */}

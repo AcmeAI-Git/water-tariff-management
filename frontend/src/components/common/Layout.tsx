@@ -64,7 +64,7 @@ export default function Layout({ children }: LayoutProps) {
     "tariff-history": "/tariff-admin/history",
     "tariff-visualizer": "/tariff-admin/visualizer",
     "zone-scoring": "/tariff-admin/zone-scoring",
-    "area-management": "/tariff-admin/areas",
+    "location-management": "/tariff-admin/location-management",
     "my-metrics": "/tariff-admin/metrics",
   };
   const tariffActive = isTariffAdmin
@@ -77,7 +77,7 @@ export default function Layout({ children }: LayoutProps) {
           case "history": return "tariff-history";
           case "visualizer": return "tariff-visualizer";
           case "metrics": return "my-metrics";
-          case "areas": return "area-management";
+          case "areas": return "location-management";
           default: return "zone-scoring";
         }
       })()

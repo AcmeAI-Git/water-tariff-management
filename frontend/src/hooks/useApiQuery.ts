@@ -61,12 +61,31 @@ export function useApiMutation<TData = unknown, TVariables = void, TError = Erro
         options.onSuccess(data, variables, context, mutation);
       }
     },
-    onError: (error, variables, context, mutation) => {
-      const errorMessage = 
-        options?.errorMessage || 
-        (error instanceof Error ? error.message : 'An error occurred');
+    onError: (error: any, variables, context, mutation) => {
+      // Try to extract detailed error message from API response
+      // The fetchService throws an Error with the message already formatted
+      let errorMessage = options?.errorMessage || 'An error occurred';
+      
+      // Check if error has a message property (from fetchService)
+      // fetchService formats errors with validation details in the message
+      if (error?.message) {
+        errorMessage = error.message;
+      } else if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
+      // Log full error details for debugging
+      console.error('API Mutation Error:', {
+        message: errorMessage,
+        error: error,
+        variables: variables
+      });
+      
       toast.error(errorMessage);
-      console.error('API Mutation Error:', error);
       
       if (options?.onError) {
         options.onError(error, variables, context, mutation);

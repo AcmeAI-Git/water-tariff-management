@@ -1,15 +1,17 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Button } from '../ui/button';
 import { Edit, Trash2 } from 'lucide-react';
-import type { ScoringParam } from '../../../types';
+import type { ScoringParam, Zone, CityCorporation } from '../../../types';
 
 interface ScoringParametersTableProps {
   calculatedParams: ScoringParam[];
   onEditParam: (param: ScoringParam) => void;
   onRemoveParam?: (paramId: number) => void;
+  zones?: Zone[];
+  cityCorporations?: CityCorporation[];
 }
 
-export function ScoringParametersTable({ calculatedParams, onEditParam, onRemoveParam }: ScoringParametersTableProps) {
+export function ScoringParametersTable({ calculatedParams, onEditParam, onRemoveParam, zones = [], cityCorporations = [] }: ScoringParametersTableProps) {
   // Helper function to format percentage display
   const formatPercentage = (percentage: string): string => {
     // If there's only one parameter, percentages are meaningless (would be 100%)
@@ -29,6 +31,8 @@ export function ScoringParametersTable({ calculatedParams, onEditParam, onRemove
       <TableHeader>
         <TableRow className="border-gray-200 bg-gray-50">
           <TableHead className="text-sm font-semibold text-gray-700 whitespace-nowrap">Area Name</TableHead>
+          <TableHead className="text-sm font-semibold text-gray-700 whitespace-nowrap">Zone</TableHead>
+          <TableHead className="text-sm font-semibold text-gray-700 whitespace-nowrap">City Corporation</TableHead>
           <TableHead className="text-sm font-semibold text-gray-700 whitespace-nowrap">Land+Home Rate<br/>(BDT/sqm)</TableHead>
           <TableHead className="text-sm font-semibold text-gray-700 whitespace-nowrap">% of Land+Home</TableHead>
           <TableHead className="text-sm font-semibold text-gray-700 whitespace-nowrap">Land Rate<br/>(BDT/sqm)</TableHead>
@@ -59,6 +63,10 @@ export function ScoringParametersTable({ calculatedParams, onEditParam, onRemove
             ? (1 + (geoMeanValue - avgGeoMean) / avgGeoMean).toFixed(6) 
             : '-';
           
+          // Get zone and city corporation info
+          const zone = param.area?.zoneId ? zones.find(z => z.id === param.area.zoneId) : null;
+          const cityCorp = zone?.cityCorporationId ? cityCorporations.find(cc => cc.id === zone.cityCorporationId) : null;
+          
           // Alternate row background colors for better readability
           const rowBgClass = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
           
@@ -66,6 +74,12 @@ export function ScoringParametersTable({ calculatedParams, onEditParam, onRemove
             <TableRow key={param.id} className={`border-gray-100 ${rowBgClass} hover:bg-gray-100`}>
               <TableCell className="text-sm font-medium text-gray-900 whitespace-nowrap">
                 {param.area?.name || `Area ${param.areaId}`}
+              </TableCell>
+              <TableCell className="text-sm text-gray-600 whitespace-nowrap">
+                {zone?.name || '-'}
+              </TableCell>
+              <TableCell className="text-sm text-gray-600 whitespace-nowrap">
+                {cityCorp?.name || '-'}
               </TableCell>
               <TableCell className="text-sm text-gray-900 whitespace-nowrap">
                 {param.landHomeRate}

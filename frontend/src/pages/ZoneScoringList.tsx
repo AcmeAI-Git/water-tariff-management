@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Plus, Edit, Trash2, Send, CheckCircle } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { api } from '../services/api';
 import { useApiQuery, useApiMutation, useAdminId } from '../hooks/useApiQuery';
 import LoadingSpinner from '../components/common/LoadingSpinner';
@@ -10,7 +10,7 @@ import { StatusBadge } from '../components/zoneScoring/StatusBadge';
 import { DeleteConfirmationDialog } from '../components/zoneScoring/DeleteConfirmationDialog';
 import { PageHeader } from '../components/zoneScoring/PageHeader';
 import { EmptyState } from '../components/zoneScoring/EmptyState';
-import type { ZoneScoringRuleSet } from '../types';
+import type { ZoneScoringRuleSet, Zone, CityCorporation } from '../types';
 
 export function ZoneScoringList() {
   const navigate = useNavigate();
@@ -23,6 +23,49 @@ export function ZoneScoringList() {
     () => api.zoneScoring.getAll()
   );
   const zoneScoringRuleSets: ZoneScoringRuleSet[] = (zoneScoringData ?? []) as ZoneScoringRuleSet[];
+
+  // Fetch zones and city corporations for display
+  const { data: zonesData } = useApiQuery<Zone[]>(
+    ['zones'],
+    () => api.zones.getAll()
+  );
+  const zones: Zone[] = (zonesData ?? []) as Zone[];
+
+  const { data: cityCorpsData } = useApiQuery<CityCorporation[]>(
+    ['city-corporations'],
+    () => api.cityCorporations.getAll()
+  );
+  const cityCorporations: CityCorporation[] = (cityCorpsData ?? []) as CityCorporation[];
+
+  // Helper to get zone and city corp info for a ruleset
+  const getRulesetLocationInfo = (ruleset: ZoneScoringRuleSet) => {
+    if (!ruleset.scoringParams || ruleset.scoringParams.length === 0) {
+      return { zones: [], cityCorps: [] };
+    }
+
+    const zoneIds = new Set<number>();
+    const cityCorpIds = new Set<number>();
+
+    ruleset.scoringParams.forEach(param => {
+      if (param.area?.zoneId) {
+        zoneIds.add(param.area.zoneId);
+        const zone = zones.find(z => z.id === param.area.zoneId);
+        if (zone?.cityCorporationId) {
+          cityCorpIds.add(zone.cityCorporationId);
+        }
+      }
+    });
+
+    const zoneNames = Array.from(zoneIds)
+      .map(id => zones.find(z => z.id === id)?.name)
+      .filter(Boolean) as string[];
+
+    const cityCorpNames = Array.from(cityCorpIds)
+      .map(id => cityCorporations.find(cc => cc.id === id)?.name)
+      .filter(Boolean) as string[];
+
+    return { zones: zoneNames, cityCorps: cityCorpNames };
+  };
 
   const deleteZoneScoringMutation = useApiMutation(
     (id: number) => api.zoneScoring.delete(id),
@@ -140,24 +183,56 @@ export function ZoneScoringList() {
                   <TableHead className="text-sm font-semibold text-gray-700">Status</TableHead>
                   <TableHead className="text-sm font-semibold text-gray-700">Description</TableHead>
                   <TableHead className="text-sm font-semibold text-gray-700">Parameters</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">Zones</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">City Corporations</TableHead>
                   <TableHead className="text-sm font-semibold text-gray-700 text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {zoneScoringRuleSets.map((ruleset) => (
-                  <TableRow key={ruleset.id} className="border-gray-100">
-                    <TableCell className="text-sm font-medium text-gray-900">
-                      {ruleset.title}
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge status={ruleset.status as 'draft' | 'pending' | 'approved' | 'active' | 'published'} />
-                    </TableCell>
-                    <TableCell className="text-sm text-gray-600">
-                      {ruleset.description || <span className="text-gray-400 italic">No description</span>}
-                    </TableCell>
-                    <TableCell className="text-sm text-gray-600">
-                      {ruleset.scoringParams?.length || 0} parameters
-                    </TableCell>
+                {zoneScoringRuleSets.map((ruleset) => {
+                  const locationInfo = getRulesetLocationInfo(ruleset);
+                  return (
+                    <TableRow key={ruleset.id} className="border-gray-100">
+                      <TableCell className="text-sm font-medium text-gray-900">
+                        {ruleset.title}
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge status={ruleset.status as 'draft' | 'pending' | 'approved' | 'active' | 'published'} />
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-600">
+                        {ruleset.description || <span className="text-gray-400 italic">No description</span>}
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-600">
+                        {ruleset.scoringParams?.length || 0} parameters
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-600">
+                        {locationInfo.zones.length > 0 ? (
+                          <div className="flex flex-col gap-1">
+                            {locationInfo.zones.slice(0, 2).map((zone, idx) => (
+                              <span key={idx}>{zone}</span>
+                            ))}
+                            {locationInfo.zones.length > 2 && (
+                              <span className="text-gray-400 text-xs">+{locationInfo.zones.length - 2} more</span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-600">
+                        {locationInfo.cityCorps.length > 0 ? (
+                          <div className="flex flex-col gap-1">
+                            {locationInfo.cityCorps.slice(0, 2).map((cityCorp, idx) => (
+                              <span key={idx}>{cityCorp}</span>
+                            ))}
+                            {locationInfo.cityCorps.length > 2 && (
+                              <span className="text-gray-400 text-xs">+{locationInfo.cityCorps.length - 2} more</span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </TableCell>
                     <TableCell className="text-center">
                       <div className="grid grid-cols-[auto_160px_auto] items-center gap-2 mx-auto w-fit">
                         <Button 
@@ -217,7 +292,8 @@ export function ZoneScoringList() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

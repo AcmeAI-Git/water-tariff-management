@@ -134,6 +134,7 @@ export interface Zone {
   cityName: string;
   tariffCategory: string;
   cityCorporationId: number;
+  cityCorporation?: CityCorporation; // Optional relation
   createdAt?: string;
 }
 
@@ -141,8 +142,8 @@ export interface CreateZoneDto {
   name: string;
   zoneNo: string;
   cityName: string;
-  tariffCategory: string;
   cityCorporationId: number;
+  // Note: tariffCategory is not in the DTO - backend rejects it
 }
 
 export interface UpdateZoneDto {
@@ -418,6 +419,8 @@ export interface UpdateNotificationDto {
 export interface Area {
   id: number;
   name: string;
+  zoneId: number;
+  zone?: Zone; // Optional relation
   geojson: {
     type: string;
     coordinates: number[][][];

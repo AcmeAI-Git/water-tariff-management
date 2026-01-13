@@ -17,7 +17,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { calculatePercentages, initializeScoringParam, mapScoringParamsToDto } from '../utils/zoneScoringUtils';
 import { parseScoringParamsCSV, generateCSVTemplate } from '../utils/csvParser';
-import type { ZoneScoringRuleSet, ScoringParam, Area, CreateScoringParamDto } from '../types';
+import type { ZoneScoringRuleSet, ScoringParam, Area, CreateScoringParamDto, Zone, CityCorporation } from '../types';
 
 export function ZoneScoringView() {
   const { id } = useParams<{ id: string }>();
@@ -668,6 +668,8 @@ export function ZoneScoringView() {
                 calculatedParams={calculatedParams}
                 onEditParam={handleEditParam}
                 onRemoveParam={handleRemoveParameter}
+                zones={zones}
+                cityCorporations={cityCorporations}
               />
             </div>
           </div>
