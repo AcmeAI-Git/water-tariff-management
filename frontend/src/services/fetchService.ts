@@ -18,12 +18,18 @@ class FetchService {
 
     /**
      * Creates a fetch request with timeout
+     * If timeout is 0, no timeout will be applied (useful for Render backends that need to wake up)
      */
     private async fetchWithTimeout(
         url: string,
         options: RequestInit,
         timeout: number = this.defaultTimeout
     ): Promise<Response> {
+        // If timeout is 0, skip timeout mechanism entirely
+        if (timeout === 0) {
+            return fetch(url, options);
+        }
+
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), timeout);
 

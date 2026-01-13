@@ -39,6 +39,44 @@ export function AreaManagement() {
   );
   const areas: Area[] = (areasData ?? []) as Area[];
 
+  // Get unique GeoJSON types from areas
+  const uniqueGeoJsonTypes = useMemo(() => {
+    const types = new Set(areas.map(area => area.geojson.type));
+    return Array.from(types).sort();
+  }, [areas]);
+
+  // Apply filters
+  const filteredAreas = useMemo(() => {
+    return areas.filter((area) => {
+      // Search query filter
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const matchesSearch = 
+          area.name.toLowerCase().includes(query) ||
+          area.id.toString().includes(query) ||
+          area.geojson.type.toLowerCase().includes(query);
+        if (!matchesSearch) {
+          return false;
+        }
+      }
+
+      // GeoJSON type filter
+      if (geoJsonTypeFilter !== 'all' && area.geojson.type !== geoJsonTypeFilter) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [areas, searchQuery, geoJsonTypeFilter]);
+
+  // Check if any filters are active
+  const hasActiveFilters = geoJsonTypeFilter !== 'all' || searchQuery.trim() !== '';
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSearchQuery('');
+    setGeoJsonTypeFilter('all');
+  };
 
   // Create mutation
   const createAreaMutation = useApiMutation(
