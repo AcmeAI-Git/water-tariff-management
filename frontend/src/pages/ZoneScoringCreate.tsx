@@ -11,7 +11,7 @@ import { PageHeader } from '../components/zoneScoring/PageHeader';
 import { ScoringParameterFormFields } from '../components/zoneScoring/ScoringParameterFormFields';
 import { initializeScoringParam, calculatePercentages, mapScoringParamsToDto } from '../utils/zoneScoringUtils';
 import { parseScoringParamsCSV, generateCSVTemplate } from '../utils/csvParser';
-import type { CreateZoneScoringRuleSetDto, CreateScoringParamDto, Area, ScoringParam } from '../types';
+import type { CreateZoneScoringRuleSetDto, CreateScoringParamDto, Area, ScoringParam, Zone, CityCorporation } from '../types';
 
 export function ZoneScoringCreate() {
   const navigate = useNavigate();
@@ -32,6 +32,24 @@ export function ZoneScoringCreate() {
   );
   const areas: Area[] = (areasData ?? []) as Area[];
 
+  // Fetch zones
+  const { data: zonesData } = useApiQuery<Zone[]>(
+    ['zones'],
+    () => api.zones.getAll()
+  );
+  const zones: Zone[] = (zonesData ?? []) as Zone[];
+
+  // Fetch city corporations
+  const { data: cityCorporationsData } = useApiQuery<CityCorporation[]>(
+    ['city-corporations'],
+    () => api.cityCorporations.getAll()
+  );
+  const cityCorporations: CityCorporation[] = (cityCorporationsData ?? []) as CityCorporation[];
+
+  // State for hierarchical filtering
+  const [filterCityCorpId, setFilterCityCorpId] = useState<string>('');
+  const [filterZoneId, setFilterZoneId] = useState<string>('');
+
   const createZoneScoringMutation = useApiMutation(
     (data: CreateZoneScoringRuleSetDto) => api.zoneScoring.create(data),
     {
@@ -43,19 +61,23 @@ export function ZoneScoringCreate() {
 
   // Calculate percentages for all params including the new one being added
   const calculatedParams = useMemo(() => {
-    let paramsToCalculate: ScoringParam[] = scoringParams.map(p => ({
-      ...p,
-      id: 0,
-      area: areas.find(a => a.id === p.areaId),
-      ruleSetId: 0,
-    } as ScoringParam));
+    let paramsToCalculate: ScoringParam[] = scoringParams.map(p => {
+      const area = areas.find(a => a.id === p.areaId);
+      return {
+        ...p,
+        id: 0,
+        area: area, // Area already has nested zone object from API
+        ruleSetId: 0,
+      } as ScoringParam;
+    });
 
     // If adding a new param, include it in the calculation
     if (newParam.areaId && newParam.areaId !== 0) {
+      const area = areas.find(a => a.id === newParam.areaId);
       const tempParam: ScoringParam = {
         ...newParam,
         id: 0,
-        area: areas.find(a => a.id === newParam.areaId),
+        area: area, // Area already has nested zone object from API
         ruleSetId: 0,
       } as ScoringParam;
       paramsToCalculate = [...paramsToCalculate, tempParam];
@@ -63,6 +85,37 @@ export function ZoneScoringCreate() {
 
     return calculatePercentages(paramsToCalculate);
   }, [scoringParams, newParam, areas]);
+
+  // Filter areas based on selected city corporation and zone
+  const filteredAreasForModal = useMemo(() => {
+    let result = areas.filter(area => !scoringParams.some(p => p.areaId === area.id));
+
+    // Filter by city corporation
+    if (filterCityCorpId) {
+      result = result.filter(area => {
+        // Use nested zone object from area if available
+        const zone = area.zone || zones.find(z => z.id === area.zoneId);
+        return zone?.cityCorporationId === parseInt(filterCityCorpId);
+      });
+    }
+
+    // Filter by zone
+    if (filterZoneId) {
+      result = result.filter(area => {
+        // Use nested zone object from area if available
+        const zone = area.zone || zones.find(z => z.id === area.zoneId);
+        return zone?.id === parseInt(filterZoneId);
+      });
+    }
+
+    return result;
+  }, [areas, scoringParams, filterCityCorpId, filterZoneId, zones]);
+
+  // Get zones for selected city corporation
+  const zonesForCityCorp = useMemo(() => {
+    if (!filterCityCorpId) return [];
+    return zones.filter(z => z.cityCorporationId === parseInt(filterCityCorpId));
+  }, [zones, filterCityCorpId]);
 
   const handleAddParameter = () => {
     if (!newParam.areaId || newParam.areaId === 0) {
@@ -479,46 +532,120 @@ export function ZoneScoringCreate() {
                     variant="ghost"
                     size="sm"
                     onClick={() => {
-                      setIsAddParamModalOpen(false);
-                      setNewParam(initializeScoringParam());
-                    }}
-                    className="h-8 w-8 p-0"
-                  >
-                    <X size={20} />
-                  </Button>
-                </div>
-                
-                <div className="space-y-4">
+                    setIsAddParamModalOpen(false);
+                    setNewParam(initializeScoringParam());
+                    setFilterCityCorpId('');
+                    setFilterZoneId('');
+                  }}
+                  className="h-8 w-8 p-0"
+                >
+                  <X size={20} />
+                </Button>
+              </div>
+              
+              <div className="space-y-4">
+                {/* City Corporation Filter */}
+                {cityCorporations.length > 0 && (
                   <div>
                     <Label className="text-sm font-medium text-gray-700 mb-2 block">
-                      Area <span className="text-red-500">*</span>
+                      City Corporation
                     </Label>
-                    <Select
-                      value={newParam.areaId?.toString() || '0'}
-                      onValueChange={(value) => setNewParam({ ...newParam, areaId: parseInt(value) })}
+                    <Select 
+                      value={filterCityCorpId || '__all_city_corps__'} 
+                      onValueChange={(value) => {
+                        const cityCorpId = value === '__all_city_corps__' ? '' : value;
+                        setFilterCityCorpId(cityCorpId);
+                        setFilterZoneId(''); // Reset zone when city corp changes
+                        setNewParam({ ...newParam, areaId: 0 }); // Reset area selection
+                      }}
                     >
                       <SelectTrigger className="bg-white border-gray-300 rounded-lg h-11">
-                        <SelectValue placeholder="Select an area" />
+                        <SelectValue placeholder="Filter by city corporation (optional)" />
                       </SelectTrigger>
                       <SelectContent className="bg-white">
-                        {areasLoading ? (
-                          <SelectItem value="0" disabled>Loading areas...</SelectItem>
-                        ) : areas.length === 0 ? (
-                          <SelectItem value="0" disabled>No areas available</SelectItem>
-                        ) : areas.filter(area => !scoringParams.some(p => p.areaId === area.id)).length === 0 ? (
-                          <SelectItem value="0" disabled>All areas already added</SelectItem>
-                        ) : (
-                          areas
-                            .filter(area => !scoringParams.some(p => p.areaId === area.id))
-                            .map((area) => (
-                              <SelectItem key={area.id} value={area.id.toString()}>
-                                {area.name}
-                              </SelectItem>
-                            ))
-                        )}
+                        <SelectItem value="__all_city_corps__">All City Corporations</SelectItem>
+                        {cityCorporations.map((cc) => (
+                          <SelectItem key={cc.id} value={cc.id.toString()}>
+                            {cc.name} ({cc.code})
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
+                )}
+
+                {/* Zone Filter */}
+                {zones.length > 0 && filterCityCorpId && (
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                      Zone
+                    </Label>
+                    <Select 
+                      value={filterZoneId || '__all_zones__'} 
+                      onValueChange={(value) => {
+                        const zoneId = value === '__all_zones__' ? '' : value;
+                        setFilterZoneId(zoneId);
+                        setNewParam({ ...newParam, areaId: 0 }); // Reset area selection
+                      }}
+                      disabled={!filterCityCorpId}
+                    >
+                      <SelectTrigger className="bg-white border-gray-300 rounded-lg h-11 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <SelectValue placeholder={filterCityCorpId ? "Filter by zone (optional)" : "Select city corporation first"} />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white">
+                        <SelectItem value="__all_zones__">All Zones</SelectItem>
+                        {zonesForCityCorp.map((zone) => (
+                          <SelectItem key={zone.id} value={zone.id.toString()}>
+                            {zone.name} - {zone.cityName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* Area Selection */}
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                    Area <span className="text-red-500">*</span>
+                  </Label>
+                  <Select
+                    value={newParam.areaId?.toString() || '0'}
+                    onValueChange={(value) => setNewParam({ ...newParam, areaId: parseInt(value) })}
+                  >
+                    <SelectTrigger className="bg-white border-gray-300 rounded-lg h-11">
+                      <SelectValue placeholder="Select an area" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white">
+                      {areasLoading ? (
+                        <SelectItem value="0" disabled>Loading areas...</SelectItem>
+                      ) : filteredAreasForModal.length === 0 ? (
+                        <SelectItem value="0" disabled>
+                          {areas.filter(area => !scoringParams.some(p => p.areaId === area.id)).length === 0 
+                            ? 'All areas already added' 
+                            : `No areas available${filterCityCorpId || filterZoneId ? ' for selected filters' : ''}`}
+                        </SelectItem>
+                      ) : (
+                        filteredAreasForModal.map((area) => {
+                          // Use nested zone object if available
+                          const zone = area.zone || zones.find(z => z.id === area.zoneId);
+                          const cityCorp = zone?.cityCorporationId 
+                            ? cityCorporations.find(cc => cc.id === zone.cityCorporationId)
+                            : null;
+                          const displayText = zone && cityCorp 
+                            ? `${area.name} (${zone.name}, ${cityCorp.name})`
+                            : area.name;
+                          
+                          return (
+                            <SelectItem key={area.id} value={area.id.toString()}>
+                              {displayText}
+                            </SelectItem>
+                          );
+                        })
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
 
                   <ScoringParameterFormFields
                     values={newParam}

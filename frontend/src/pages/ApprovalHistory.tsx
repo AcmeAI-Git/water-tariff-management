@@ -3,62 +3,86 @@ import { Badge } from '../components/ui/badge';
 import { useMemo, useState } from 'react';
 import { api } from '../services/api';
 import { useApiQuery } from '../hooks/useApiQuery';
-import { mapApprovalRequestToDisplay } from '../utils/dataMappers';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { Input } from '../components/ui/input';
 import { Dropdown } from '../components/ui/Dropdown';
 import { Button } from '../components/ui/button';
 import { Search, X } from 'lucide-react';
+import type { ZoneScoringRuleSet } from '../types';
+
+interface ApprovalHistoryItem {
+  id: string;
+  module: string;
+  title: string;
+  decision: string;
+  reviewedAt: number; // timestamp for sorting
+  reviewedAtFormatted: string;
+  recordId: number;
+}
 
 export function ApprovalHistory() {
   const [moduleFilter, setModuleFilter] = useState<string>('all');
   const [decisionFilter, setDecisionFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // Fetch all approval requests
-  const { data: approvalRequests = [], isLoading } = useApiQuery(
-    ['approval-requests', 'all'],
-    () => api.approvalRequests.getAll()
+  // Fetch ZoneScoring rulesets
+  const { data: zoneScoringData = [], isLoading } = useApiQuery<ZoneScoringRuleSet[]>(
+    ['zone-scoring'],
+    () => api.zoneScoring.getAll()
   );
 
-  // Fetch all admins to map requestedBy IDs to names
-  const { data: admins = [] } = useApiQuery(
-    ['admins'],
-    () => api.admins.getAll()
-  );
-
-  // Filter to show only reviewed requests (not pending)
-  const reviewedRequests = useMemo(() => {
-    return approvalRequests.filter((request) => {
-      // Check if request has been reviewed (has reviewedBy and reviewedAt)
-      return request.reviewedBy !== null && request.reviewedBy !== undefined && 
-             request.reviewedAt !== null && request.reviewedAt !== undefined;
+  // Filter to show only reviewed rulesets (approved, rejected, published, active)
+  // Note: 'published' and 'active' are considered approved states
+  const reviewedRulesets = useMemo(() => {
+    return (zoneScoringData as ZoneScoringRuleSet[]).filter((ruleset) => {
+      const status = ruleset.status?.toLowerCase();
+      return status === 'approved' || status === 'rejected' || status === 'published' || status === 'active';
     });
-  }, [approvalRequests]);
+  }, [zoneScoringData]);
 
-  // Map approval requests to display format
+  // Map rulesets to display format
   const displayRequests = useMemo(() => {
-    return reviewedRequests.map((request) => {
-      const requester = admins.find((a) => a.id === request.requestedBy);
-      const reviewer = request.reviewer ? admins.find((a) => a.id === request.reviewedBy) : null;
-      const mapped = mapApprovalRequestToDisplay(request, requester?.fullName);
-      // Backend uses statusName, frontend type might have name - check both
-      const decision = (request.approvalStatus as any)?.statusName || 
-                      request.approvalStatus?.name || 
-                      'Unknown';
-      return {
-        ...mapped,
-        reviewedBy: reviewer?.fullName || mapped.reviewedBy,
-        review: mapped.review || '',
-        reviewedAt: request.reviewedAt ? new Date(request.reviewedAt).getTime() : 0,
+    const items: ApprovalHistoryItem[] = [];
+
+    reviewedRulesets.forEach((ruleset: ZoneScoringRuleSet) => {
+      const status = ruleset.status?.toLowerCase();
+      // Map status to decision: published/active/approved = Approved, rejected = Rejected
+      const decision = (status === 'approved' || status === 'published' || status === 'active') 
+        ? 'Approved' 
+        : status === 'rejected' 
+        ? 'Rejected' 
+        : 'Unknown';
+      
+      // Use updatedAt as the review date (when status was changed)
+      const reviewedAt = ruleset.updatedAt ? new Date(ruleset.updatedAt).getTime() : 0;
+      const reviewedAtFormatted = ruleset.updatedAt
+        ? new Date(ruleset.updatedAt).toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          })
+        : 'N/A';
+
+      // Ensure title is present and valid
+      const displayTitle = ruleset.title || `Ruleset #${ruleset.id}`;
+
+      items.push({
+        id: `ZONE-SCORING-${ruleset.id}-${status}`, // Include status in ID to handle duplicates if needed
+        module: 'ZoneScoring',
+        title: displayTitle,
         decision,
-        module: mapped.module || request.moduleName || 'Unknown',
-      };
-    }).sort((a, b) => {
-      // Sort by review date descending (newest first)
-      return b.reviewedAt - a.reviewedAt;
+        reviewedAt,
+        reviewedAtFormatted,
+        recordId: ruleset.id,
+      });
     });
-  }, [reviewedRequests, admins]);
+
+    // Sort by review date descending (newest first)
+    return items.sort((a, b) => b.reviewedAt - a.reviewedAt);
+  }, [reviewedRulesets]);
 
   // Get unique modules for filter
   const uniqueModules = useMemo(() => {
@@ -94,9 +118,8 @@ export function ApprovalHistory() {
         const query = searchQuery.toLowerCase();
         const matchesSearch = 
           item.module?.toLowerCase().includes(query) ||
-          item.requestedBy?.toLowerCase().includes(query) ||
-          item.request?.toLowerCase().includes(query) ||
-          item.review?.toLowerCase().includes(query);
+          item.title?.toLowerCase().includes(query) ||
+          item.reviewedAtFormatted?.toLowerCase().includes(query);
         if (!matchesSearch) {
           return false;
         }
@@ -127,7 +150,7 @@ export function ApprovalHistory() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-[28px] font-semibold text-gray-900 mb-1">My Approval History</h1>
-              <p className="text-sm text-gray-500">A log of all changes you have approved or rejected</p>
+              <p className="text-sm text-gray-500">A log of all ZoneScoring rulesets you have approved or rejected</p>
             </div>
             <div className="flex items-center gap-6 text-sm">
               <div className="flex items-center gap-2">
@@ -155,7 +178,7 @@ export function ApprovalHistory() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <Input
               type="text"
-              placeholder="Search by module, requester, request..."
+              placeholder="Search by title, review date..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 bg-white border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
@@ -210,16 +233,15 @@ export function ApprovalHistory() {
             <TableHeader>
               <TableRow className="border-gray-200 bg-gray-50 hover:bg-gray-50">
                 <TableHead className="font-semibold text-gray-700">Module</TableHead>
-                <TableHead className="font-semibold text-gray-700">Requested By</TableHead>
-                <TableHead className="font-semibold text-gray-700">Request</TableHead>
+                <TableHead className="font-semibold text-gray-700">Title</TableHead>
                 <TableHead className="font-semibold text-gray-700">My Decision</TableHead>
-                <TableHead className="font-semibold text-gray-700">Review</TableHead>
+                <TableHead className="font-semibold text-gray-700">Reviewed At</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredRequests.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={4} className="text-center py-8 text-gray-500">
                     No approval history found
                   </TableCell>
                 </TableRow>
@@ -227,8 +249,7 @@ export function ApprovalHistory() {
                 filteredRequests.map((item) => (
                   <TableRow key={item.id} className="border-gray-100">
                     <TableCell className="font-medium text-gray-900">{item.module}</TableCell>
-                    <TableCell className="text-gray-600">{item.requestedBy}</TableCell>
-                    <TableCell className="text-gray-600">{item.request}</TableCell>
+                    <TableCell className="text-gray-600">{item.title}</TableCell>
                     <TableCell>
                       <Badge 
                         variant="secondary" 
@@ -241,7 +262,7 @@ export function ApprovalHistory() {
                         {item.decision}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-gray-600">{item.review}</TableCell>
+                    <TableCell className="text-gray-600">{item.reviewedAtFormatted}</TableCell>
                   </TableRow>
                 ))
               )}

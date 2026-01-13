@@ -64,8 +64,11 @@ export function ScoringParametersTable({ calculatedParams, onEditParam, onRemove
             : '-';
           
           // Get zone and city corporation info
-          const zone = param.area?.zoneId ? zones.find(z => z.id === param.area.zoneId) : null;
-          const cityCorp = zone?.cityCorporationId ? cityCorporations.find(cc => cc.id === zone.cityCorporationId) : null;
+          // Use nested zone object from area if available, otherwise fallback to lookup
+          const zone = param.area?.zone || (param.area?.zoneId ? zones.find(z => z.id === param.area.zoneId) : null);
+          const cityCorp = zone?.cityCorporationId 
+            ? (zone.cityCorporation || cityCorporations.find(cc => cc.id === zone.cityCorporationId))
+            : null;
           
           // Alternate row background colors for better readability
           const rowBgClass = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';

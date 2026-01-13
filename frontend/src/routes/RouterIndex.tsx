@@ -234,14 +234,6 @@ const RouterIndex = () => {
             </ProtectedRoute>
           } 
         />
-        <Route 
-          path="/approval-admin/audit" 
-          element={
-            <ProtectedRoute allowedRoles={['approval-admin']}>
-              <SystemAuditLog />
-            </ProtectedRoute>
-          } 
-        />
         
         {/* General Admin routes - only accessible by general-info role */}
         <Route 

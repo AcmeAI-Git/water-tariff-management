@@ -6,9 +6,8 @@ import { useState, useMemo } from 'react';
 import { ReviewChangeModal } from './ReviewChangeModal';
 import { api } from '../services/api';
 import { useApiQuery, useApiMutation, useAdminId } from '../hooks/useApiQuery';
-import { mapApprovalRequestToDisplay } from '../utils/dataMappers';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
-import type { User, Consumption, ApprovalStatus } from '../types';
+import type { User, Consumption, ZoneScoringRuleSet } from '../types';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -20,7 +19,7 @@ interface ApprovalQueueItem {
   request: string;
   status: string;
   recordId: number;
-  recordType: 'approval-request' | 'household' | 'consumption';
+  recordType: 'household' | 'consumption' | 'zone-scoring';
   oldData?: unknown;
   newData?: unknown;
 }
@@ -30,18 +29,6 @@ export function ApprovalQueue() {
   const [isLoadingRecordData, setIsLoadingRecordData] = useState(false);
   const adminId = useAdminId();
   const queryClient = useQueryClient();
-
-  // Fetch pending approval requests
-  const { data: approvalRequests = [], isLoading: approvalRequestsLoading } = useApiQuery(
-    ['approval-requests', 'pending'],
-    () => api.approvalRequests.getPending()
-  );
-
-  // Fetch all Customer approval requests to find requesters for households
-  const { data: allCustomerApprovalRequests = [] } = useApiQuery(
-    ['approval-requests', 'Customer'],
-    () => api.approvalRequests.getAll({ moduleName: 'Customer' })
-  );
 
   // Fetch pending households (users with status='pending')
   const { data: pendingHouseholds = [], isLoading: householdsLoading } = useApiQuery(
@@ -61,6 +48,17 @@ export function ApprovalQueue() {
     () => api.admins.getAll()
   );
 
+  // Fetch ZoneScoring rulesets with pending status
+  const { data: zoneScoringData = [] } = useApiQuery<ZoneScoringRuleSet[]>(
+    ['zone-scoring'],
+    () => api.zoneScoring.getAll()
+  );
+  const pendingZoneScoringRulesets = useMemo(() => {
+    return (zoneScoringData as ZoneScoringRuleSet[]).filter(
+      (ruleset) => ruleset.status?.toLowerCase() === 'pending'
+    );
+  }, [zoneScoringData]);
+
   // Filter pending consumptions
   const pendingConsumptions = useMemo(() => {
     return allConsumptions.filter((c: Consumption) => c.status?.toLowerCase() === 'pending');
@@ -70,138 +68,106 @@ export function ApprovalQueue() {
   const displayRequests = useMemo(() => {
     const items: ApprovalQueueItem[] = [];
 
-    // Add approval requests - filter to ensure only pending items are shown
-    approvalRequests.forEach((request) => {
-      // Safety check: only include items that are actually pending
-      // Backend uses statusName, frontend type supports both for compatibility
-      const approvalStatus = request.approvalStatus as ApprovalStatus | undefined;
-      const statusName = approvalStatus?.statusName || approvalStatus?.name;
-      
-      // Skip if status is not pending (case-insensitive)
-      if (!statusName || statusName.toLowerCase() !== 'pending') {
-        return;
-      }
-      
-      // Skip if already reviewed (has reviewer or reviewed date)
-      if (request.reviewedBy || request.reviewedAt) {
-        return;
-      }
-      
-      // Prioritize populated requester relation, fallback to admins array lookup
-      const requesterName = request.requester?.fullName || admins.find((a) => a.id === request.requestedBy)?.fullName;
-      const mapped = mapApprovalRequestToDisplay(request, requesterName);
-      items.push({
-        ...mapped,
-        recordId: request.recordId,
-        recordType: 'approval-request',
-      });
-    });
-
-    // Add pending households (that don't have approval requests)
+    // Add pending households
     pendingHouseholds.forEach((household: User) => {
       // Safety check: Skip if household doesn't have an ID (shouldn't happen, but safety)
       if (!household.id) {
         return;
       }
       
-      // Check if this household already has a pending approval request
-      const hasPendingApprovalRequest = approvalRequests.some(
-        (req) => req.moduleName === 'Customer' && req.recordId === household.id
-      );
-      
-      if (!hasPendingApprovalRequest) {
-        // IMPORTANT: Use UNFILTERED list to check if household should be excluded
-        // This catches rejected requests that are filtered out from filteredCustomerApprovalRequests
-        const relatedApprovalRequest = allCustomerApprovalRequests.find(
-          (req) => req.recordId === household.id
-        );
-        
-        // Skip if related request is rejected or already reviewed
-        if (relatedApprovalRequest) {
-          const reqStatus = relatedApprovalRequest.approvalStatus as ApprovalStatus | undefined;
-          const reqStatusName = reqStatus?.statusName || reqStatus?.name;
-          if (reqStatusName?.toLowerCase() === 'rejected' || relatedApprovalRequest.reviewedBy || relatedApprovalRequest.reviewedAt) {
-            return; // Skip rejected/reviewed households
-          }
-        }
-        
-        // Get requester name from approval request or fallback to admin lookup
-        let requesterName = 'Unknown';
-        if (relatedApprovalRequest) {
-          requesterName = relatedApprovalRequest.requester?.fullName || 
-                         admins.find((a) => a.id === relatedApprovalRequest.requestedBy)?.fullName || 
-                         `Admin #${relatedApprovalRequest.requestedBy}`;
-        }
-        
-        items.push({
-          id: `HOUSEHOLD-${household.id}`,
-          module: 'Customer',
-          requestedBy: requesterName,
-          request: household.createdAt 
-            ? new Date(household.createdAt).toLocaleString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-              })
-            : 'N/A',
-          status: 'Pending',
-          recordId: household.id,
-          recordType: 'household',
-          oldData: null,
-          newData: {
-            fullName: household.fullName,
-            meterNo: household.meterNo,
-            phone: household.phone,
-            email: household.email,
-            address: household.address,
-            hourseType: household.hourseType,
-            installDate: household.installDate,
-            zoneId: household.zoneId,
-            wardId: household.wardId,
-          },
-        });
-      }
+      // User type doesn't have createdBy, so we'll use 'Unknown' for now
+      items.push({
+        id: `HOUSEHOLD-${household.id}`,
+        module: 'Customer',
+        requestedBy: 'Unknown',
+        request: household.createdAt 
+          ? new Date(household.createdAt).toLocaleString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+            })
+          : 'N/A',
+        status: 'Pending',
+        recordId: household.id,
+        recordType: 'household',
+        oldData: null,
+        newData: {
+          fullName: household.fullName,
+          meterNo: household.meterNo,
+          phone: household.phone,
+          email: household.email,
+          address: household.address,
+          hourseType: household.hourseType,
+          installDate: household.installDate,
+          zoneId: household.zoneId,
+          wardId: household.wardId,
+        },
+      });
     });
 
-    // Add pending consumptions (that don't have approval requests)
+    // Add pending consumptions
     pendingConsumptions.forEach((consumption: Consumption) => {
-      // Check if this consumption already has an approval request
-      const hasApprovalRequest = approvalRequests.some(
-        (req) => req.moduleName === 'Consumption' && req.recordId === consumption.id
-      );
-      
-      if (!hasApprovalRequest) {
-        const creator = admins.find((a) => a.id === consumption.createdBy);
-        items.push({
-          id: `CONSUMPTION-${consumption.id}`,
-          module: 'Consumption',
-          requestedBy: creator?.fullName || `Admin #${consumption.createdBy}`,
-          request: consumption.createdAt
-            ? new Date(consumption.createdAt).toLocaleString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-              })
-            : 'N/A',
-          status: 'Pending',
-          recordId: consumption.id,
-          recordType: 'consumption',
-          oldData: null,
-          newData: {
-            userId: consumption.userId,
-            billMonth: consumption.billMonth,
-            currentReading: consumption.currentReading,
-            previousReading: consumption.previousReading,
-            consumption: consumption.consumption,
-          },
-        });
-      }
+      const creator = admins.find((a) => a.id === consumption.createdBy);
+      items.push({
+        id: `CONSUMPTION-${consumption.id}`,
+        module: 'Consumption',
+        requestedBy: creator?.fullName || `Admin #${consumption.createdBy}`,
+        request: consumption.createdAt
+          ? new Date(consumption.createdAt).toLocaleString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+            })
+          : 'N/A',
+        status: 'Pending',
+        recordId: consumption.id,
+        recordType: 'consumption',
+        oldData: null,
+        newData: {
+          userId: consumption.userId,
+          billMonth: consumption.billMonth,
+          currentReading: consumption.currentReading,
+          previousReading: consumption.previousReading,
+          consumption: consumption.consumption,
+        },
+      });
+    });
+
+    // Add pending ZoneScoring rulesets
+    pendingZoneScoringRulesets.forEach((ruleset: ZoneScoringRuleSet) => {
+      // ZoneScoringRuleSet doesn't have createdBy/requestedBy fields
+      items.push({
+        id: `ZONE-SCORING-${ruleset.id}`,
+        module: 'ZoneScoring',
+        requestedBy: '-', // Not available for ZoneScoring
+        request: ruleset.createdAt
+          ? new Date(ruleset.createdAt).toLocaleString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+            })
+          : 'N/A',
+        status: 'Pending',
+        recordId: ruleset.id,
+        recordType: 'zone-scoring',
+        oldData: null,
+        newData: {
+          title: ruleset.title,
+          description: ruleset.description,
+          parametersCount: ruleset.scoringParams?.length || 0,
+          status: ruleset.status,
+          scoringParams: ruleset.scoringParams || [],
+        },
+      });
     });
 
     // Sort by request date (newest first)
@@ -210,34 +176,7 @@ export function ApprovalQueue() {
       const dateB = new Date(b.request).getTime();
       return dateB - dateA;
     });
-  }, [approvalRequests, allCustomerApprovalRequests, pendingHouseholds, pendingConsumptions, admins]);
-
-  const isLoading = approvalRequestsLoading || householdsLoading || consumptionsLoading;
-
-  // Review approval request mutation
-  const reviewApprovalRequestMutation = useApiMutation(
-    ({ id, status, comments }: { id: number; status: 'Approved' | 'Rejected'; comments?: string }) => {
-      if (!adminId) throw new Error('Admin ID not found');
-      return api.approvalRequests.review(id, {
-        reviewedBy: adminId,
-        status,
-        comments,
-      });
-    },
-    {
-      successMessage: 'Approval request reviewed successfully',
-      errorMessage: 'Failed to review approval request',
-      invalidateQueries: [
-        ['approval-requests', 'pending'],
-        ['approval-requests', 'Customer'],
-        ['approval-requests'],
-        ['users', 'pending'],
-        ['users', 'active'],
-        ['users'],
-        ['consumption'],
-      ],
-    }
-  );
+  }, [pendingHouseholds, pendingConsumptions, pendingZoneScoringRulesets, admins]);
 
   // Activate household mutation
   const activateHouseholdMutation = useApiMutation(
@@ -249,8 +188,6 @@ export function ApprovalQueue() {
         ['users', 'pending'],
         ['users', 'active'],
         ['users'],
-        ['approval-requests', 'pending'],
-        ['approval-requests'],
       ],
     }
   );
@@ -264,8 +201,6 @@ export function ApprovalQueue() {
       invalidateQueries: [
         ['users', 'pending'],
         ['users'],
-        ['approval-requests', 'pending'],
-        ['approval-requests'],
       ],
     }
   );
@@ -284,8 +219,6 @@ export function ApprovalQueue() {
       errorMessage: 'Failed to approve consumption',
       invalidateQueries: [
         ['consumption'],
-        ['approval-requests', 'pending'],
-        ['approval-requests'],
       ],
     }
   );
@@ -301,14 +234,13 @@ export function ApprovalQueue() {
     },
     {
       successMessage: 'Consumption rejected successfully',
-      // Remove errorMessage - we handle errors manually in catch block with custom logic
       invalidateQueries: [
         ['consumption'],
-        ['approval-requests', 'pending'],
-        ['approval-requests'],
       ],
     }
   );
+
+  const isLoading = householdsLoading || consumptionsLoading;
 
   const handleReview = async (request: ApprovalQueueItem) => {
     // If oldData/newData are missing (null/undefined), fetch the actual record data
@@ -341,7 +273,7 @@ export function ApprovalQueue() {
             previousReading: consumption.previousReading,
             consumption: consumption.consumption,
           };
-        } else if (request.module === 'ZoneScoring') {
+        } else if (request.module === 'ZoneScoring' || request.recordType === 'zone-scoring') {
           // Fetch zone scoring ruleset data
           const ruleset = await api.zoneScoring.getById(request.recordId);
           newData = {
@@ -351,7 +283,7 @@ export function ApprovalQueue() {
             effectiveFrom: ruleset.effectiveFrom || '',
             createdAt: ruleset.createdAt,
             updatedAt: ruleset.updatedAt,
-            scoringParams: ruleset.scoringParams?.map((param: any) => ({
+            scoringParams: ruleset.scoringParams?.map((param) => ({
               areaId: param.areaId,
               areaName: param.area?.name || `Area ${param.areaId}`,
               landHomeRate: param.landHomeRate,
@@ -404,77 +336,48 @@ export function ApprovalQueue() {
     }
 
     try {
-      if (request.recordType === 'approval-request') {
-        // Extract numeric ID from "REQ-001" format
-        const numericId = parseInt(request.id.replace('REQ-', ''));
-        const approvalRequest = approvalRequests.find((req) => req.id === numericId);
-        
-        // Review the approval request
-        await reviewApprovalRequestMutation.mutateAsync({
-          id: numericId,
-          status: 'Approved',
-        });
-        
-        // If it's a Customer module request, also activate the household
-        if ((request.module === 'Customer' || approvalRequest?.moduleName === 'Customer') && request.recordId) {
-          await activateHouseholdMutation.mutateAsync(request.recordId);
-        }
-        
-        // If it's a ZoneScoring module request, also update the ruleset status to approved
-        if ((request.module === 'ZoneScoring' || approvalRequest?.moduleName === 'ZoneScoring') && request.recordId) {
-          await api.zoneScoring.updateStatus(request.recordId, 'approved');
-        }
+      if (request.recordType === 'zone-scoring') {
+        // Use publish endpoint for ZoneScoring approval
+        await api.zoneScoring.publish(request.recordId);
       } else if (request.recordType === 'household') {
         // Activate household
         await activateHouseholdMutation.mutateAsync(request.recordId);
-        // Also create/update approval request if it exists
-        const approvalRequest = approvalRequests.find(
-          (req) => req.moduleName === 'Customer' && req.recordId === request.recordId
-        );
-        if (approvalRequest) {
-          await reviewApprovalRequestMutation.mutateAsync({
-            id: approvalRequest.id,
-            status: 'Approved',
-          });
-        }
       } else if (request.recordType === 'consumption') {
         // Approve consumption
         await approveConsumptionMutation.mutateAsync({
           id: request.recordId,
         });
-        // Also create/update approval request if it exists
-        const approvalRequest = approvalRequests.find(
-          (req) => req.moduleName === 'Consumption' && req.recordId === request.recordId
-        );
-        if (approvalRequest) {
-          await reviewApprovalRequestMutation.mutateAsync({
-            id: approvalRequest.id,
-            status: 'Approved',
-          });
-        }
       }
       
       // Invalidate and refetch all related queries to ensure UI updates immediately
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['approval-requests', 'pending'], refetchType: 'active' }),
-        queryClient.invalidateQueries({ queryKey: ['approval-requests', 'Customer'], refetchType: 'active' }),
-        queryClient.invalidateQueries({ queryKey: ['approval-requests'], refetchType: 'active' }),
-        queryClient.invalidateQueries({ queryKey: ['users', 'pending'], refetchType: 'active' }),
-        queryClient.invalidateQueries({ queryKey: ['users', 'active'], refetchType: 'active' }),
-        queryClient.invalidateQueries({ queryKey: ['users'], refetchType: 'active' }),
-        queryClient.invalidateQueries({ queryKey: ['consumption'], refetchType: 'active' }),
-        queryClient.invalidateQueries({ queryKey: ['zone-scoring'], refetchType: 'active' }),
-      ]);
-      
-      // Explicitly refetch to ensure data is fresh
-      await Promise.all([
-        queryClient.refetchQueries({ queryKey: ['approval-requests', 'pending'] }),
-        queryClient.refetchQueries({ queryKey: ['approval-requests', 'Customer'] }),
-        queryClient.refetchQueries({ queryKey: ['users', 'pending'] }),
-        queryClient.refetchQueries({ queryKey: ['users', 'active'] }),
-        queryClient.refetchQueries({ queryKey: ['consumption'] }),
-        queryClient.refetchQueries({ queryKey: ['zone-scoring'] }),
-      ]);
+      if (request.recordType === 'zone-scoring') {
+        // For ZoneScoring, only invalidate zone-scoring queries
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['zone-scoring'], refetchType: 'active' }),
+        ]);
+        await Promise.all([
+          queryClient.refetchQueries({ queryKey: ['zone-scoring'] }),
+        ]);
+      } else if (request.recordType === 'household') {
+        // For households, invalidate user queries
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['users', 'pending'], refetchType: 'active' }),
+          queryClient.invalidateQueries({ queryKey: ['users', 'active'], refetchType: 'active' }),
+          queryClient.invalidateQueries({ queryKey: ['users'], refetchType: 'active' }),
+        ]);
+        await Promise.all([
+          queryClient.refetchQueries({ queryKey: ['users', 'pending'] }),
+          queryClient.refetchQueries({ queryKey: ['users', 'active'] }),
+        ]);
+      } else if (request.recordType === 'consumption') {
+        // For consumptions, invalidate consumption queries
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['consumption'], refetchType: 'active' }),
+        ]);
+        await Promise.all([
+          queryClient.refetchQueries({ queryKey: ['consumption'] }),
+        ]);
+      }
       
       setSelectedRequest(null);
     } catch (error) {
@@ -502,43 +405,10 @@ export function ApprovalQueue() {
 
     try {
       // Execute mutations first (wait for completion)
-      if (recordType === 'approval-request') {
-        // Extract numeric ID from "REQ-001" format
-        const numericId = parseInt(requestToReject.id.replace('REQ-', ''));
-        const approvalRequest = approvalRequests.find((req) => req.id === numericId);
-        
-        await reviewApprovalRequestMutation.mutateAsync({
-          id: numericId,
-          status: 'Rejected',
-        });
-        
-        // If it's a ZoneScoring module request, also update the ruleset status back to draft
-        if ((requestToReject.module === 'ZoneScoring' || approvalRequest?.moduleName === 'ZoneScoring') && recordId) {
-          await api.zoneScoring.updateStatus(recordId, 'draft');
-        }
+      if (recordType === 'zone-scoring') {
+        // Use status endpoint with 'rejected' for ZoneScoring rejection
+        await api.zoneScoring.updateStatus(recordId, 'rejected');
       } else if (recordType === 'household') {
-        // When rejecting a household, we should:
-        // 1. Update the approval request status to Rejected (if it exists and is pending)
-        // 2. Delete the household since it was never activated
-        const approvalRequest = approvalRequests.find(
-          (req) => req.moduleName === 'Customer' && req.recordId === recordId
-        );
-        
-        // Update approval request first (if it exists and is still pending)
-        if (approvalRequest) {
-          const reqStatus = approvalRequest.approvalStatus as ApprovalStatus | undefined;
-          const reqStatusName = reqStatus?.statusName || reqStatus?.name;
-          
-          // Only reject if it's still pending
-          if (reqStatusName?.toLowerCase() === 'pending' && !approvalRequest.reviewedBy) {
-            await reviewApprovalRequestMutation.mutateAsync({
-              id: approvalRequest.id,
-              status: 'Rejected',
-            });
-          }
-          // If already rejected, skip silently (no error)
-        }
-        
         // Delete the household since it was rejected
         await deleteHouseholdMutation.mutateAsync(recordId);
       } else if (recordType === 'consumption') {
@@ -546,45 +416,42 @@ export function ApprovalQueue() {
         await rejectConsumptionMutation.mutateAsync({
           id: recordId,
         });
-        // Also create/update approval request if it exists
-        const approvalRequest = approvalRequests.find(
-          (req) => req.moduleName === 'Consumption' && req.recordId === recordId
-        );
-        if (approvalRequest) {
-          await reviewApprovalRequestMutation.mutateAsync({
-            id: approvalRequest.id,
-            status: 'Rejected',
-          });
-        }
       }
       
       // Close modal after successful rejection
       setSelectedRequest(null);
       
-      // Wait for backend to fully process (slightly longer delay to ensure transaction is committed)
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Force refetch of pending queries (mutation hook already invalidated)
-      // Only refetch the critical queries needed to update the queue
-      await Promise.all([
-        queryClient.refetchQueries({ 
-          queryKey: ['approval-requests', 'pending'],
-          type: 'active'
-        }),
-        queryClient.refetchQueries({ 
-          queryKey: ['approval-requests', 'Customer'],
-          type: 'active'
-        }),
-        queryClient.refetchQueries({ 
-          queryKey: ['users', 'pending'],
-          type: 'active',
-          exact: false  // Ensure all users queries are refetched
-        }),
-        queryClient.refetchQueries({ 
-          queryKey: ['zone-scoring'],
-          type: 'active'
-        }),
-      ]);
+      // Invalidate and refetch queries based on record type
+      if (recordType === 'zone-scoring') {
+        // For ZoneScoring, only invalidate zone-scoring queries
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['zone-scoring'], refetchType: 'active' }),
+        ]);
+        await Promise.all([
+          queryClient.refetchQueries({ queryKey: ['zone-scoring'] }),
+        ]);
+      } else if (recordType === 'household') {
+        // Wait for backend to fully process
+        await new Promise(resolve => setTimeout(resolve, 500));
+        // Force refetch of pending queries
+        await Promise.all([
+          queryClient.refetchQueries({ 
+            queryKey: ['users', 'pending'],
+            type: 'active',
+            exact: false
+          }),
+        ]);
+      } else if (recordType === 'consumption') {
+        // Wait for backend to fully process
+        await new Promise(resolve => setTimeout(resolve, 500));
+        // Force refetch of consumption queries
+        await Promise.all([
+          queryClient.refetchQueries({ 
+            queryKey: ['consumption'],
+            type: 'active'
+          }),
+        ]);
+      }
     } catch (error) {
       console.error('Failed to reject:', error);
       
@@ -600,8 +467,6 @@ export function ApprovalQueue() {
       } else {
         // If already rejected, close modal and refresh
         setSelectedRequest(null);
-        await queryClient.invalidateQueries({ queryKey: ['approval-requests', 'pending'] });
-        await queryClient.invalidateQueries({ queryKey: ['approval-requests', 'Customer'] });
         await queryClient.invalidateQueries({ queryKey: ['users', 'pending'] });
       }
     }
@@ -645,8 +510,7 @@ export function ApprovalQueue() {
             <TableHeader>
               <TableRow className="border-gray-200 bg-gray-50 hover:bg-gray-50">
                 <TableHead className="font-semibold text-gray-700">Module</TableHead>
-                <TableHead className="font-semibold text-gray-700">Requested By</TableHead>
-                <TableHead className="font-semibold text-gray-700">Request</TableHead>
+                <TableHead className="font-semibold text-gray-700">Request Timestamp</TableHead>
                 <TableHead className="font-semibold text-gray-700">Status</TableHead>
                 <TableHead className="font-semibold text-gray-700 text-right">Action</TableHead>
               </TableRow>
@@ -654,7 +518,7 @@ export function ApprovalQueue() {
             <TableBody>
               {displayRequests.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={4} className="text-center py-8 text-gray-500">
                     No pending approval requests
                   </TableCell>
                 </TableRow>
@@ -662,7 +526,6 @@ export function ApprovalQueue() {
                 displayRequests.map((request) => (
                   <TableRow key={request.id} className="border-gray-100">
                     <TableCell className="font-medium text-gray-900">{request.module}</TableCell>
-                    <TableCell className="text-gray-600">{request.requestedBy}</TableCell>
                     <TableCell className="text-gray-600">{request.request}</TableCell>
                     <TableCell>
                       <Badge 
@@ -677,7 +540,6 @@ export function ApprovalQueue() {
                         onClick={() => handleReview(request)}
                         className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-9 px-4 flex items-center gap-2 ml-auto"
                         disabled={
-                          reviewApprovalRequestMutation.isPending ||
                           activateHouseholdMutation.isPending ||
                           deleteHouseholdMutation.isPending ||
                           approveConsumptionMutation.isPending ||

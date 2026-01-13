@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { Button } from '../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog';
@@ -69,6 +69,9 @@ export function LocationManagement() {
   const [geoJsonTypeFilter, setGeoJsonTypeFilter] = useState<string>('all');
   const [areaFilterCityCorpId, setAreaFilterCityCorpId] = useState<string>('all');
   const [areaFilterZoneId, setAreaFilterZoneId] = useState<string>('all');
+  
+  // Ref to track if we're initializing edit form (to prevent zone reset)
+  const isInitializingEdit = useRef(false);
 
   // Fetch data
   const { data: cityCorpsData, isLoading: cityCorpsLoading } = useApiQuery<CityCorporation[]>(
@@ -132,14 +135,19 @@ export function LocationManagement() {
     // Filter by city corporation
     if (areaFilterCityCorpId && areaFilterCityCorpId !== 'all') {
       result = result.filter(area => {
-        const zone = zones.find(z => z.id === area.zoneId);
+        // Use nested zone object from area if available, otherwise fallback to lookup
+        const zone = area.zone || zones.find(z => z.id === area.zoneId);
         return zone?.cityCorporationId === parseInt(areaFilterCityCorpId);
       });
     }
     
     // Filter by zone
     if (areaFilterZoneId && areaFilterZoneId !== 'all') {
-      result = result.filter(area => area.zoneId === parseInt(areaFilterZoneId));
+      result = result.filter(area => {
+        // Use nested zone.id if available, otherwise use area.zoneId
+        const zone = area.zone || zones.find(z => z.id === area.zoneId);
+        return zone?.id === parseInt(areaFilterZoneId);
+      });
     }
     
     // Filter by search query
@@ -514,15 +522,32 @@ export function LocationManagement() {
   const handleEditArea = (area: Area) => {
     setEditingArea(area);
     setEditAreaName(area.name);
-    const zoneId = area.zoneId ? area.zoneId.toString() : '';
-    setEditAreaZoneId(zoneId);
-    // Find the zone and set the city corporation filter
-    if (area.zoneId) {
-      const zone = zones.find(z => z.id === area.zoneId);
-      if (zone) {
-        setEditAreaCityCorpId(zone.cityCorporationId.toString());
-      }
+    
+    // Always use nested zone object from area (API returns zone nested, not zoneId at top level)
+    const zone = area.zone;
+    
+    if (!zone) {
+      console.error('Area does not have nested zone object:', area);
+      setIsAreaEditModalOpen(true);
+      return;
     }
+    
+    // Set city corporation first (this is required for zone dropdown to be enabled)
+    const cityCorpId = zone.cityCorporationId.toString();
+    // Use zone.id from nested object (this is the actual zone ID, not zoneNo)
+    const zoneId = zone.id.toString();
+    
+    // Mark that we're initializing to prevent zone reset
+    isInitializingEdit.current = true;
+    
+    // Set both values - city corp first, then zone
+    setEditAreaCityCorpId(cityCorpId);
+    // Set zone after city corp is set (using setTimeout to ensure state update order)
+    setTimeout(() => {
+      setEditAreaZoneId(zoneId);
+      isInitializingEdit.current = false;
+    }, 0);
+    
     setEditAreaGeoJson(JSON.stringify(area.geojson, null, 2));
     setIsAreaEditModalOpen(true);
   };
@@ -1282,14 +1307,41 @@ export function LocationManagement() {
                       <SelectValue placeholder={areaFilterCityCorpId ? "Filter by Zone" : "Select City Corp first"} />
                     </SelectTrigger>
                     <SelectContent className="bg-white border border-gray-200">
-                      {!areaFilterCityCorpId ? (
-                        <div className="px-2 py-1.5 text-sm text-gray-500">Select city corporation first</div>
+                      {!areaFilterCityCorpId || areaFilterCityCorpId === 'all' ? (
+                        <SelectItem value="__placeholder__" disabled className="text-gray-500 cursor-not-allowed">
+                          Select city corporation first
+                        </SelectItem>
                       ) : (() => {
-                        const filteredZonesForArea = zones.filter(z => z.cityCorporationId === parseInt(areaFilterCityCorpId));
+                        // Get zones from areas that belong to the selected city corporation
+                        // Use nested zone object from areas
+                        const zonesFromAreas = areas
+                          .filter(area => {
+                            // Use nested zone object if available, otherwise fallback to lookup
+                            const zone = area.zone || zones.find(z => z.id === area.zoneId);
+                            return zone?.cityCorporationId === parseInt(areaFilterCityCorpId);
+                          })
+                          .map(area => {
+                            // Use nested zone object if available, otherwise fallback to lookup
+                            return area.zone || zones.find(z => z.id === area.zoneId);
+                          })
+                          .filter((zone): zone is Zone => zone !== undefined)
+                          // Remove duplicates by zone id
+                          .filter((zone, index, self) => 
+                            index === self.findIndex(z => z.id === zone.id)
+                          );
+                        
+                        if (zonesFromAreas.length === 0) {
+                          return (
+                            <SelectItem value="__no_zones__" disabled className="text-gray-500 cursor-not-allowed">
+                              No zones with areas found for this city corporation
+                            </SelectItem>
+                          );
+                        }
+                        
                         return (
                           <>
                             <SelectItem value="all">All Zones</SelectItem>
-                            {filteredZonesForArea.map(zone => (
+                            {zonesFromAreas.map(zone => (
                               <SelectItem key={zone.id} value={zone.id.toString()}>
                                 {zone.name} - {zone.cityName}
                               </SelectItem>
@@ -1353,8 +1405,11 @@ export function LocationManagement() {
                   </TableHeader>
                   <TableBody>
                     {filteredAreas.map((area) => {
-                      const zone = zones.find(z => z.id === area.zoneId);
-                      const cityCorp = zone ? cityCorporations.find(cc => cc.id === zone.cityCorporationId) : null;
+                      // Use nested zone object from area if available, otherwise fallback to lookup
+                      const zone = area.zone || zones.find(z => z.id === area.zoneId);
+                      const cityCorp = zone?.cityCorporationId 
+                        ? cityCorporations.find(cc => cc.id === zone.cityCorporationId) 
+                        : null;
                       return (
                         <TableRow key={area.id} className="border-gray-100">
                           <TableCell className="text-sm text-gray-600">{area.id}</TableCell>
@@ -1571,7 +1626,10 @@ export function LocationManagement() {
                       value={editAreaCityCorpId} 
                       onValueChange={(value) => {
                         setEditAreaCityCorpId(value);
-                        setEditAreaZoneId(''); // Reset zone when city corp changes
+                        // Only reset zone if city corp is actually changing (not during initialization)
+                        if (!isInitializingEdit.current && value !== editAreaCityCorpId) {
+                          setEditAreaZoneId(''); // Reset zone when city corp changes
+                        }
                       }}
                     >
                       <SelectTrigger className="w-full border-gray-300 rounded-lg h-11 bg-white">
@@ -1604,22 +1662,27 @@ export function LocationManagement() {
                       </SelectTrigger>
                       <SelectContent className="bg-white border border-gray-200" style={{ maxWidth: '100%', width: 'var(--radix-select-trigger-width)' }}>
                         {!editAreaCityCorpId ? (
-                          <div className="px-2 py-1.5 text-sm text-gray-500">Please select a city corporation first</div>
+                          <SelectItem value="__placeholder__" disabled className="text-gray-500 cursor-not-allowed">
+                            Please select a city corporation first
+                          </SelectItem>
                         ) : (() => {
                           const filteredZones = zones.filter(z => z.cityCorporationId === parseInt(editAreaCityCorpId));
-                          return filteredZones.length === 0 ? (
-                            <div className="px-2 py-1.5 text-sm text-gray-500">No zones available for this city corporation</div>
-                          ) : (
-                            filteredZones.map(zone => (
-                              <SelectItem 
-                                key={zone.id} 
-                                value={zone.id.toString()}
-                                title={`${zone.name} - ${zone.cityName}`}
-                              >
-                                {zone.name} - {zone.cityName}
+                          if (filteredZones.length === 0) {
+                            return (
+                              <SelectItem value="__no_zones__" disabled className="text-gray-500 cursor-not-allowed">
+                                No zones available for this city corporation
                               </SelectItem>
-                            ))
-                          );
+                            );
+                          }
+                          return filteredZones.map(zone => (
+                            <SelectItem 
+                              key={zone.id} 
+                              value={zone.id.toString()}
+                              title={`${zone.name} - ${zone.cityName}`}
+                            >
+                              {zone.name} - {zone.cityName}
+                            </SelectItem>
+                          ));
                         })()}
                       </SelectContent>
                     </Select>

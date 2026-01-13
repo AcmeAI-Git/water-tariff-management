@@ -70,6 +70,7 @@ export default function Layout({ children }: LayoutProps) {
   const tariffActive = isTariffAdmin
     ? (() => {
         if (pathname.startsWith("/tariff-admin/zone-scoring")) return "zone-scoring";
+        if (pathname.startsWith("/tariff-admin/location-management")) return "location-management";
         const match = pathname.match(/^\/tariff-admin\/(\w+)/);
         if (!match) return "zone-scoring";
         switch (match[1]) {

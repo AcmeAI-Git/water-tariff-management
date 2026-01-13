@@ -39,6 +39,12 @@ export function ZoneScoringView() {
   const [csvUploadError, setCsvUploadError] = useState<string | null>(null);
   const [csvUploadSuccess, setCsvUploadSuccess] = useState<string | null>(null);
   const [isParsingCSV, setIsParsingCSV] = useState(false);
+  const [csvConfirmModalOpen, setCsvConfirmModalOpen] = useState(false);
+  const [pendingCSVData, setPendingCSVData] = useState<{
+    csvParamsToUpdate: CreateScoringParamDto[];
+    csvParamsToAdd: CreateScoringParamDto[];
+    existingParams: ScoringParam[];
+  } | null>(null);
 
   // Fetch ruleset by ID
   const { data: rulesetData, isLoading: rulesetLoading } = useApiQuery<ZoneScoringRuleSet>(
@@ -53,6 +59,20 @@ export function ZoneScoringView() {
     () => api.area.getAll()
   );
   const areas: Area[] = (areasData ?? []) as Area[];
+
+  // Fetch zones
+  const { data: zonesData } = useApiQuery<Zone[]>(
+    ['zones'],
+    () => api.zones.getAll()
+  );
+  const zones: Zone[] = (zonesData ?? []) as Zone[];
+
+  // Fetch city corporations
+  const { data: cityCorporationsData } = useApiQuery<CityCorporation[]>(
+    ['city-corporations'],
+    () => api.cityCorporations.getAll()
+  );
+  const cityCorporations: CityCorporation[] = (cityCorporationsData ?? []) as CityCorporation[];
 
   // Fetch all rulesets to check for active ones
   const { data: allRulesetsData } = useApiQuery<ZoneScoringRuleSet[]>(
@@ -76,10 +96,11 @@ export function ZoneScoringView() {
     if (!rulesetData || !rulesetData.scoringParams) {
       // If no ruleset data but we're adding a param, calculate with just the new param
       if (newParam.areaId && newParam.areaId !== 0) {
+        const areaFromList = areas.find(a => a.id === newParam.areaId);
         const tempParam: ScoringParam = {
           ...newParam,
           id: 0,
-          area: areas.find(a => a.id === newParam.areaId),
+          area: areaFromList, // Use area from areas array which has nested zone object
           ruleSetId: 0,
         } as ScoringParam;
         return calculatePercentages([tempParam]);
@@ -87,23 +108,41 @@ export function ZoneScoringView() {
       return [];
     }
     
-    let paramsToCalculate = rulesetData.scoringParams;
+    // Enrich scoringParams with areas that have nested zone objects
+    let paramsToCalculate = rulesetData.scoringParams.map(param => {
+      // Find the area from the areas array (which has nested zone object)
+      const areaFromList = areas.find(a => a.id === param.areaId);
+      return {
+        ...param,
+        area: areaFromList || param.area, // Use area from areas array if available, otherwise keep original
+      };
+    });
     
     // If editing, use the edited values for calculations
     if (editingParam && editingParamValues) {
-      paramsToCalculate = rulesetData.scoringParams.map(p => 
-        p.id === editingParam.id ? { ...p, ...editingParamValues } : p
-      );
+      paramsToCalculate = paramsToCalculate.map(p => {
+        if (p.id === editingParam.id) {
+          // Ensure area has nested zone when editing
+          const areaFromList = areas.find(a => a.id === p.areaId);
+          return { 
+            ...p, 
+            ...editingParamValues,
+            area: areaFromList || p.area,
+          };
+        }
+        return p;
+      });
     }
     // If adding a new param, include it in the calculation
     else if (newParam.areaId && newParam.areaId !== 0) {
+      const areaFromList = areas.find(a => a.id === newParam.areaId);
       const tempParam: ScoringParam = {
         ...newParam,
         id: 0,
-        area: areas.find(a => a.id === newParam.areaId),
+        area: areaFromList, // Use area from areas array which has nested zone object
         ruleSetId: rulesetData.id,
       } as ScoringParam;
-      paramsToCalculate = [...rulesetData.scoringParams, tempParam];
+      paramsToCalculate = [...paramsToCalculate, tempParam];
     }
     
     return calculatePercentages(paramsToCalculate);
@@ -183,54 +222,41 @@ export function ZoneScoringView() {
     }
 
     try {
-      // Get current rule set with all params
-      const currentRuleSet = await api.zoneScoring.getById(rulesetData.id);
+      // Use current rulesetData instead of refetching to ensure we have all params
+      const existingParams = rulesetData.scoringParams || [];
+      
+      // Check if area already exists in params
+      const areaExists = existingParams.some(p => p.areaId === newParam.areaId);
+      if (areaExists) {
+        alert('This area already has a parameter in this ruleset');
+        return;
+      }
       
       // Create new param (calculate percentages and geoMean)
-      const paramsToCalculate = [{
+      const newParamWithArea: ScoringParam = {
         ...newParam,
         id: 0, // Temporary ID
-        area: areas.find(a => a.id === newParam.areaId) || currentRuleSet.scoringParams?.[0]?.area,
+        area: areas.find(a => a.id === newParam.areaId) || existingParams[0]?.area,
         areaId: newParam.areaId,
-      } as ScoringParam];
-      
-      const calculatedNewParam = calculatePercentages(paramsToCalculate)[0];
+        ruleSetId: rulesetData.id,
+      } as ScoringParam;
       
       // Add new param to existing params - recalculate all percentages
       const allParams = [
-        ...(currentRuleSet.scoringParams || []),
-        calculatedNewParam,
+        ...existingParams,
+        newParamWithArea,
       ];
+      
+      console.log('Adding parameter. Existing params count:', existingParams.length);
+      console.log('Total params after adding:', allParams.length);
+      
       const recalculatedAllParams = calculatePercentages(allParams);
       
+      console.log('Recalculated params count:', recalculatedAllParams.length);
+      
       const updatedParams = mapScoringParamsToDto(recalculatedAllParams);
-
-      // Check for and handle pending approval requests
-      try {
-        const approvalRequests = await api.approvalRequests.getAll({ moduleName: 'ZoneScoring' });
-        const pendingRequest = approvalRequests.find(
-          req => req.recordId === rulesetData.id && 
-          req.moduleName === 'ZoneScoring' &&
-          (req.approvalStatus?.statusName === 'Pending' || req.approvalStatus?.name === 'Pending')
-        );
-
-        // If pending approval request exists, reject it to avoid orphaned state
-        if (pendingRequest && adminId) {
-          try {
-            await api.approvalRequests.review(pendingRequest.id, {
-              reviewedBy: adminId,
-              status: 'Rejected',
-              comments: 'Automatically rejected due to parameter addition - ruleset set to draft'
-            });
-          } catch (error) {
-            console.warn('Failed to reject pending approval request:', error);
-            // Continue with update even if approval request rejection fails
-          }
-        }
-      } catch (error) {
-        console.warn('Failed to check for pending approval requests:', error);
-        // Continue with update even if approval request check fails
-      }
+      
+      console.log('Updated params DTO count:', updatedParams.length);
 
       // Update rule set with new params
       await updateZoneScoringMutation.mutateAsync({
@@ -401,15 +427,70 @@ export function ZoneScoringView() {
 
       result.data.forEach(csvParam => {
         if (existingParamIds.has(csvParam.areaId)) {
-          csvParamsToUpdate.push(csvParam);
+          // Check if there are actual changes (not just float/int formatting differences)
+          const existing = existingParams.find(p => p.areaId === csvParam.areaId);
+          if (existing) {
+            const hasActualChange = 
+              parseFloat(existing.landHomeRate) !== parseFloat(csvParam.landHomeRate) ||
+              parseFloat(existing.landRate) !== parseFloat(csvParam.landRate) ||
+              parseFloat(existing.landTaxRate) !== parseFloat(csvParam.landTaxRate) ||
+              parseFloat(existing.buildingTaxRateUpto120sqm) !== parseFloat(csvParam.buildingTaxRateUpto120sqm) ||
+              parseFloat(existing.buildingTaxRateUpto200sqm) !== parseFloat(csvParam.buildingTaxRateUpto200sqm) ||
+              parseFloat(existing.buildingTaxRateAbove200sqm) !== parseFloat(csvParam.buildingTaxRateAbove200sqm) ||
+              parseFloat(existing.highIncomeGroupConnectionPercentage) !== parseFloat(csvParam.highIncomeGroupConnectionPercentage);
+            
+            if (hasActualChange) {
+              csvParamsToUpdate.push(csvParam);
+            }
+            // If no actual changes, don't add to update list (treat as no-op)
+          } else {
+            csvParamsToUpdate.push(csvParam);
+          }
         } else {
           csvParamsToAdd.push(csvParam);
         }
       });
 
+      // If there are parameters to update, show confirmation modal
+      if (csvParamsToUpdate.length > 0) {
+        setPendingCSVData({
+          csvParamsToUpdate,
+          csvParamsToAdd,
+          existingParams,
+        });
+        setCsvConfirmModalOpen(true);
+        setIsParsingCSV(false);
+        // Don't reset file input yet - wait for confirmation
+        return;
+      }
+
+      // If no updates, proceed directly with adding new parameters
+      await processCSVUpload(csvParamsToAdd, existingParams, result.data.length, []);
+    } catch (error) {
+      setCsvUploadError(`Failed to process CSV: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsParsingCSV(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const processCSVUpload = async (
+    csvParamsToAdd: CreateScoringParamDto[],
+    existingParams: ScoringParam[],
+    totalCount: number,
+    csvParamsToUpdate?: CreateScoringParamDto[]
+  ) => {
+    if (!rulesetData) return;
+
+    try {
+      const paramsToUpdate = csvParamsToUpdate || pendingCSVData?.csvParamsToUpdate || [];
+      
       // Merge: update existing + add new
       const updatedParams = existingParams.map(existing => {
-        const csvUpdate = csvParamsToUpdate.find(c => c.areaId === existing.areaId);
+        const csvUpdate = paramsToUpdate.find(c => c.areaId === existing.areaId);
         if (csvUpdate) {
           // Update existing parameter with CSV values
           return {
@@ -448,33 +529,6 @@ export function ZoneScoringView() {
       // Recalculate percentages for all parameters
       const recalculated = calculatePercentages(allParams);
 
-      // Check for and handle pending approval requests
-      try {
-        const approvalRequests = await api.approvalRequests.getAll({ moduleName: 'ZoneScoring' });
-        const pendingRequest = approvalRequests.find(
-          req => req.recordId === rulesetData.id && 
-          req.moduleName === 'ZoneScoring' &&
-          (req.approvalStatus?.statusName === 'Pending' || req.approvalStatus?.name === 'Pending')
-        );
-
-        // If pending approval request exists, reject it to avoid orphaned state
-        if (pendingRequest && adminId) {
-          try {
-            await api.approvalRequests.review(pendingRequest.id, {
-              reviewedBy: adminId,
-              status: 'Rejected',
-              comments: 'Automatically rejected due to CSV upload - ruleset modified and set to draft'
-            });
-          } catch (error) {
-            console.warn('Failed to reject pending approval request:', error);
-            // Continue with update even if approval request rejection fails
-          }
-        }
-      } catch (error) {
-        console.warn('Failed to check for pending approval requests:', error);
-        // Continue with update even if approval request check fails
-      }
-
       // Update ruleset with merged params and set status to draft
       await updateZoneScoringMutation.mutateAsync({
         id: rulesetData.id,
@@ -484,9 +538,9 @@ export function ZoneScoringView() {
         },
       });
 
-      const updatedCount = csvParamsToUpdate.length;
+      const updatedCount = paramsToUpdate.length;
       const addedCount = csvParamsToAdd.length;
-      let successMsg = `Successfully imported ${result.data.length} parameter(s)`;
+      let successMsg = `Successfully imported ${totalCount} parameter(s)`;
       if (updatedCount > 0 && addedCount > 0) {
         successMsg += ` (${updatedCount} updated, ${addedCount} added)`;
       } else if (updatedCount > 0) {
@@ -498,18 +552,41 @@ export function ZoneScoringView() {
       
       setCsvUploadSuccess(successMsg);
       
-      // Show warnings if any
-      if (result.warnings.length > 0) {
-        console.warn('CSV import warnings:', result.warnings);
-      }
+      // Reset pending data
+      setPendingCSVData(null);
     } catch (error) {
       setCsvUploadError(`Failed to process CSV: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setPendingCSVData(null);
     } finally {
       setIsParsingCSV(false);
       // Reset file input
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
+    }
+  };
+
+  const handleCSVConfirm = async () => {
+    if (!pendingCSVData || !rulesetData) return;
+    
+    setIsParsingCSV(true);
+    setCsvConfirmModalOpen(false);
+    
+    await processCSVUpload(
+      pendingCSVData.csvParamsToAdd,
+      pendingCSVData.existingParams,
+      pendingCSVData.csvParamsToUpdate.length + pendingCSVData.csvParamsToAdd.length,
+      pendingCSVData.csvParamsToUpdate
+    );
+  };
+
+  const handleCSVCancel = () => {
+    setCsvConfirmModalOpen(false);
+    setPendingCSVData(null);
+    setIsParsingCSV(false);
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -701,6 +778,8 @@ export function ZoneScoringView() {
           newParam={newParam}
           setNewParam={setNewParam}
           areas={areas}
+          zones={zones}
+          cityCorporations={cityCorporations}
           onAdd={handleAddParameter}
           isPending={updateZoneScoringMutation.isPending}
           calculatedParams={calculatedParams}
@@ -767,6 +846,116 @@ export function ZoneScoringView() {
                 className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-10 px-6 disabled:opacity-50"
               >
                 {updateZoneScoringMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* CSV Update Confirmation Modal */}
+        <Dialog open={csvConfirmModalOpen} onOpenChange={setCsvConfirmModalOpen}>
+          <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold text-gray-900">
+                Confirm CSV Upload
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <p className="text-sm text-gray-600 mb-4">
+                This CSV will modify <span className="font-semibold text-gray-900">{pendingCSVData?.csvParamsToUpdate.length || 0} existing parameter(s)</span>.
+                {pendingCSVData && pendingCSVData.csvParamsToUpdate.length > 0 && (
+                  <span className="block mt-2 text-xs text-gray-500">
+                    The following areas will be updated:
+                  </span>
+                )}
+              </p>
+              {pendingCSVData && pendingCSVData.csvParamsToUpdate.length > 0 && (
+                <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-3 bg-gray-50 mb-4">
+                  <div className="space-y-2">
+                    {pendingCSVData.csvParamsToUpdate.map((param, idx) => {
+                      const area = areas.find(a => a.id === param.areaId);
+                      const existing = pendingCSVData.existingParams.find(p => p.areaId === param.areaId);
+                      
+                      // Helper function to check if values are actually different (ignoring float/int formatting)
+                      const isDifferent = (oldVal: string, newVal: string): boolean => {
+                        const oldNum = parseFloat(oldVal);
+                        const newNum = parseFloat(newVal);
+                        return !isNaN(oldNum) && !isNaN(newNum) && oldNum !== newNum;
+                      };
+                      
+                      // Get all fields that have changed
+                      const changedFields: Array<{ label: string; oldVal: string; newVal: string }> = [];
+                      
+                      if (existing) {
+                        if (isDifferent(existing.landHomeRate, param.landHomeRate)) {
+                          changedFields.push({ label: 'Land+Home Rate', oldVal: existing.landHomeRate, newVal: param.landHomeRate });
+                        }
+                        if (isDifferent(existing.landRate, param.landRate)) {
+                          changedFields.push({ label: 'Land Rate', oldVal: existing.landRate, newVal: param.landRate });
+                        }
+                        if (isDifferent(existing.landTaxRate, param.landTaxRate)) {
+                          changedFields.push({ label: 'Land Tax Rate', oldVal: existing.landTaxRate, newVal: param.landTaxRate });
+                        }
+                        if (isDifferent(existing.buildingTaxRateUpto120sqm, param.buildingTaxRateUpto120sqm)) {
+                          changedFields.push({ label: 'Building Tax (≤120sqm)', oldVal: existing.buildingTaxRateUpto120sqm, newVal: param.buildingTaxRateUpto120sqm });
+                        }
+                        if (isDifferent(existing.buildingTaxRateUpto200sqm, param.buildingTaxRateUpto200sqm)) {
+                          changedFields.push({ label: 'Building Tax (≤200sqm)', oldVal: existing.buildingTaxRateUpto200sqm, newVal: param.buildingTaxRateUpto200sqm });
+                        }
+                        if (isDifferent(existing.buildingTaxRateAbove200sqm, param.buildingTaxRateAbove200sqm)) {
+                          changedFields.push({ label: 'Building Tax (>200sqm)', oldVal: existing.buildingTaxRateAbove200sqm, newVal: param.buildingTaxRateAbove200sqm });
+                        }
+                        if (isDifferent(existing.highIncomeGroupConnectionPercentage, param.highIncomeGroupConnectionPercentage)) {
+                          changedFields.push({ label: 'High Income %', oldVal: existing.highIncomeGroupConnectionPercentage, newVal: param.highIncomeGroupConnectionPercentage });
+                        }
+                      }
+                      
+                      return (
+                        <div key={idx} className="text-xs bg-white p-2 rounded border border-gray-200">
+                          <div className="font-medium text-gray-900">
+                            {area?.name || `Area ${param.areaId}`}
+                          </div>
+                          {changedFields.length > 0 ? (
+                            <div className="text-gray-600 mt-1 space-y-0.5">
+                              {changedFields.map((field, fieldIdx) => (
+                                <div key={fieldIdx}>
+                                  {field.label}: {field.oldVal} → {field.newVal}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-gray-500 mt-1 italic">
+                              No actual changes detected (values are the same)
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              {pendingCSVData && pendingCSVData.csvParamsToAdd.length > 0 && (
+                <p className="text-sm text-gray-600">
+                  Additionally, <span className="font-semibold text-gray-900">{pendingCSVData.csvParamsToAdd.length} new parameter(s)</span> will be added.
+                </p>
+              )}
+              <p className="text-sm text-red-600 mt-4 font-medium">
+                The ruleset status will be changed to Draft and you'll need to send it for approval again.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={handleCSVCancel}
+                className="border-gray-300 text-gray-700 rounded-lg h-10 px-6 bg-white hover:bg-gray-50"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleCSVConfirm}
+                disabled={isParsingCSV}
+                className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg h-10 px-6 disabled:opacity-50"
+              >
+                {isParsingCSV ? 'Processing...' : 'Confirm & Upload'}
               </Button>
             </DialogFooter>
           </DialogContent>
