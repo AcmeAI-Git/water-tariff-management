@@ -11,8 +11,8 @@ export function CustomerAdminSidebar({
 }: CustomerAdminSidebarProps) {
     const menuItems = [
         {
-            id: "customer-admin-households",
-            label: "Household Management",
+            id: "customer-admin-customers",
+            label: "Customer Management",
             icon: Users,
         },
         {

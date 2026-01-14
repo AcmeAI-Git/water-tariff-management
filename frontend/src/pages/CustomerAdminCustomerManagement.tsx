@@ -13,17 +13,18 @@ import { format } from 'date-fns';
 import { cn } from '../utils/utils';
 import { api } from '../services/api';
 import { useApiQuery, useApiMutation, useAdminId } from '../hooks/useApiQuery';
-import { mapUserToHousehold, type DisplayHousehold } from '../utils/dataMappers';
+import { mapUserToCustomer, type DisplayCustomer } from '../utils/dataMappers';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import { HierarchicalLocationSelector } from '../components/common/HierarchicalLocationSelector';
 import { toast } from 'sonner';
 // import type { Zone, Ward } from '../types';
 
-export function CustomerAdminHouseholdManagement() {
+export function CustomerAdminCustomerManagement() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('active'); // Only show approved households
+  const [statusFilter, setStatusFilter] = useState('active'); // Show active customers
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedHousehold, setSelectedHousehold] = useState<DisplayHousehold | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<DisplayCustomer | null>(null);
   const adminId = useAdminId();
   
   const [formData, setFormData] = useState({
@@ -34,8 +35,9 @@ export function CustomerAdminHouseholdManagement() {
     address: '',
     category: 'residential',
     meterInstallDate: undefined as Date | undefined,
+    cityCorporationId: '',
     zoneId: '',
-    wardId: '',
+    areaId: '',
   });
 
   const [editFormData, setEditFormData] = useState({
@@ -46,8 +48,9 @@ export function CustomerAdminHouseholdManagement() {
     address: '',
     category: 'residential',
     meterInstallDate: undefined as Date | undefined,
+    cityCorporationId: '',
     zoneId: '',
-    wardId: '',
+    areaId: '',
   });
 
   // Fetch users (households) - default to 'active' to show only approved households
@@ -59,33 +62,40 @@ export function CustomerAdminHouseholdManagement() {
     }
   );
 
-  // Fetch zones and wards
+  // Fetch city corporations
+  const { data: cityCorporations = [], isLoading: cityCorpsLoading } = useApiQuery(
+    ['city-corporations'],
+    () => api.cityCorporations.getAll()
+  );
+
+  // Fetch zones
   const { data: zones = [], isLoading: zonesLoading } = useApiQuery(
     ['zones'],
     () => api.zones.getAll()
   );
 
-  const { data: wards = [], isLoading: wardsLoading } = useApiQuery(
-    ['wards'],
-    () => api.wards.getAll()
+  // Fetch areas - will filter by zoneId when zone is selected
+  const { data: allAreas = [], isLoading: areasLoading } = useApiQuery(
+    ['areas'],
+    () => api.area.getAll()
   );
 
-  // Map users to households
-  const households = useMemo(() => {
-    return users.map(mapUserToHousehold);
+  // Map users to customers
+  const customers = useMemo(() => {
+    return users.map(mapUserToCustomer);
   }, [users]);
 
-  // Filter households by search query
-  const filteredHouseholds = useMemo(() => {
-    if (!searchQuery) return households;
+  // Filter customers by search query
+  const filteredCustomers = useMemo(() => {
+    if (!searchQuery) return customers;
     const term = searchQuery.toLowerCase();
-    return households.filter(
-      (household) =>
-        household.meterNo.toLowerCase().includes(term) ||
-        household.fullName.toLowerCase().includes(term) ||
-        household.phone.toLowerCase().includes(term)
+    return customers.filter(
+      (customer) =>
+        customer.meterNo.toLowerCase().includes(term) ||
+        customer.fullName.toLowerCase().includes(term) ||
+        customer.phone.toLowerCase().includes(term)
     );
-  }, [households, searchQuery]);
+  }, [customers, searchQuery]);
 
   // Create user mutation
   const createMutation = useApiMutation(
@@ -101,20 +111,12 @@ export function CustomerAdminHouseholdManagement() {
     ({ id, data }: { id: number; data: Parameters<typeof api.users.update>[1] }) =>
       api.users.update(id, data),
     {
-      successMessage: 'Household updated successfully',
-      errorMessage: 'Failed to update household',
+      successMessage: 'Customer updated successfully',
+      errorMessage: 'Failed to update customer',
       invalidateQueries: [['users'], ['users', 'pending'], ['users', 'active']],
     }
   );
 
-  // Create approval request mutation
-  const createApprovalRequestMutation = useApiMutation(
-    (data: Parameters<typeof api.approvalRequests.create>[0]) => api.approvalRequests.create(data),
-    {
-      // Remove errorMessage - we'll handle toast manually for custom message
-      invalidateQueries: [['approval-requests']],
-    }
-  );
 
   const handleInputChange = (field: string, value: string | Date | undefined) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -146,12 +148,16 @@ export function CustomerAdminHouseholdManagement() {
       toast.error('Please enter the address');
       return;
     }
+    if (!formData.cityCorporationId) {
+      toast.error('Please select a city corporation');
+      return;
+    }
     if (!formData.zoneId) {
       toast.error('Please select a zone');
       return;
     }
-    if (!formData.wardId) {
-      toast.error('Please select a ward');
+    if (!formData.areaId) {
+      toast.error('Please select an area');
       return;
     }
     if (!formData.meterInstallDate) {
@@ -172,8 +178,8 @@ export function CustomerAdminHouseholdManagement() {
     }
 
     try {
-      // Create household
-      const newUser = await createMutation.mutateAsync({
+      // Create customer - API only needs areaId (zone and city corp are inferred from area)
+      await createMutation.mutateAsync({
         fullName: formData.fullName.trim(),
         meterNo: formData.meterNo.trim(),
         phone: formData.phone.trim(),
@@ -181,56 +187,31 @@ export function CustomerAdminHouseholdManagement() {
         address: formData.address.trim(),
         hourseType: formData.category === 'residential' ? 'Residential' : 'Commercial',
         installDate: format(formData.meterInstallDate, 'yyyy-MM-dd'),
-        zoneId: parseInt(formData.zoneId),
-        wardId: parseInt(formData.wardId),
+        areaId: parseInt(formData.areaId),
       });
 
-      // Create approval request for the household
-      try {
-        await createApprovalRequestMutation.mutateAsync({
-          moduleName: 'Customer',
-          recordId: newUser.id,
-          requestedBy: adminId,
-        });
-        // Show success toast notification
-        toast.success('Household submitted for approval');
-        
-        // Reset form
-        setFormData({
-          fullName: '',
-          meterNo: '',
-          phone: '',
-          email: '',
-          address: '',
-          category: 'residential',
-          meterInstallDate: undefined,
-          zoneId: '',
-          wardId: '',
-        });
-        
-        setIsDialogOpen(false);
-      } catch (error) {
-        console.error('Failed to create approval request:', error);
-        const errorMessage = error instanceof Error ? error.message : 'Failed to create approval request';
-        toast.error(`Household created but failed to submit for approval: ${errorMessage}`);
-        // Still reset form and close dialog since household was created
-        setFormData({
-          fullName: '',
-          meterNo: '',
-          phone: '',
-          email: '',
-          address: '',
-          category: 'residential',
-          meterInstallDate: undefined,
-          zoneId: '',
-          wardId: '',
-        });
-        setIsDialogOpen(false);
-      }
+      // Show success toast notification
+      toast.success('Customer created successfully');
+      
+      // Reset form
+      setFormData({
+        fullName: '',
+        meterNo: '',
+        phone: '',
+        email: '',
+        address: '',
+        category: 'residential',
+        meterInstallDate: undefined,
+        cityCorporationId: '',
+        zoneId: '',
+        areaId: '',
+      });
+      
+      setIsDialogOpen(false);
     } catch (error) {
       // Error handling - mutations don't have errorMessage set, so we handle all errors here
-      console.error('Failed to create household:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create household';
+      console.error('Failed to create customer:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create customer';
       
       // Provide more specific error messages
       if (errorMessage.includes('email') || errorMessage.includes('Email')) {
@@ -240,31 +221,34 @@ export function CustomerAdminHouseholdManagement() {
       } else if (errorMessage.includes('phone') || errorMessage.includes('Phone')) {
         toast.error('This phone number is already registered. Please use a different phone number.');
       } else {
-        toast.error(`Failed to create household: ${errorMessage}`);
+        toast.error(`Failed to create customer: ${errorMessage}`);
       }
     }
   };
 
-  const handleEditClick = (household: DisplayHousehold) => {
-    setSelectedHousehold(household);
+  const handleEditClick = (customer: DisplayCustomer) => {
+    setSelectedCustomer(customer);
     // Find the user to get full details
-    const user = users.find(u => u.id === household.id);
+    const user = users.find(u => u.id === customer.id);
+    // Find the zone to get city corporation ID
+    const zone = zones.find(z => z.id === customer.zoneId);
     setEditFormData({
-      fullName: household.fullName,
-      meterNo: household.meterNo,
-      phone: household.phone,
-      email: household.email || user?.email || '',
-      address: household.address,
+      fullName: customer.fullName,
+      meterNo: customer.meterNo,
+      phone: customer.phone,
+      email: customer.email || user?.email || '',
+      address: customer.address,
       category: user?.hourseType?.toLowerCase().includes('commercial') ? 'commercial' : 'residential',
       meterInstallDate: user?.installDate ? new Date(user.installDate) : undefined,
-      zoneId: household.zoneId?.toString() || '',
-      wardId: household.wardId?.toString() || '',
+      cityCorporationId: zone?.cityCorporationId?.toString() || '',
+      zoneId: customer.zoneId?.toString() || '',
+      areaId: customer.areaId?.toString() || '',
     });
     setIsEditDialogOpen(true);
   };
 
   const handleEditSubmit = async () => {
-    if (!selectedHousehold || !editFormData.zoneId || !editFormData.wardId || !editFormData.meterInstallDate) return;
+    if (!selectedCustomer || !editFormData.cityCorporationId || !editFormData.zoneId || !editFormData.areaId || !editFormData.meterInstallDate) return;
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -274,7 +258,7 @@ export function CustomerAdminHouseholdManagement() {
     }
 
     await updateMutation.mutateAsync({
-      id: selectedHousehold.id,
+      id: selectedCustomer.id,
       data: {
         fullName: editFormData.fullName,
         meterNo: editFormData.meterNo,
@@ -283,33 +267,16 @@ export function CustomerAdminHouseholdManagement() {
         address: editFormData.address,
         hourseType: editFormData.category === 'residential' ? 'Residential' : 'Commercial',
         installDate: format(editFormData.meterInstallDate, 'yyyy-MM-dd'),
-        zoneId: parseInt(editFormData.zoneId),
-        wardId: parseInt(editFormData.wardId),
+        areaId: parseInt(editFormData.areaId),
       },
     });
     
     setIsEditDialogOpen(false);
-    setSelectedHousehold(null);
+    setSelectedCustomer(null);
   };
 
-  // Prepare zone and ward options
-  const zoneOptions = zones.map((zone) => ({
-    value: zone.id.toString(),
-    label: zone.name || zone.zoneNo,
-  }));
 
-  const wardOptions = useMemo(() => {
-    if (!editFormData.zoneId && !formData.zoneId) return [];
-    const zoneId = parseInt(editFormData.zoneId || formData.zoneId);
-    return wards
-      .filter((ward) => ward.zoneId === zoneId)
-      .map((ward) => ({
-        value: ward.id.toString(),
-        label: ward.name || ward.wardNo,
-      }));
-  }, [wards, formData.zoneId, editFormData.zoneId]);
-
-  if (usersLoading || zonesLoading || wardsLoading) {
+  if (usersLoading || zonesLoading || areasLoading || cityCorpsLoading) {
     return (
       <div className="min-h-screen bg-app flex items-center justify-center">
         <LoadingSpinner />
@@ -322,8 +289,8 @@ export function CustomerAdminHouseholdManagement() {
       <div className="px-8 py-6">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">Household Management</h1>
-          <p className="text-sm text-gray-500">Your Assigned Ward: Ward 3, Dhaka South</p>
+          <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">Customer Management</h1>
+          <p className="text-sm text-gray-500">Customer Management Portal</p>
         </div>
 
         {/* Add Button and Filters */}
@@ -332,14 +299,14 @@ export function CustomerAdminHouseholdManagement() {
             <DialogTrigger asChild>
               <Button className="bg-primary hover:bg-primary-600 text-white rounded-lg h-11 px-6 flex items-center gap-2">
                 <Plus size={18} />
-                Add New Household
+                Add New Customer
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[600px] bg-white">
               <DialogHeader>
-                <DialogTitle className="text-xl font-semibold text-gray-900">Add New Household</DialogTitle>
+                <DialogTitle className="text-xl font-semibold text-gray-900">Add New Customer</DialogTitle>
                 <DialogDescription className="text-sm text-gray-600">
-                  Register a new household. All fields marked with * are required.
+                  Register a new customer. All fields marked with * are required.
                 </DialogDescription>
               </DialogHeader>
               
@@ -422,7 +389,7 @@ export function CustomerAdminHouseholdManagement() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="category" className="text-sm font-medium text-gray-700">
-                      Household Category *
+                      Customer Category *
                     </Label>
                     <Dropdown
                       options={[
@@ -470,37 +437,19 @@ export function CustomerAdminHouseholdManagement() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="zone" className="text-sm font-medium text-gray-700">
-                      Zone *
-                    </Label>
-                    <Dropdown
-                      options={zoneOptions}
-                      value={formData.zoneId}
-                      onChange={(value) => {
-                        handleInputChange('zoneId', value);
-                        handleInputChange('wardId', ''); // Reset ward when zone changes
-                      }}
-                      placeholder="Select zone"
-                      className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="ward" className="text-sm font-medium text-gray-700">
-                      Ward *
-                    </Label>
-                    <Dropdown
-                      options={wardOptions}
-                      value={formData.wardId}
-                      onChange={(value) => handleInputChange('wardId', value)}
-                      placeholder="Select ward"
-                      disabled={!formData.zoneId}
-                      className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
-                    />
-                  </div>
-                </div>
+                <HierarchicalLocationSelector
+                  cityCorporations={cityCorporations}
+                  zones={zones}
+                  areas={allAreas}
+                  cityCorporationId={formData.cityCorporationId}
+                  zoneId={formData.zoneId}
+                  areaId={formData.areaId}
+                  onCityCorporationChange={(value) => handleInputChange('cityCorporationId', value)}
+                  onZoneChange={(value) => handleInputChange('zoneId', value)}
+                  onAreaChange={(value) => handleInputChange('areaId', value)}
+                  required
+                  className="bg-gray-50"
+                />
               </div>
 
               <DialogFooter>
@@ -515,10 +464,10 @@ export function CustomerAdminHouseholdManagement() {
                 <Button
                   type="submit"
                   onClick={handleSubmit}
-                  disabled={!formData.fullName || !formData.meterNo || !formData.phone || !formData.email || !formData.address || !formData.meterInstallDate || !formData.zoneId || !formData.wardId || createMutation.isPending}
+                  disabled={!formData.fullName || !formData.meterNo || !formData.phone || !formData.email || !formData.address || !formData.meterInstallDate || !formData.cityCorporationId || !formData.zoneId || !formData.areaId || createMutation.isPending}
                   className="bg-primary hover:bg-primary-600 text-white rounded-lg h-10 px-5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {createMutation.isPending ? 'Adding...' : 'Add Household'}
+                  {createMutation.isPending ? 'Adding...' : 'Add Customer'}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -555,13 +504,13 @@ export function CustomerAdminHouseholdManagement() {
           </div>
         </div>
 
-        {/* Edit Household Modal */}
+        {/* Edit Customer Modal */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent className="sm:max-w-[600px] bg-white">
             <DialogHeader>
-              <DialogTitle className="text-xl font-semibold text-gray-900">Edit Household</DialogTitle>
+              <DialogTitle className="text-xl font-semibold text-gray-900">Edit Customer</DialogTitle>
               <DialogDescription className="text-sm text-gray-600">
-                Update household information. All fields marked with * are required.
+                Update customer information. All fields marked with * are required.
               </DialogDescription>
             </DialogHeader>
             
@@ -683,37 +632,19 @@ export function CustomerAdminHouseholdManagement() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-zone" className="text-sm font-medium text-gray-700">
-                    Zone *
-                  </Label>
-                  <Dropdown
-                    options={zoneOptions}
-                    value={editFormData.zoneId}
-                    onChange={(value) => {
-                      handleEditInputChange('zoneId', value);
-                      handleEditInputChange('wardId', ''); // Reset ward when zone changes
-                    }}
-                    placeholder="Select zone"
-                    className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="edit-ward" className="text-sm font-medium text-gray-700">
-                    Ward *
-                  </Label>
-                  <Dropdown
-                    options={wardOptions}
-                    value={editFormData.wardId}
-                    onChange={(value) => handleEditInputChange('wardId', value)}
-                    placeholder="Select ward"
-                    disabled={!editFormData.zoneId}
-                    className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
-                  />
-                </div>
-              </div>
+              <HierarchicalLocationSelector
+                cityCorporations={cityCorporations}
+                zones={zones}
+                areas={allAreas}
+                cityCorporationId={editFormData.cityCorporationId}
+                zoneId={editFormData.zoneId}
+                areaId={editFormData.areaId}
+                onCityCorporationChange={(value) => handleEditInputChange('cityCorporationId', value)}
+                onZoneChange={(value) => handleEditInputChange('zoneId', value)}
+                onAreaChange={(value) => handleEditInputChange('areaId', value)}
+                required
+                className="bg-gray-50"
+              />
             </div>
 
             <DialogFooter>
@@ -728,7 +659,7 @@ export function CustomerAdminHouseholdManagement() {
               <Button
                 type="submit"
                 onClick={handleEditSubmit}
-                disabled={!editFormData.fullName || !editFormData.meterNo || !editFormData.phone || !editFormData.email || !editFormData.address || !editFormData.meterInstallDate || !editFormData.zoneId || !editFormData.wardId || updateMutation.isPending}
+                disabled={!editFormData.fullName || !editFormData.meterNo || !editFormData.phone || !editFormData.email || !editFormData.address || !editFormData.meterInstallDate || !editFormData.cityCorporationId || !editFormData.zoneId || !editFormData.areaId || updateMutation.isPending}
                 className="bg-primary hover:bg-primary-600 text-white rounded-lg h-10 px-5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
@@ -740,7 +671,7 @@ export function CustomerAdminHouseholdManagement() {
         {/* Table */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">Registered Households</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Registered Customers</h3>
           </div>
 
           <Table>
@@ -754,32 +685,38 @@ export function CustomerAdminHouseholdManagement() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredHouseholds.length === 0 ? (
-                <TableRow>
+              {filteredCustomers.length === 0 ? (
+                <TableRow key="empty-state">
                   <TableCell colSpan={5} className="text-center py-8 text-gray-500">
-                    No households found matching your search criteria
+                    No customers found matching your search criteria
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredHouseholds.map((household) => (
-                  <TableRow key={household.id} className="border-gray-100">
-                    <TableCell className="text-sm font-medium text-gray-900">{household.fullName}</TableCell>
-                    <TableCell className="text-sm text-gray-600">{household.meterNo}</TableCell>
-                    <TableCell className="text-sm text-gray-600">{household.phone}</TableCell>
-                    <TableCell className="text-sm text-gray-600">{household.address}</TableCell>
-                    <TableCell className="text-center">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleEditClick(household)}
-                        className="border-gray-300 text-gray-700 rounded-lg h-8 px-3 bg-white hover:bg-gray-50 flex items-center gap-1.5"
-                      >
-                        <Edit size={14} />
-                        Edit
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
+                filteredCustomers.map((customer, index) => {
+                  // Ensure unique key - use id, or combination of index and other fields
+                  const uniqueKey = customer.id 
+                    ? `customer-${customer.id}` 
+                    : `customer-${index}-${customer.meterNo || customer.fullName || 'unknown'}-${index}`;
+                  return (
+                    <TableRow key={uniqueKey} className="border-gray-100">
+                      <TableCell className="text-sm font-medium text-gray-900">{customer.fullName}</TableCell>
+                      <TableCell className="text-sm text-gray-600">{customer.meterNo}</TableCell>
+                      <TableCell className="text-sm text-gray-600">{customer.phone}</TableCell>
+                      <TableCell className="text-sm text-gray-600">{customer.address}</TableCell>
+                      <TableCell className="text-center">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleEditClick(customer)}
+                          className="border-gray-300 text-gray-700 rounded-lg h-8 px-3 bg-white hover:bg-gray-50 flex items-center gap-1.5"
+                        >
+                          <Edit size={14} />
+                          Edit
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>

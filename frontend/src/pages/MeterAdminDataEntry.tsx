@@ -22,7 +22,7 @@ export function MeterAdminDataEntry() {
   // Hardcoded location for all meter readers
   const HARDCODED_WARD = 'Ward 1';
 
-  // Fetch all users for search (households)
+  // Fetch all users for search (customers)
   const { data: users = [], isLoading: usersLoading } = useApiQuery(
     ['users'],
     () => api.users.getAll()
@@ -82,13 +82,13 @@ export function MeterAdminDataEntry() {
       }
     } else {
       setVerifiedUser(null);
-      toast.error('Household not found. Please check the meter number or name.');
+      toast.error('Customer not found. Please check the meter number or name.');
     }
   };
 
   const handleSubmit = async () => {
     if (!verifiedUser || !adminId) {
-      toast.error('Please verify household and ensure you are logged in');
+      toast.error('Please verify customer and ensure you are logged in');
       return;
     }
 
@@ -135,11 +135,11 @@ export function MeterAdminDataEntry() {
 
       if (normalizedStatusName === 'approved') {
         // Backend blocks updating approved entries, so we can't replace them
-        toast.error(`A reading for ${billMonth} has already been approved for this household. Approved readings cannot be modified. Please contact an administrator if you need to make changes.`);
+        toast.error(`A reading for ${billMonth} has already been approved for this customer. Approved readings cannot be modified. Please contact an administrator if you need to make changes.`);
         return;
       } else if (normalizedStatusName === 'pending') {
         // Pending entries should not be duplicated
-        toast.error(`A reading for ${billMonth} is already pending approval for this household. Please wait for approval or contact an administrator.`);
+        toast.error(`A reading for ${billMonth} is already pending approval for this customer. Please wait for approval or contact an administrator.`);
         return;
       } else if (normalizedStatusName === 'rejected') {
         // Rejected entries: Since backend blocks all duplicates (until deployed),
@@ -223,7 +223,7 @@ export function MeterAdminDataEntry() {
       console.error('Consumption creation error:', error);
       
       if (errorMessage.includes('already exists') || errorMessage.includes('Consumption record already exists')) {
-        toast.error(`A reading for ${billMonth} already exists for this household. Please use a different month or update the existing reading.`);
+        toast.error(`A reading for ${billMonth} already exists for this customer. Please use a different month or update the existing reading.`);
       } else if (errorMessage.includes('Validation failed')) {
         toast.error('Validation failed. Please check that all required fields are filled correctly.');
       }
@@ -257,11 +257,11 @@ export function MeterAdminDataEntry() {
 
         {/* Entry Section */}
         <div className="bg-white p-6 rounded-xl border border-gray-200 mb-8">
-          <h3 className="text-lg font-semibold text-gray-900 mb-6">Household Verification & Entry</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-6">Customer Verification & Entry</h3>
           
           {/* Search */}
           <div className="mb-8">
-            <p className="text-sm font-semibold text-gray-700 mb-3">Search Household</p>
+            <p className="text-sm font-semibold text-gray-700 mb-3">Search Customer</p>
             <div className="flex gap-3">
               <div className="flex-1">
                 <Input
@@ -288,7 +288,7 @@ export function MeterAdminDataEntry() {
 
           {/* Verify (Read-Only) */}
           <div className="mb-8">
-            <p className="text-sm font-semibold text-gray-700 mb-3">Household Details (Read-Only)</p>
+            <p className="text-sm font-semibold text-gray-700 mb-3">Customer Details (Read-Only)</p>
             
             {verifiedUser ? (
               <div className="grid grid-cols-2 gap-4">
@@ -360,7 +360,7 @@ export function MeterAdminDataEntry() {
             ) : (
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                 <p className="text-sm text-gray-500 text-center">
-                  Search for a household to view details
+                  Search for a customer to view details
                 </p>
               </div>
             )}
@@ -449,7 +449,7 @@ export function MeterAdminDataEntry() {
             <DialogHeader>
               <DialogTitle>Reading Previously Rejected</DialogTitle>
               <DialogDescription>
-                A reading for {billMonth} was previously rejected for this household. You can update it with new values.
+                A reading for {billMonth} was previously rejected for this customer. You can update it with new values.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">

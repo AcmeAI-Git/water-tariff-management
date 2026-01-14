@@ -11,6 +11,7 @@ import { api } from '../services/api';
 import { useApiQuery, useApiMutation } from '../hooks/useApiQuery';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { DeleteConfirmationDialog } from '../components/zoneScoring/DeleteConfirmationDialog';
+import { HierarchicalLocationSelector } from '../components/common/HierarchicalLocationSelector';
 import type { 
   Area, CreateAreaDto, UpdateAreaDto,
   CityCorporation, CreateCityCorporationDto, UpdateCityCorporationDto,
@@ -1342,7 +1343,12 @@ export function LocationManagement() {
                           <>
                             <SelectItem value="all">All Zones</SelectItem>
                             {zonesFromAreas.map(zone => (
-                              <SelectItem key={zone.id} value={zone.id.toString()}>
+                              <SelectItem 
+                                key={zone.id} 
+                                value={zone.id.toString()}
+                                title={`${zone.name} - ${zone.cityName}`}
+                                className="truncate"
+                              >
                                 {zone.name} - {zone.cityName}
                               </SelectItem>
                             ))}
@@ -1469,72 +1475,22 @@ export function LocationManagement() {
                       className="border-gray-300 rounded-lg h-11"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="create-area-city-corp" className="text-sm font-medium text-gray-700">
-                      City Corporation <span className="text-red-500">*</span>
-                    </Label>
-                    <Select 
-                      value={createAreaCityCorpId} 
-                      onValueChange={(value) => {
-                        setCreateAreaCityCorpId(value);
-                        setCreateAreaZoneId(''); // Reset zone when city corp changes
-                      }}
-                    >
-                      <SelectTrigger className="w-full border-gray-300 rounded-lg h-11 bg-white">
-                        <SelectValue placeholder="Select city corporation first" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white border border-gray-200">
-                        {cityCorporations.length === 0 ? (
-                          <div className="px-2 py-1.5 text-sm text-gray-500">No city corporations available</div>
-                        ) : (
-                          cityCorporations.map(cc => (
-                            <SelectItem key={cc.id} value={cc.id.toString()}>
-                              {cc.name} ({cc.code})
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="create-area-zone" className="text-sm font-medium text-gray-700">
-                      Zone <span className="text-red-500">*</span>
-                    </Label>
-                    <Select 
-                      value={createAreaZoneId} 
-                      onValueChange={setCreateAreaZoneId}
-                      disabled={!createAreaCityCorpId}
-                    >
-                      <SelectTrigger className="w-full border-gray-300 rounded-lg h-11 bg-white disabled:opacity-50 disabled:cursor-not-allowed">
-                        <SelectValue placeholder={createAreaCityCorpId ? "Select zone" : "Select city corporation first"} />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white border border-gray-200" style={{ maxWidth: '100%', width: 'var(--radix-select-trigger-width)' }}>
-                        {!createAreaCityCorpId ? (
-                          <div className="px-2 py-1.5 text-sm text-gray-500">Please select a city corporation first</div>
-                        ) : (() => {
-                          const filteredZones = zones.filter(z => z.cityCorporationId === parseInt(createAreaCityCorpId));
-                          return filteredZones.length === 0 ? (
-                            <div className="px-2 py-1.5 text-sm text-gray-500">No zones available for this city corporation</div>
-                          ) : (
-                            filteredZones.map(zone => (
-                              <SelectItem 
-                                key={zone.id} 
-                                value={zone.id.toString()}
-                                title={`${zone.name} - ${zone.cityName}`}
-                              >
-                                {zone.name} - {zone.cityName}
-                              </SelectItem>
-                            ))
-                          );
-                        })()}
-                      </SelectContent>
-                    </Select>
-                    {createAreaCityCorpId && (
-                      <p className="text-xs text-gray-500">
-                        Showing zones for {cityCorporations.find(cc => cc.id === parseInt(createAreaCityCorpId))?.name}
-                      </p>
-                    )}
-                  </div>
+                  <HierarchicalLocationSelector
+                    cityCorporations={cityCorporations}
+                    zones={zones}
+                    areas={[]}
+                    cityCorporationId={createAreaCityCorpId}
+                    zoneId={createAreaZoneId}
+                    areaId=""
+                    onCityCorporationChange={(value) => {
+                      setCreateAreaCityCorpId(value);
+                      setCreateAreaZoneId(''); // Reset zone when city corp changes
+                    }}
+                    onZoneChange={setCreateAreaZoneId}
+                    onAreaChange={() => {}}
+                    required
+                    showArea={false}
+                  />
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="create-area-geojson" className="text-sm font-medium text-gray-700">
@@ -1618,80 +1574,25 @@ export function LocationManagement() {
                       className="border-gray-300 rounded-lg h-11"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-area-city-corp" className="text-sm font-medium text-gray-700">
-                      City Corporation <span className="text-red-500">*</span>
-                    </Label>
-                    <Select 
-                      value={editAreaCityCorpId} 
-                      onValueChange={(value) => {
-                        setEditAreaCityCorpId(value);
-                        // Only reset zone if city corp is actually changing (not during initialization)
-                        if (!isInitializingEdit.current && value !== editAreaCityCorpId) {
-                          setEditAreaZoneId(''); // Reset zone when city corp changes
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="w-full border-gray-300 rounded-lg h-11 bg-white">
-                        <SelectValue placeholder="Select city corporation first" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white border border-gray-200">
-                        {cityCorporations.length === 0 ? (
-                          <div className="px-2 py-1.5 text-sm text-gray-500">No city corporations available</div>
-                        ) : (
-                          cityCorporations.map(cc => (
-                            <SelectItem key={cc.id} value={cc.id.toString()}>
-                              {cc.name} ({cc.code})
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-area-zone" className="text-sm font-medium text-gray-700">
-                      Zone <span className="text-red-500">*</span>
-                    </Label>
-                    <Select 
-                      value={editAreaZoneId} 
-                      onValueChange={setEditAreaZoneId}
-                      disabled={!editAreaCityCorpId}
-                    >
-                      <SelectTrigger className="w-full border-gray-300 rounded-lg h-11 bg-white disabled:opacity-50 disabled:cursor-not-allowed">
-                        <SelectValue placeholder={editAreaCityCorpId ? "Select zone" : "Select city corporation first"} />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white border border-gray-200" style={{ maxWidth: '100%', width: 'var(--radix-select-trigger-width)' }}>
-                        {!editAreaCityCorpId ? (
-                          <SelectItem value="__placeholder__" disabled className="text-gray-500 cursor-not-allowed">
-                            Please select a city corporation first
-                          </SelectItem>
-                        ) : (() => {
-                          const filteredZones = zones.filter(z => z.cityCorporationId === parseInt(editAreaCityCorpId));
-                          if (filteredZones.length === 0) {
-                            return (
-                              <SelectItem value="__no_zones__" disabled className="text-gray-500 cursor-not-allowed">
-                                No zones available for this city corporation
-                              </SelectItem>
-                            );
-                          }
-                          return filteredZones.map(zone => (
-                            <SelectItem 
-                              key={zone.id} 
-                              value={zone.id.toString()}
-                              title={`${zone.name} - ${zone.cityName}`}
-                            >
-                              {zone.name} - {zone.cityName}
-                            </SelectItem>
-                          ));
-                        })()}
-                      </SelectContent>
-                    </Select>
-                    {editAreaCityCorpId && (
-                      <p className="text-xs text-gray-500">
-                        Showing zones for {cityCorporations.find(cc => cc.id === parseInt(editAreaCityCorpId))?.name}
-                      </p>
-                    )}
-                  </div>
+                  <HierarchicalLocationSelector
+                    cityCorporations={cityCorporations}
+                    zones={zones}
+                    areas={[]}
+                    cityCorporationId={editAreaCityCorpId}
+                    zoneId={editAreaZoneId}
+                    areaId=""
+                    onCityCorporationChange={(value) => {
+                      setEditAreaCityCorpId(value);
+                      // Only reset zone if city corp is actually changing (not during initialization)
+                      if (!isInitializingEdit.current && value !== editAreaCityCorpId) {
+                        setEditAreaZoneId(''); // Reset zone when city corp changes
+                      }
+                    }}
+                    onZoneChange={setEditAreaZoneId}
+                    onAreaChange={() => {}}
+                    required
+                    showArea={false}
+                  />
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="edit-area-geojson" className="text-sm font-medium text-gray-700">

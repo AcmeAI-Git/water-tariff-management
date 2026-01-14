@@ -11,7 +11,7 @@ export interface DisplayAdmin {
   createdAt?: string;
 }
 
-export interface DisplayHousehold {
+export interface DisplayCustomer {
   id: number;
   fullName: string;
   meterNo: string;
@@ -20,7 +20,7 @@ export interface DisplayHousehold {
   status: string;
   email?: string;
   zoneId?: number;
-  wardId?: number;
+  areaId?: number;
 }
 
 export interface DisplayApprovalRequest {
@@ -62,19 +62,22 @@ export function mapAdminToDisplay(admin: Admin, roles: Role[]): DisplayAdmin {
 }
 
 /**
- * Maps backend User to household display format
+ * Maps backend User to customer display format
  */
-export function mapUserToHousehold(user: User): DisplayHousehold {
+export function mapUserToCustomer(user: User): DisplayCustomer {
+  // Handle both id (number) and account (UUID string) fields
+  const userId = (user as any).account || user.id;
+  
   return {
-    id: user.id,
-    fullName: user.fullName,
-    meterNo: user.meterNo,
-    phone: user.phone,
-    address: user.address,
+    id: userId,
+    fullName: user.fullName || (user as any).name || '',
+    meterNo: user.meterNo || '',
+    phone: user.phone || '',
+    address: user.address || '',
     status: user.status || 'Pending',
     email: user.email,
     zoneId: user.zoneId,
-    wardId: user.wardId,
+    areaId: (user as any).areaId || user.wardId, // Support both for backward compatibility
   };
 }
 

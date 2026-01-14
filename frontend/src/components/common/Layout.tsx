@@ -48,13 +48,13 @@ export default function Layout({ children }: LayoutProps) {
       return;
     }
     const map: Record<string, string> = {
-      "customer-admin-households": "/customer-admin/households",
+      "customer-admin-customers": "/customer-admin/customers",
       "customer-admin-pending": "/customer-admin/pending",
       "customer-admin-visualizer": "/customer-admin/visualizer",
       "customer-admin-metrics": "/customer-admin/metrics",
       "customer-admin-billing": "/customer-admin/billing",
     };
-    const path = map[id] ?? "/customer-admin/households";
+    const path = map[id] ?? "/customer-admin/customers";
     navigate(path);
   };
 
@@ -161,7 +161,7 @@ export default function Layout({ children }: LayoutProps) {
         {isMeterAdmin ? (
           <MeterReaderSidebar activePage={"meter-reader-" + meterActive} onNavigate={handleMeterNavigate} />
         ) : isCustomerAdmin ? (
-          <CustomerAdminSidebar activePage={customerActive ? `customer-admin-${customerActive}` : "customer-admin-households"} onNavigate={handleCustomerNavigate} />
+          <CustomerAdminSidebar activePage={customerActive ? `customer-admin-${customerActive}` : "customer-admin-customers"} onNavigate={handleCustomerNavigate} />
         ) : isTariffAdmin ? (
           <TariffAdminSidebar currentPage={tariffActive} onNavigate={handleTariffNavigate} onLogout={handleTariffLogout} />
         ) : isApprovalAdmin ? (

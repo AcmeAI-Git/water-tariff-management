@@ -19,7 +19,7 @@ interface ApprovalQueueItem {
   request: string;
   status: string;
   recordId: number;
-  recordType: 'household' | 'consumption' | 'zone-scoring';
+  recordType: 'customer' | 'consumption' | 'zone-scoring';
   oldData?: unknown;
   newData?: unknown;
 }
@@ -30,8 +30,8 @@ export function ApprovalQueue() {
   const adminId = useAdminId();
   const queryClient = useQueryClient();
 
-  // Fetch pending households (users with status='pending')
-  const { data: pendingHouseholds = [], isLoading: householdsLoading } = useApiQuery(
+  // Fetch pending customers (users with status='pending')
+  const { data: pendingCustomers = [], isLoading: customersLoading } = useApiQuery(
     ['users', 'pending'],
     () => api.users.getAll('pending')
   );
@@ -68,20 +68,20 @@ export function ApprovalQueue() {
   const displayRequests = useMemo(() => {
     const items: ApprovalQueueItem[] = [];
 
-    // Add pending households
-    pendingHouseholds.forEach((household: User) => {
-      // Safety check: Skip if household doesn't have an ID (shouldn't happen, but safety)
-      if (!household.id) {
+    // Add pending customers
+    pendingCustomers.forEach((customer: User) => {
+      // Safety check: Skip if customer doesn't have an ID (shouldn't happen, but safety)
+      if (!customer.id) {
         return;
       }
       
       // User type doesn't have createdBy, so we'll use 'Unknown' for now
       items.push({
-        id: `HOUSEHOLD-${household.id}`,
+        id: `CUSTOMER-${customer.id}`,
         module: 'Customer',
         requestedBy: 'Unknown',
-        request: household.createdAt 
-          ? new Date(household.createdAt).toLocaleString('en-US', {
+        request: customer.createdAt 
+          ? new Date(customer.createdAt).toLocaleString('en-US', {
               year: 'numeric',
               month: 'short',
               day: 'numeric',
@@ -91,19 +91,19 @@ export function ApprovalQueue() {
             })
           : 'N/A',
         status: 'Pending',
-        recordId: household.id,
-        recordType: 'household',
+        recordId: customer.id,
+        recordType: 'customer',
         oldData: null,
         newData: {
-          fullName: household.fullName,
-          meterNo: household.meterNo,
-          phone: household.phone,
-          email: household.email,
-          address: household.address,
-          hourseType: household.hourseType,
-          installDate: household.installDate,
-          zoneId: household.zoneId,
-          wardId: household.wardId,
+          fullName: customer.fullName,
+          meterNo: customer.meterNo,
+          phone: customer.phone,
+          email: customer.email,
+          address: customer.address,
+          hourseType: customer.hourseType,
+          installDate: customer.installDate,
+          zoneId: customer.zoneId,
+          wardId: customer.wardId,
         },
       });
     });
@@ -176,14 +176,14 @@ export function ApprovalQueue() {
       const dateB = new Date(b.request).getTime();
       return dateB - dateA;
     });
-  }, [pendingHouseholds, pendingConsumptions, pendingZoneScoringRulesets, admins]);
+  }, [pendingCustomers, pendingConsumptions, pendingZoneScoringRulesets, admins]);
 
-  // Activate household mutation
-  const activateHouseholdMutation = useApiMutation(
+  // Activate customer mutation
+  const activateCustomerMutation = useApiMutation(
     (id: number) => api.users.activate(id),
     {
-      successMessage: 'Household activated successfully',
-      errorMessage: 'Failed to activate household',
+      successMessage: 'Customer activated successfully',
+      errorMessage: 'Failed to activate customer',
       invalidateQueries: [
         ['users', 'pending'],
         ['users', 'active'],
@@ -192,12 +192,12 @@ export function ApprovalQueue() {
     }
   );
 
-  // Delete household mutation (for rejection)
-  const deleteHouseholdMutation = useApiMutation(
+  // Delete customer mutation (for rejection)
+  const deleteCustomerMutation = useApiMutation(
     (id: number) => api.users.delete(id),
     {
-      successMessage: 'Household rejected and removed successfully',
-      errorMessage: 'Failed to reject household',
+      successMessage: 'Customer rejected and removed successfully',
+      errorMessage: 'Failed to reject customer',
       invalidateQueries: [
         ['users', 'pending'],
         ['users'],
@@ -240,7 +240,7 @@ export function ApprovalQueue() {
     }
   );
 
-  const isLoading = householdsLoading || consumptionsLoading;
+  const isLoading = customersLoading || consumptionsLoading;
 
   const handleReview = async (request: ApprovalQueueItem) => {
     // If oldData/newData are missing (null/undefined), fetch the actual record data
@@ -249,19 +249,19 @@ export function ApprovalQueue() {
       try {
         let newData: unknown = null;
         
-        if (request.module === 'Customer' || request.recordType === 'household') {
-          // Fetch household/user data
-          const household = await api.users.getById(request.recordId);
+        if (request.module === 'Customer' || request.recordType === 'customer') {
+          // Fetch customer/user data
+          const customer = await api.users.getById(request.recordId);
           newData = {
-            fullName: household.fullName,
-            meterNo: household.meterNo,
-            phone: household.phone,
-            email: household.email,
-            address: household.address,
-            hourseType: household.hourseType,
-            installDate: household.installDate,
-            zoneId: household.zoneId,
-            wardId: household.wardId,
+            fullName: customer.fullName,
+            meterNo: customer.meterNo,
+            phone: customer.phone,
+            email: customer.email,
+            address: customer.address,
+            hourseType: customer.hourseType,
+            installDate: customer.installDate,
+            zoneId: customer.zoneId,
+            wardId: customer.wardId,
           };
         } else if (request.module === 'Consumption' || request.recordType === 'consumption') {
           // Fetch consumption data
@@ -339,9 +339,9 @@ export function ApprovalQueue() {
       if (request.recordType === 'zone-scoring') {
         // Use publish endpoint for ZoneScoring approval
         await api.zoneScoring.publish(request.recordId);
-      } else if (request.recordType === 'household') {
-        // Activate household
-        await activateHouseholdMutation.mutateAsync(request.recordId);
+      } else if (request.recordType === 'customer') {
+        // Activate customer
+        await activateCustomerMutation.mutateAsync(request.recordId);
       } else if (request.recordType === 'consumption') {
         // Approve consumption
         await approveConsumptionMutation.mutateAsync({
@@ -358,8 +358,8 @@ export function ApprovalQueue() {
         await Promise.all([
           queryClient.refetchQueries({ queryKey: ['zone-scoring'] }),
         ]);
-      } else if (request.recordType === 'household') {
-        // For households, invalidate user queries
+      } else if (request.recordType === 'customer') {
+        // For customers, invalidate user queries
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: ['users', 'pending'], refetchType: 'active' }),
           queryClient.invalidateQueries({ queryKey: ['users', 'active'], refetchType: 'active' }),
@@ -408,9 +408,9 @@ export function ApprovalQueue() {
       if (recordType === 'zone-scoring') {
         // Use status endpoint with 'rejected' for ZoneScoring rejection
         await api.zoneScoring.updateStatus(recordId, 'rejected');
-      } else if (recordType === 'household') {
-        // Delete the household since it was rejected
-        await deleteHouseholdMutation.mutateAsync(recordId);
+      } else if (recordType === 'customer') {
+        // Delete the customer since it was rejected
+        await deleteCustomerMutation.mutateAsync(recordId);
       } else if (recordType === 'consumption') {
         // Reject consumption
         await rejectConsumptionMutation.mutateAsync({
@@ -430,7 +430,7 @@ export function ApprovalQueue() {
         await Promise.all([
           queryClient.refetchQueries({ queryKey: ['zone-scoring'] }),
         ]);
-      } else if (recordType === 'household') {
+      } else if (recordType === 'customer') {
         // Wait for backend to fully process
         await new Promise(resolve => setTimeout(resolve, 500));
         // Force refetch of pending queries
@@ -540,8 +540,8 @@ export function ApprovalQueue() {
                         onClick={() => handleReview(request)}
                         className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-9 px-4 flex items-center gap-2 ml-auto"
                         disabled={
-                          activateHouseholdMutation.isPending ||
-                          deleteHouseholdMutation.isPending ||
+                          activateCustomerMutation.isPending ||
+                          deleteCustomerMutation.isPending ||
                           approveConsumptionMutation.isPending ||
                           rejectConsumptionMutation.isPending
                         }

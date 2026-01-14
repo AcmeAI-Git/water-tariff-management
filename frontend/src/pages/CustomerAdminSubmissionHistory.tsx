@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { api } from '../services/api';
 import { useApiQuery, useAdminId } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
-import { mapUserToHousehold } from '../utils/dataMappers';
+import { mapUserToCustomer } from '../utils/dataMappers';
 import type { ApprovalStatus } from '../types';
 import { Input } from '../components/ui/input';
 import { Dropdown } from '../components/ui/Dropdown';
@@ -32,7 +32,7 @@ export function CustomerAdminSubmissionHistory() {
     return customerApprovalRequests.filter(req => req.requestedBy === adminId);
   }, [customerApprovalRequests, adminId]);
 
-  // Fetch all users to get household details
+  // Fetch all users to get customer details
   const { data: users = [], isLoading: usersLoading } = useApiQuery(
     ['users'],
     () => api.users.getAll()
@@ -42,7 +42,7 @@ export function CustomerAdminSubmissionHistory() {
   const submissionHistory = useMemo(() => {
     return approvalRequests.map((request) => {
       const user = users.find((u) => u.id === request.recordId);
-      const household = user ? mapUserToHousehold(user) : null;
+      const customer = user ? mapUserToCustomer(user) : null;
       
       // Get status from approval request - properly typed
       const approvalStatus = request.approvalStatus as ApprovalStatus | undefined;
@@ -54,10 +54,10 @@ export function CustomerAdminSubmissionHistory() {
       return {
         id: request.id,
         requestId: `REQ-${String(request.id).padStart(3, '0')}`,
-        fullName: household?.fullName || user?.fullName || 'Unknown',
-        meterNo: household?.meterNo || user?.meterNo || 'N/A',
-        phone: household?.phone || user?.phone || 'N/A',
-        address: household?.address || user?.address || 'N/A',
+        fullName: customer?.fullName || user?.fullName || 'Unknown',
+        meterNo: customer?.meterNo || user?.meterNo || 'N/A',
+        phone: customer?.phone || user?.phone || 'N/A',
+        address: customer?.address || user?.address || 'N/A',
         submission: request.requestedAt
           ? new Date(request.requestedAt).toLocaleString('en-US', {
               year: 'numeric',
@@ -175,7 +175,7 @@ export function CustomerAdminSubmissionHistory() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-[28px] font-semibold text-gray-900 mb-1">Submission History</h1>
-              <p className="text-sm text-gray-500">View history of all your household submissions</p>
+              <p className="text-sm text-gray-500">View history of all your customer submissions</p>
             </div>
             <div className="flex items-center gap-6 text-sm">
               <div className="flex items-center gap-2">
@@ -263,7 +263,7 @@ export function CustomerAdminSubmissionHistory() {
               {filteredSubmissions.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center text-gray-500 py-8">
-                    No submission history found. Submit households from the Household Management page.
+                    No submission history found. Submit customers from the Customer Management page.
                   </TableCell>
                 </TableRow>
               ) : (

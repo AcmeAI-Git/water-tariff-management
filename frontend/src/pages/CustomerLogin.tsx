@@ -69,7 +69,7 @@ export default function CustomerLogin() {
       // Get first active user for demo
       const users = await api.users.getAll('active');
       if (users.length === 0) {
-        toast.error('No active users found. Please create a household first.');
+        toast.error('No active users found. Please create a customer first.');
         return;
       }
 

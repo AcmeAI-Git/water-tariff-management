@@ -1,11 +1,11 @@
-﻿import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useMemo } from 'react';
 import { api } from '../services/api';
 import { useApiQuery } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 
 export function CustomerAdminMetrics() {
-  // Fetch users (households)
+  // Fetch users (customers)
   const { data: users = [], isLoading: usersLoading } = useApiQuery(
     ['users'],
     () => api.users.getAll()
@@ -18,15 +18,14 @@ export function CustomerAdminMetrics() {
   );
 
   // Calculate metrics
-  const totalHouseholds = users.length;
+  const totalCustomers = users.length;
   const pendingCount = pendingApprovals.filter((req: any) => 
-    req.moduleName?.toLowerCase().includes('household') || 
     req.moduleName?.toLowerCase().includes('customer')
   ).length;
 
-  // Calculate households registered this month
+  // Calculate customers registered this month
   const thisMonth = new Date();
-  const householdsThisMonth = users.filter((user) => {
+  const customersThisMonth = users.filter((user) => {
     if (!user.createdAt) return false;
     const createdDate = new Date(user.createdAt);
     return createdDate.getMonth() === thisMonth.getMonth() && 
@@ -63,7 +62,7 @@ export function CustomerAdminMetrics() {
     );
   }
 
-  const avgDailyRegistrations = (householdsThisMonth / 30).toFixed(1);
+  const avgDailyRegistrations = (customersThisMonth / 30).toFixed(1);
   const peakDay = dailyData.reduce((max, day) => 
     day.registrations > max.registrations ? day : max, 
     { date: '', registrations: 0 }
@@ -75,7 +74,7 @@ export function CustomerAdminMetrics() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">My Monthly Metrics</h1>
-          <p className="text-sm text-gray-500">Track your household registration performance</p>
+          <p className="text-sm text-gray-500">Track your customer registration performance</p>
         </div>
 
         {/* Stats - Text-based */}
@@ -86,8 +85,8 @@ export function CustomerAdminMetrics() {
             <div className="px-6 py-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Households Registered This Month</p>
-                  <p className="text-2xl font-semibold text-gray-900 mt-1">{householdsThisMonth}</p>
+                  <p className="text-sm text-gray-600">Customers Registered This Month</p>
+                  <p className="text-2xl font-semibold text-gray-900 mt-1">{customersThisMonth}</p>
                 </div>
               </div>
             </div>
@@ -109,8 +108,8 @@ export function CustomerAdminMetrics() {
             <div className="px-6 py-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Total Households in Ward</p>
-                  <p className="text-2xl font-semibold text-gray-900 mt-1">{totalHouseholds}</p>
+                  <p className="text-sm text-gray-600">Total Customers in Ward</p>
+                  <p className="text-2xl font-semibold text-gray-900 mt-1">{totalCustomers}</p>
                 </div>
               </div>
             </div>
@@ -170,12 +169,12 @@ export function CustomerAdminMetrics() {
             
             <div className="px-6 py-4">
               <p className="text-sm font-medium text-gray-900 mb-1">Average Daily Registrations</p>
-              <p className="text-sm text-gray-600">{avgDailyRegistrations} households per day</p>
+              <p className="text-sm text-gray-600">{avgDailyRegistrations} customers per day</p>
             </div>
 
             <div className="px-6 py-4">
               <p className="text-sm font-medium text-gray-900 mb-1">Total Registrations</p>
-              <p className="text-sm text-gray-600">{totalHouseholds} households registered</p>
+              <p className="text-sm text-gray-600">{totalCustomers} customers registered</p>
             </div>
           </div>
         </div>
