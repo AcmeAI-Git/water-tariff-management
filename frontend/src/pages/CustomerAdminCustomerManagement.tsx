@@ -119,10 +119,25 @@ export function CustomerAdminCustomerManagement() {
 
 
   const handleInputChange = (field: string, value: string | Date | undefined) => {
+    // Validate phone number - only allow numbers, +, -, spaces, and parentheses
+    if (field === 'phone' && typeof value === 'string') {
+      // Allow only digits, +, -, spaces, and parentheses
+      const phoneRegex = /^[\d\s\+\-\(\)]*$/;
+      if (!phoneRegex.test(value)) {
+        return; // Don't update if invalid character
+      }
+    }
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleEditInputChange = (field: string, value: string | Date | undefined) => {
+    // Validate phone number - only allow numbers, +, -, spaces, and parentheses
+    if (field === 'phone' && typeof value === 'string') {
+      const phoneRegex = /^[\d\s\+\-\(\)]*$/;
+      if (!phoneRegex.test(value)) {
+        return; // Don't update if invalid character
+      }
+    }
     setEditFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -174,6 +189,13 @@ export function CustomerAdminCustomerManagement() {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email.trim())) {
       toast.error('Please enter a valid email address');
+      return;
+    }
+
+    // Validate phone number format (at least 10 digits)
+    const phoneDigits = formData.phone.replace(/\D/g, ''); // Remove non-digits
+    if (phoneDigits.length < 10) {
+      toast.error('Please enter a valid phone number (at least 10 digits)');
       return;
     }
 
@@ -253,7 +275,14 @@ export function CustomerAdminCustomerManagement() {
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!editFormData.email || !editFormData.email.trim() || !emailRegex.test(editFormData.email.trim())) {
-      alert('Please enter a valid email address');
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
+    // Validate phone number format (at least 10 digits)
+    const phoneDigits = editFormData.phone.replace(/\D/g, ''); // Remove non-digits
+    if (phoneDigits.length < 10) {
+      toast.error('Please enter a valid phone number (at least 10 digits)');
       return;
     }
 
@@ -334,7 +363,6 @@ export function CustomerAdminCustomerManagement() {
                       id="meterNo"
                       value={formData.meterNo}
                       onChange={(e) => handleInputChange('meterNo', e.target.value)}
-                      placeholder="MTR-2024-XXXX"
                       className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                       required
                     />
@@ -348,9 +376,12 @@ export function CustomerAdminCustomerManagement() {
                     </Label>
                     <Input
                       id="phone"
+                      type="tel"
                       value={formData.phone}
                       onChange={(e) => handleInputChange('phone', e.target.value)}
                       placeholder="+880-XXXX-XXXXXX"
+                      pattern="[\d\s\+\-\(\)]+"
+                      maxLength={20}
                       className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                       required
                     />
@@ -537,8 +568,8 @@ export function CustomerAdminCustomerManagement() {
                     id="edit-meterNo"
                     value={editFormData.meterNo}
                     onChange={(e) => handleEditInputChange('meterNo', e.target.value)}
-                    placeholder="MTR-2024-XXXX"
                     className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
+                    required
                   />
                 </div>
               </div>
@@ -550,10 +581,14 @@ export function CustomerAdminCustomerManagement() {
                   </Label>
                   <Input
                     id="edit-phone"
+                    type="tel"
                     value={editFormData.phone}
                     onChange={(e) => handleEditInputChange('phone', e.target.value)}
                     placeholder="+880-XXXX-XXXXXX"
+                    pattern="[\d\s\+\-\(\)]+"
+                    maxLength={20}
                     className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
+                    required
                   />
                 </div>
 
