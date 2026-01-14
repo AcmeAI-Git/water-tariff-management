@@ -36,16 +36,17 @@ export function Dropdown({
             <DropdownMenuTrigger asChild disabled={disabled}>
                 <button
                     className={cn(
-                        "flex items-center justify-between text-sm text-gray-600 bg-white border border-gray-300 rounded-lg px-3 py-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-blue-500 hover:bg-gray-50 transition-colors min-w-[150px] w-full max-w-full",
+                        "flex items-center justify-between text-sm text-gray-600 bg-white border border-gray-300 rounded-lg px-3 py-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-blue-500 hover:bg-gray-50 transition-colors w-full",
                         disabled && "opacity-50 cursor-not-allowed bg-gray-100 hover:bg-gray-100",
                         className
                     )}
                     disabled={disabled}
+                    style={{ minWidth: 0 }}
                 >
-                    <span className="truncate flex-1 text-left min-w-0">
+                    <span className="truncate flex-1 text-left min-w-0 mr-2">
                         {selectedOption ? selectedOption.label : placeholder}
                     </span>
-                    <ChevronDown size={16} className="ml-2 text-gray-400 flex-shrink-0" />
+                    <ChevronDown size={16} className="text-gray-400 flex-shrink-0" />
                 </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent

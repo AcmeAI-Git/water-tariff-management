@@ -2,64 +2,44 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Badge } from '../components/ui/badge';
 import { useMemo, useState } from 'react';
 import { api } from '../services/api';
-import { useApiQuery, useAdminId } from '../hooks/useApiQuery';
+import { useApiQuery } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { mapUserToCustomer } from '../utils/dataMappers';
-import type { ApprovalStatus } from '../types';
 import { Input } from '../components/ui/input';
 import { Dropdown } from '../components/ui/Dropdown';
 import { Button } from '../components/ui/button';
 import { Search, X } from 'lucide-react';
 
 export function CustomerAdminSubmissionHistory() {
-  const adminId = useAdminId();
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // Fetch approval requests for Customer module
-  // Only fetch if adminId is available
-  const { data: customerApprovalRequests = [], isLoading: approvalRequestsLoading } = useApiQuery(
-    ['approval-requests', 'Customer', adminId ?? 'no-admin'],
-    () => api.approvalRequests.getAll({ moduleName: 'Customer' }),
-    {
-      enabled: adminId !== null,
-    }
-  );
-
-  // Filter approval requests requested by current admin
-  const approvalRequests = useMemo(() => {
-    if (!adminId) return [];
-    return customerApprovalRequests.filter(req => req.requestedBy === adminId);
-  }, [customerApprovalRequests, adminId]);
-
-  // Fetch all users to get customer details
+  // Fetch all customers (users) - since customers are created directly without approval
   const { data: users = [], isLoading: usersLoading } = useApiQuery(
     ['users'],
     () => api.users.getAll()
   );
 
-  // Map approval requests to submission history format
+  // Map customers to submission history format
   const submissionHistory = useMemo(() => {
-    return approvalRequests.map((request) => {
-      const user = users.find((u) => u.id === request.recordId);
-      const customer = user ? mapUserToCustomer(user) : null;
+    return users.map((user) => {
+      const customer = mapUserToCustomer(user);
       
-      // Get status from approval request - properly typed
-      const approvalStatus = request.approvalStatus as ApprovalStatus | undefined;
-      const statusName = approvalStatus?.statusName || approvalStatus?.name || 'Pending';
-      const status = statusName === 'Pending' ? 'Pending' : 
-                     statusName === 'Approved' ? 'Approved' : 
-                     statusName === 'Rejected' ? 'Rejected' : 'Pending';
+      // Customers are created directly as 'active', so status is always Active
+      const status = user.status?.toLowerCase() === 'active' ? 'Active' : 
+                     user.status?.toLowerCase() === 'inactive' ? 'Inactive' : 
+                     'Active';
       
       return {
-        id: request.id,
-        requestId: `REQ-${String(request.id).padStart(3, '0')}`,
-        fullName: customer?.fullName || user?.fullName || 'Unknown',
-        meterNo: customer?.meterNo || user?.meterNo || 'N/A',
-        phone: customer?.phone || user?.phone || 'N/A',
-        address: customer?.address || user?.address || 'N/A',
-        submission: request.requestedAt
-          ? new Date(request.requestedAt).toLocaleString('en-US', {
+        id: user.id,
+        requestId: `CUST-${String(user.id).padStart(4, '0')}`,
+        name: customer.name || customer.fullName || 'Unknown',
+        fullName: customer.fullName || customer.name || 'Unknown',
+        meterNo: customer.meterNo || 'N/A',
+        phone: customer.phone || 'N/A',
+        address: customer.address || 'N/A',
+        submission: user.createdAt
+          ? new Date(user.createdAt).toLocaleString('en-US', {
               year: 'numeric',
               month: 'short',
               day: 'numeric',
@@ -68,19 +48,7 @@ export function CustomerAdminSubmissionHistory() {
               second: '2-digit',
             })
           : 'N/A',
-        review: request.reviewedAt
-          ? new Date(request.reviewedAt).toLocaleString('en-US', {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-              second: '2-digit',
-            })
-          : null,
         status,
-        comments: request.comments || null,
-        reviewer: request.reviewer?.fullName || null,
       };
     }).sort((a, b) => {
       // Sort by submission date (newest first)
@@ -88,7 +56,7 @@ export function CustomerAdminSubmissionHistory() {
       const dateB = new Date(b.submission).getTime();
       return dateB - dateA;
     });
-  }, [approvalRequests, users]);
+  }, [users]);
 
   // Apply filters
   const filteredSubmissions = useMemo(() => {
@@ -103,6 +71,7 @@ export function CustomerAdminSubmissionHistory() {
         const query = searchQuery.toLowerCase();
         const matchesSearch = 
           submission.requestId?.toLowerCase().includes(query) ||
+          submission.name?.toLowerCase().includes(query) ||
           submission.fullName?.toLowerCase().includes(query) ||
           submission.meterNo?.toLowerCase().includes(query) ||
           submission.phone?.toLowerCase().includes(query) ||
@@ -127,22 +96,16 @@ export function CustomerAdminSubmissionHistory() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'Approved':
+      case 'Active':
         return (
           <Badge className="bg-green-50 text-green-700 border-green-200">
-            Approved
+            Active
           </Badge>
         );
-      case 'Rejected':
+      case 'Inactive':
         return (
           <Badge className="bg-red-50 text-red-700 border-red-200">
-            Rejected
-          </Badge>
-        );
-      case 'Pending':
-        return (
-          <Badge className="bg-yellow-50 text-yellow-700 border-yellow-200">
-            Pending
+            Inactive
           </Badge>
         );
       default:
@@ -154,7 +117,7 @@ export function CustomerAdminSubmissionHistory() {
     }
   };
 
-  if (approvalRequestsLoading || usersLoading) {
+  if (usersLoading) {
     return (
       <div className="min-h-screen bg-[#f8f9fb] flex items-center justify-center">
         <LoadingSpinner />
@@ -162,9 +125,8 @@ export function CustomerAdminSubmissionHistory() {
     );
   }
 
-  const approvedCount = filteredSubmissions.filter(s => s.status === 'Approved').length;
-  const pendingCount = filteredSubmissions.filter(s => s.status === 'Pending').length;
-  const rejectedCount = filteredSubmissions.filter(s => s.status === 'Rejected').length;
+  const activeCount = filteredSubmissions.filter(s => s.status === 'Active').length;
+  const inactiveCount = filteredSubmissions.filter(s => s.status === 'Inactive').length;
   const totalCount = filteredSubmissions.length;
 
   return (
@@ -174,8 +136,8 @@ export function CustomerAdminSubmissionHistory() {
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-[28px] font-semibold text-gray-900 mb-1">Submission History</h1>
-              <p className="text-sm text-gray-500">View history of all your customer submissions</p>
+              <h1 className="text-[28px] font-semibold text-gray-900 mb-1">Customer History</h1>
+              <p className="text-sm text-gray-500">View history of all registered customers</p>
             </div>
             <div className="flex items-center gap-6 text-sm">
               <div className="flex items-center gap-2">
@@ -184,18 +146,13 @@ export function CustomerAdminSubmissionHistory() {
               </div>
               <span className="text-gray-300">|</span>
               <div className="flex items-center gap-2">
-                <span className="text-gray-600">Approved:</span>
-                <span className="font-semibold text-green-600">{approvedCount}</span>
+                <span className="text-gray-600">Active:</span>
+                <span className="font-semibold text-green-600">{activeCount}</span>
               </div>
               <span className="text-gray-300">|</span>
               <div className="flex items-center gap-2">
-                <span className="text-gray-600">Pending:</span>
-                <span className="font-semibold text-yellow-600">{pendingCount}</span>
-              </div>
-              <span className="text-gray-300">|</span>
-              <div className="flex items-center gap-2">
-                <span className="text-gray-600">Rejected:</span>
-                <span className="font-semibold text-red-600">{rejectedCount}</span>
+                <span className="text-gray-600">Inactive:</span>
+                <span className="font-semibold text-red-600">{inactiveCount}</span>
               </div>
             </div>
           </div>
@@ -220,9 +177,8 @@ export function CustomerAdminSubmissionHistory() {
             <Dropdown
               options={[
                 { value: 'all', label: 'All Status' },
-                { value: 'Approved', label: 'Approved' },
-                { value: 'Pending', label: 'Pending' },
-                { value: 'Rejected', label: 'Rejected' }
+                { value: 'Active', label: 'Active' },
+                { value: 'Inactive', label: 'Inactive' }
               ]}
               value={statusFilter}
               onChange={setStatusFilter}
@@ -249,36 +205,32 @@ export function CustomerAdminSubmissionHistory() {
           <Table>
             <TableHeader>
               <TableRow className="border-gray-200 bg-gray-50">
-                <TableHead className="text-sm font-semibold text-gray-700">Request ID</TableHead>
-                <TableHead className="text-sm font-semibold text-gray-700">Full Name</TableHead>
+                <TableHead className="text-sm font-semibold text-gray-700">Customer ID</TableHead>
+                <TableHead className="text-sm font-semibold text-gray-700">Name</TableHead>
                 <TableHead className="text-sm font-semibold text-gray-700">Meter No</TableHead>
                 <TableHead className="text-sm font-semibold text-gray-700">Phone</TableHead>
                 <TableHead className="text-sm font-semibold text-gray-700">Address</TableHead>
-                <TableHead className="text-sm font-semibold text-gray-700">Submission</TableHead>
+                <TableHead className="text-sm font-semibold text-gray-700">Created Date</TableHead>
                 <TableHead className="text-sm font-semibold text-gray-700">Status</TableHead>
-                <TableHead className="text-sm font-semibold text-gray-700">Review</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredSubmissions.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-gray-500 py-8">
-                    No submission history found. Submit customers from the Customer Management page.
+                  <TableCell colSpan={7} className="text-center text-gray-500 py-8">
+                    No customers found. Add customers from the Customer Management page.
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredSubmissions.map((submission) => (
                   <TableRow key={submission.id} className="border-gray-100">
                     <TableCell className="text-sm text-gray-600 font-mono">{submission.requestId}</TableCell>
-                    <TableCell className="text-sm text-gray-900 font-medium">{submission.fullName}</TableCell>
+                    <TableCell className="text-sm text-gray-900 font-medium">{submission.name || submission.fullName}</TableCell>
                     <TableCell className="text-sm text-gray-600 font-mono">{submission.meterNo}</TableCell>
                     <TableCell className="text-sm text-gray-600">{submission.phone}</TableCell>
                     <TableCell className="text-sm text-gray-600">{submission.address}</TableCell>
                     <TableCell className="text-sm text-gray-600">{submission.submission}</TableCell>
                     <TableCell>{getStatusBadge(submission.status)}</TableCell>
-                    <TableCell className="text-sm text-gray-600">
-                      {submission.review || '-'}
-                    </TableCell>
                   </TableRow>
                 ))
               )}

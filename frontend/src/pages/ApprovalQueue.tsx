@@ -7,7 +7,7 @@ import { ReviewChangeModal } from './ReviewChangeModal';
 import { api } from '../services/api';
 import { useApiQuery, useApiMutation, useAdminId } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
-import type { User, Consumption, ZoneScoringRuleSet } from '../types';
+import type { Consumption, ZoneScoringRuleSet } from '../types';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -19,7 +19,7 @@ interface ApprovalQueueItem {
   request: string;
   status: string;
   recordId: number;
-  recordType: 'customer' | 'consumption' | 'zone-scoring';
+  recordType: 'consumption' | 'zone-scoring';
   oldData?: unknown;
   newData?: unknown;
 }
@@ -29,12 +29,6 @@ export function ApprovalQueue() {
   const [isLoadingRecordData, setIsLoadingRecordData] = useState(false);
   const adminId = useAdminId();
   const queryClient = useQueryClient();
-
-  // Fetch pending customers (users with status='pending')
-  const { data: pendingCustomers = [], isLoading: customersLoading } = useApiQuery(
-    ['users', 'pending'],
-    () => api.users.getAll('pending')
-  );
 
   // Fetch all consumptions and filter for pending ones
   const { data: allConsumptions = [], isLoading: consumptionsLoading } = useApiQuery(
@@ -67,46 +61,6 @@ export function ApprovalQueue() {
   // Combine all pending items into unified display format
   const displayRequests = useMemo(() => {
     const items: ApprovalQueueItem[] = [];
-
-    // Add pending customers
-    pendingCustomers.forEach((customer: User) => {
-      // Safety check: Skip if customer doesn't have an ID (shouldn't happen, but safety)
-      if (!customer.id) {
-        return;
-      }
-      
-      // User type doesn't have createdBy, so we'll use 'Unknown' for now
-      items.push({
-        id: `CUSTOMER-${customer.id}`,
-        module: 'Customer',
-        requestedBy: 'Unknown',
-        request: customer.createdAt 
-          ? new Date(customer.createdAt).toLocaleString('en-US', {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-              second: '2-digit',
-            })
-          : 'N/A',
-        status: 'Pending',
-        recordId: customer.id,
-        recordType: 'customer',
-        oldData: null,
-        newData: {
-          fullName: customer.fullName,
-          meterNo: customer.meterNo,
-          phone: customer.phone,
-          email: customer.email,
-          address: customer.address,
-          hourseType: customer.hourseType,
-          installDate: customer.installDate,
-          zoneId: customer.zoneId,
-          wardId: customer.wardId,
-        },
-      });
-    });
 
     // Add pending consumptions
     pendingConsumptions.forEach((consumption: Consumption) => {
@@ -176,34 +130,7 @@ export function ApprovalQueue() {
       const dateB = new Date(b.request).getTime();
       return dateB - dateA;
     });
-  }, [pendingCustomers, pendingConsumptions, pendingZoneScoringRulesets, admins]);
-
-  // Activate customer mutation
-  const activateCustomerMutation = useApiMutation(
-    (id: number) => api.users.activate(id),
-    {
-      successMessage: 'Customer activated successfully',
-      errorMessage: 'Failed to activate customer',
-      invalidateQueries: [
-        ['users', 'pending'],
-        ['users', 'active'],
-        ['users'],
-      ],
-    }
-  );
-
-  // Delete customer mutation (for rejection)
-  const deleteCustomerMutation = useApiMutation(
-    (id: number) => api.users.delete(id),
-    {
-      successMessage: 'Customer rejected and removed successfully',
-      errorMessage: 'Failed to reject customer',
-      invalidateQueries: [
-        ['users', 'pending'],
-        ['users'],
-      ],
-    }
-  );
+  }, [pendingConsumptions, pendingZoneScoringRulesets, admins]);
 
   // Approve consumption mutation
   const approveConsumptionMutation = useApiMutation(
@@ -240,7 +167,7 @@ export function ApprovalQueue() {
     }
   );
 
-  const isLoading = customersLoading || consumptionsLoading;
+  const isLoading = consumptionsLoading;
 
   const handleReview = async (request: ApprovalQueueItem) => {
     // If oldData/newData are missing (null/undefined), fetch the actual record data
@@ -249,21 +176,7 @@ export function ApprovalQueue() {
       try {
         let newData: unknown = null;
         
-        if (request.module === 'Customer' || request.recordType === 'customer') {
-          // Fetch customer/user data
-          const customer = await api.users.getById(request.recordId);
-          newData = {
-            fullName: customer.fullName,
-            meterNo: customer.meterNo,
-            phone: customer.phone,
-            email: customer.email,
-            address: customer.address,
-            hourseType: customer.hourseType,
-            installDate: customer.installDate,
-            zoneId: customer.zoneId,
-            wardId: customer.wardId,
-          };
-        } else if (request.module === 'Consumption' || request.recordType === 'consumption') {
+        if (request.module === 'Consumption' || request.recordType === 'consumption') {
           // Fetch consumption data
           const consumption = await api.consumption.getById(request.recordId);
           newData = {
@@ -339,9 +252,6 @@ export function ApprovalQueue() {
       if (request.recordType === 'zone-scoring') {
         // Use publish endpoint for ZoneScoring approval
         await api.zoneScoring.publish(request.recordId);
-      } else if (request.recordType === 'customer') {
-        // Activate customer
-        await activateCustomerMutation.mutateAsync(request.recordId);
       } else if (request.recordType === 'consumption') {
         // Approve consumption
         await approveConsumptionMutation.mutateAsync({
@@ -357,17 +267,6 @@ export function ApprovalQueue() {
         ]);
         await Promise.all([
           queryClient.refetchQueries({ queryKey: ['zone-scoring'] }),
-        ]);
-      } else if (request.recordType === 'customer') {
-        // For customers, invalidate user queries
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ['users', 'pending'], refetchType: 'active' }),
-          queryClient.invalidateQueries({ queryKey: ['users', 'active'], refetchType: 'active' }),
-          queryClient.invalidateQueries({ queryKey: ['users'], refetchType: 'active' }),
-        ]);
-        await Promise.all([
-          queryClient.refetchQueries({ queryKey: ['users', 'pending'] }),
-          queryClient.refetchQueries({ queryKey: ['users', 'active'] }),
         ]);
       } else if (request.recordType === 'consumption') {
         // For consumptions, invalidate consumption queries
@@ -408,9 +307,6 @@ export function ApprovalQueue() {
       if (recordType === 'zone-scoring') {
         // Use status endpoint with 'rejected' for ZoneScoring rejection
         await api.zoneScoring.updateStatus(recordId, 'rejected');
-      } else if (recordType === 'customer') {
-        // Delete the customer since it was rejected
-        await deleteCustomerMutation.mutateAsync(recordId);
       } else if (recordType === 'consumption') {
         // Reject consumption
         await rejectConsumptionMutation.mutateAsync({
@@ -429,17 +325,6 @@ export function ApprovalQueue() {
         ]);
         await Promise.all([
           queryClient.refetchQueries({ queryKey: ['zone-scoring'] }),
-        ]);
-      } else if (recordType === 'customer') {
-        // Wait for backend to fully process
-        await new Promise(resolve => setTimeout(resolve, 500));
-        // Force refetch of pending queries
-        await Promise.all([
-          queryClient.refetchQueries({ 
-            queryKey: ['users', 'pending'],
-            type: 'active',
-            exact: false
-          }),
         ]);
       } else if (recordType === 'consumption') {
         // Wait for backend to fully process
@@ -540,8 +425,6 @@ export function ApprovalQueue() {
                         onClick={() => handleReview(request)}
                         className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-9 px-4 flex items-center gap-2 ml-auto"
                         disabled={
-                          activateCustomerMutation.isPending ||
-                          deleteCustomerMutation.isPending ||
                           approveConsumptionMutation.isPending ||
                           rejectConsumptionMutation.isPending
                         }

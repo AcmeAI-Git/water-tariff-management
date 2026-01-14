@@ -13,14 +13,21 @@ export interface DisplayAdmin {
 
 export interface DisplayCustomer {
   id: number;
-  fullName: string;
-  meterNo: string;
-  phone: string;
+  name: string;
   address: string;
+  inspCode?: number;
+  accountType?: string;
+  customerCategory?: string;
+  waterStatus?: string;
+  sewerStatus?: string;
   status: string;
-  email?: string;
   zoneId?: number;
   areaId?: number;
+  // Backward compatibility fields
+  fullName?: string;
+  meterNo?: string;
+  phone?: string;
+  email?: string;
 }
 
 export interface DisplayApprovalRequest {
@@ -67,17 +74,25 @@ export function mapAdminToDisplay(admin: Admin, roles: Role[]): DisplayAdmin {
 export function mapUserToCustomer(user: User): DisplayCustomer {
   // Handle both id (number) and account (UUID string) fields
   const userId = (user as any).account || user.id;
+  const userData = user as any;
   
   return {
     id: userId,
-    fullName: user.fullName || (user as any).name || '',
+    name: userData.name || user.fullName || '',
+    address: user.address || '',
+    inspCode: userData.inspCode,
+    accountType: userData.accountType,
+    customerCategory: userData.customerCategory,
+    waterStatus: userData.waterStatus,
+    sewerStatus: userData.sewerStatus,
+    status: user.status || userData.activeStatus || userData.status || 'active',
+    zoneId: user.zoneId || userData.zoneId || userData.dmaId,
+    areaId: userData.areaId || user.wardId, // Support both for backward compatibility
+    // Backward compatibility
+    fullName: userData.name || user.fullName || '',
     meterNo: user.meterNo || '',
     phone: user.phone || '',
-    address: user.address || '',
-    status: user.status || 'Pending',
     email: user.email,
-    zoneId: user.zoneId,
-    areaId: (user as any).areaId || user.wardId, // Support both for backward compatibility
   };
 }
 
