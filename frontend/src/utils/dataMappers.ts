@@ -25,7 +25,10 @@ export interface DisplayCustomer {
   areaId?: number;
   // Backward compatibility fields
   fullName?: string;
-  meterNo?: string;
+  meterNo?: string | number;
+  meterStatus?: string;
+  sizeOfDia?: string;
+  meterInstallationDate?: string;
   phone?: string;
   email?: string;
 }
@@ -76,6 +79,22 @@ export function mapUserToCustomer(user: User): DisplayCustomer {
   const userId = (user as any).account || user.id;
   const userData = user as any;
   
+  // Get status - check multiple possible field names
+  // Note: New API structure might not include status field
+  // Since customers register directly without approval, default to 'active' if status is missing
+  const rawStatus = userData.activeStatus || userData.status || user.status;
+  
+  // If status exists, use it (normalize to lowercase)
+  // If status doesn't exist, default to 'active' (customers register directly as active now)
+  const status = rawStatus ? String(rawStatus).toLowerCase() : 'active';
+  
+  // Extract meter data from nested meter object or direct fields
+  const meterData = userData.meter || {};
+  const meterNo = meterData.meterNo || userData.meterNo || user.meterNo || '';
+  const meterStatus = meterData.meterStatus || userData.meterStatus || '';
+  const sizeOfDia = meterData.sizeOfDia || userData.sizeOfDia || '';
+  const meterInstallationDate = meterData.meterInstallationDate || userData.meterInstallationDate || '';
+
   return {
     id: userId,
     name: userData.name || user.fullName || '',
@@ -85,12 +104,15 @@ export function mapUserToCustomer(user: User): DisplayCustomer {
     customerCategory: userData.customerCategory,
     waterStatus: userData.waterStatus,
     sewerStatus: userData.sewerStatus,
-    status: user.status || userData.activeStatus || userData.status || 'active',
+    status: status,
     zoneId: user.zoneId || userData.zoneId || userData.dmaId,
     areaId: userData.areaId || user.wardId, // Support both for backward compatibility
     // Backward compatibility
     fullName: userData.name || user.fullName || '',
-    meterNo: user.meterNo || '',
+    meterNo: meterNo,
+    meterStatus: meterStatus,
+    sizeOfDia: sizeOfDia,
+    meterInstallationDate: meterInstallationDate,
     phone: user.phone || '',
     email: user.email,
   };

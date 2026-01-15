@@ -51,6 +51,9 @@ import type {
   UpdateZoneScoringRuleSetDto,
   CreateAreaDto,
   UpdateAreaDto,
+  Meter,
+  CreateMeterDto,
+  UpdateMeterDto,
 } from "../types";
 
 // ==================== ADMINS ====================
@@ -522,6 +525,29 @@ export const areaApi = {
   },
 };
 
+// ==================== METERS ====================
+export const metersApi = {
+  getAll: (): Promise<Meter[]> => {
+    return fetchService.get<Meter[]>("/meters");
+  },
+
+  getById: (id: number): Promise<Meter> => {
+    return fetchService.get<Meter>(`/meters/${id}`);
+  },
+
+  create: (data: CreateMeterDto): Promise<Meter> => {
+    return fetchService.post<Meter>("/meters", data);
+  },
+
+  update: (id: number, data: UpdateMeterDto): Promise<Meter> => {
+    return fetchService.put<Meter>(`/meters/${id}`, data);
+  },
+
+  delete: (id: number): Promise<void> => {
+    return fetchService.delete<void>(`/meters/${id}`);
+  },
+};
+
 // Export all APIs as a single object for convenience
 export const api = {
   admins: adminsApi,
@@ -539,6 +565,7 @@ export const api = {
   notifications: notificationsApi,
   zoneScoring: zoneScoringApi,
   area: areaApi,
+  meters: metersApi,
 };
 
 export default api;

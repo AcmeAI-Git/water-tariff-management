@@ -4,7 +4,6 @@ import { useMemo, useState } from 'react';
 import { api } from '../services/api';
 import { useApiQuery, useAdminId } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
-import type { ApprovalStatus } from '../types';
 import { Input } from '../components/ui/input';
 import { Dropdown } from '../components/ui/Dropdown';
 import { Button } from '../components/ui/button';
@@ -22,61 +21,50 @@ export function MeterAdminSubmittedReadings() {
     () => api.consumption.getAll()
   );
 
-  // Fetch all users to map userId to user details
+  // Fetch all users to map userId/account to user details
   const { data: users = [], isLoading: usersLoading } = useApiQuery(
     ['users'],
     () => api.users.getAll()
   );
 
-  // Fetch approval requests for Consumption module requested by current admin
-  const { data: consumptionApprovalRequests = [], isLoading: approvalRequestsLoading } = useApiQuery(
-    ['approval-requests', 'Consumption', adminId ?? 'no-admin'],
-    () => api.approvalRequests.getAll({ moduleName: 'Consumption' }),
-    {
-      enabled: adminId !== null,
-    }
-  );
-
-  // Filter approval requests requested by current meter admin
-  const myApprovalRequests = useMemo(() => {
+  // Filter consumptions created by current meter admin
+  const myConsumptions = useMemo(() => {
     if (!adminId) return [];
-    return consumptionApprovalRequests.filter(req => req.requestedBy === adminId);
-  }, [consumptionApprovalRequests, adminId]);
+    return consumptions.filter(c => c.createdBy === adminId);
+  }, [consumptions, adminId]);
 
-  // Map approval requests to display format with consumption details
+  // Map consumptions to display format
   const submittedReadings = useMemo(() => {
-    return myApprovalRequests.map((request) => {
-      // Find the consumption for this approval request
-      const consumption = consumptions.find((c) => c.id === request.recordId);
-      if (!consumption) return null; // Skip if consumption not found
-      
-      const user = users.find((u) => u.id === consumption.userId);
+    return myConsumptions.map((consumption) => {
+      // Find user by userId or account
+      const user = users.find((u) => 
+        u.id === consumption.userId || 
+        u.account === consumption.userId ||
+        (consumption as any).account === u.account ||
+        (consumption as any).account === u.id
+      );
       const billMonthDate = new Date(consumption.billMonth);
       
-      // Get status from approval request, not consumption
-      const approvalStatus = request.approvalStatus as ApprovalStatus | undefined;
-      const statusName = approvalStatus?.statusName || approvalStatus?.name || 'Pending';
-      const status = statusName === 'Pending' ? 'Pending' : 
-                     statusName === 'Approved' ? 'Approved' : 
-                     statusName === 'Rejected' ? 'Rejected' : 'Pending';
+      // Get status from consumption directly (no approval status)
+      const status = (consumption as any).status || 
+                    (consumption as any).activeStatus || 
+                    'Active';
       
       // Ensure currentReading is a number
       const currentReading = typeof consumption.currentReading === 'number' 
         ? consumption.currentReading 
         : Number(consumption.currentReading) || 0;
       
-      // Use approval request's requestedAt as submission date
-      const submittedDate = request.requestedAt 
-        ? new Date(request.requestedAt)
-        : consumption.createdAt 
-          ? new Date(consumption.createdAt)
-          : billMonthDate;
+      // Use consumption's createdAt as submission date
+      const submittedDate = consumption.createdAt 
+        ? new Date(consumption.createdAt)
+        : billMonthDate;
       
       return {
-        id: request.id, // Use approval request ID
+        id: consumption.id,
         consumptionId: consumption.id,
-        batchId: `BATCH-${consumption.id}`,
-        householdName: user?.fullName || 'Unknown',
+        batchId: `READING-${consumption.id}`,
+        householdName: user?.fullName || user?.name || 'Unknown',
         meterNo: user?.meterNo || 'N/A',
         reading: currentReading.toFixed(2),
         month: billMonthDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' }),
@@ -89,25 +77,14 @@ export function MeterAdminSubmittedReadings() {
           second: '2-digit',
         }),
         submittedTimestamp: submittedDate.getTime(),
-        status,
-        reviewedAt: request.reviewedAt 
-          ? new Date(request.reviewedAt).toLocaleString('en-US', {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-              second: '2-digit',
-            })
-          : null,
+        status: status === 'Active' ? 'Active' : status === 'Inactive' ? 'Inactive' : 'Active',
       };
     })
-    .filter((item): item is NonNullable<typeof item> => item !== null) // Remove nulls
     .sort((a, b) => {
       // Sort by submission date descending (newest first)
       return b.submittedTimestamp - a.submittedTimestamp;
     });
-  }, [myApprovalRequests, consumptions, users]);
+  }, [myConsumptions, users]);
 
   // Get unique months for filter
   const uniqueMonths = useMemo(() => {
@@ -163,22 +140,16 @@ export function MeterAdminSubmittedReadings() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'Approved':
+      case 'Active':
         return (
           <Badge className="bg-green-50 text-green-700 border-green-200">
-            Approved
+            Active
           </Badge>
         );
-      case 'Rejected':
+      case 'Inactive':
         return (
           <Badge className="bg-red-50 text-red-700 border-red-200">
-            Rejected
-          </Badge>
-        );
-      case 'Pending':
-        return (
-          <Badge className="bg-yellow-50 text-yellow-700 border-yellow-200">
-            Pending
+            Inactive
           </Badge>
         );
       default:
@@ -190,7 +161,7 @@ export function MeterAdminSubmittedReadings() {
     }
   };
 
-  if (consumptionsLoading || usersLoading || approvalRequestsLoading) {
+  if (consumptionsLoading || usersLoading) {
     return (
       <div className="min-h-screen bg-app flex items-center justify-center">
         <LoadingSpinner />
@@ -198,9 +169,6 @@ export function MeterAdminSubmittedReadings() {
     );
   }
 
-  const approvedCount = filteredReadings.filter(r => r.status === 'Approved').length;
-  const pendingCount = filteredReadings.filter(r => r.status === 'Pending').length;
-  const rejectedCount = filteredReadings.filter(r => r.status === 'Rejected').length;
 
   return (
     <div className="min-h-screen bg-app">
@@ -209,8 +177,8 @@ export function MeterAdminSubmittedReadings() {
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">Submission History</h1>
-              <p className="text-sm text-gray-500">View history of all submitted meter readings</p>
+              <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">Reading History</h1>
+              <p className="text-sm text-gray-500">View history of all meter readings you have created</p>
             </div>
             <div className="flex items-center gap-6 text-sm">
               <div className="flex items-center gap-2">
@@ -219,18 +187,13 @@ export function MeterAdminSubmittedReadings() {
               </div>
               <span className="text-gray-300">|</span>
               <div className="flex items-center gap-2">
-                <span className="text-gray-600">Approved:</span>
-                <span className="font-semibold text-green-600">{approvedCount}</span>
+                <span className="text-gray-600">Active:</span>
+                <span className="font-semibold text-green-600">{filteredReadings.filter(r => r.status === 'Active').length}</span>
               </div>
               <span className="text-gray-300">|</span>
               <div className="flex items-center gap-2">
-                <span className="text-gray-600">Pending:</span>
-                <span className="font-semibold text-yellow-600">{pendingCount}</span>
-              </div>
-              <span className="text-gray-300">|</span>
-              <div className="flex items-center gap-2">
-                <span className="text-gray-600">Rejected:</span>
-                <span className="font-semibold text-red-600">{rejectedCount}</span>
+                <span className="text-gray-600">Inactive:</span>
+                <span className="font-semibold text-red-600">{filteredReadings.filter(r => r.status === 'Inactive').length}</span>
               </div>
             </div>
           </div>
@@ -243,7 +206,7 @@ export function MeterAdminSubmittedReadings() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <Input
               type="text"
-              placeholder="Search by name, meter no, batch ID..."
+              placeholder="Search by name, meter no, reading ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 bg-white border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
@@ -255,9 +218,8 @@ export function MeterAdminSubmittedReadings() {
             <Dropdown
               options={[
                 { value: 'all', label: 'All Status' },
-                { value: 'Approved', label: 'Approved' },
-                { value: 'Pending', label: 'Pending' },
-                { value: 'Rejected', label: 'Rejected' }
+                { value: 'Active', label: 'Active' },
+                { value: 'Inactive', label: 'Inactive' }
               ]}
               value={statusFilter}
               onChange={setStatusFilter}
@@ -301,7 +263,7 @@ export function MeterAdminSubmittedReadings() {
             <Table>
               <TableHeader>
                 <TableRow className="border-gray-200 bg-gray-50">
-                  <TableHead className="text-sm font-semibold text-gray-700">Batch ID</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">Reading ID</TableHead>
                   <TableHead className="text-sm font-semibold text-gray-700">Household Name</TableHead>
                   <TableHead className="text-sm font-semibold text-gray-700">Meter No</TableHead>
                   <TableHead className="text-sm font-semibold text-gray-700">Reading (m³)</TableHead>
@@ -314,7 +276,7 @@ export function MeterAdminSubmittedReadings() {
                 {filteredReadings.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center text-gray-500 py-8">
-                      No submitted readings found
+                      No readings found. Add readings from the Meter Data Entry page.
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -323,7 +285,7 @@ export function MeterAdminSubmittedReadings() {
                       <TableCell className="text-sm text-gray-600 font-mono">{reading.batchId}</TableCell>
                       <TableCell className="text-sm text-gray-900 font-medium">{reading.householdName}</TableCell>
                       <TableCell className="text-sm text-gray-600 font-mono">{reading.meterNo}</TableCell>
-                      <TableCell className="text-sm text-gray-600">{reading.reading}</TableCell>
+                      <TableCell className="text-sm text-gray-600">{reading.reading} m³</TableCell>
                       <TableCell className="text-sm text-gray-600">{reading.month}</TableCell>
                       <TableCell className="text-sm text-gray-600">{reading.submitted}</TableCell>
                       <TableCell>{getStatusBadge(reading.status)}</TableCell>

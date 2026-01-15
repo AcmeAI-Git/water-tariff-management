@@ -61,29 +61,43 @@ export interface User {
   updatedAt?: string;
 }
 
+// Nested meter DTO for user creation (no account field needed)
+export interface CreateUserMeterDto {
+  meterNo: number;
+  meterStatus: string;
+  sizeOfDia: string;
+  meterInstallationDate?: string;
+}
+
 export interface CreateUserDto {
-  fullName: string;
-  email?: string;
-  phone: string;
+  name: string;
   address: string;
-  hourseType: string;
-  meterNo: string;
-  installDate: string;
-  zoneId: number;
-  wardId: number;
+  inspCode: number;
+  areaId: number;
+  accountType: string;
+  customerCategory: string;
+  waterStatus: string;
+  sewerStatus: string;
+  meter?: CreateUserMeterDto; // Optional nested meter object
+}
+
+export interface UpdateUserMeterDto {
+  meterNo?: number;
+  meterStatus?: string;
+  sizeOfDia?: string;
+  meterInstallationDate?: string;
 }
 
 export interface UpdateUserDto {
-  fullName?: string;
-  email?: string;
-  phone?: string;
+  name?: string;
   address?: string;
-  hourseType?: string;
-  meterNo?: string;
-  installDate?: string;
-  zoneId?: number;
-  wardId?: number;
-  status?: string;
+  inspCode?: number;
+  areaId?: number;
+  accountType?: string;
+  customerCategory?: string;
+  waterStatus?: string;
+  sewerStatus?: string;
+  meter?: UpdateUserMeterDto; // Optional nested meter object for updates
 }
 
 // Role Types
@@ -313,7 +327,7 @@ export interface Consumption {
 }
 
 export interface CreateConsumptionDto {
-  userId: number;
+  account: number; // Numeric ID (workaround: backend validation expects number but users have UUID strings)
   createdBy: number;
   billMonth: string;
   currentReading: number;
@@ -509,4 +523,31 @@ export interface UpdateAreaDto {
     coordinates: number[][][];
   };
   zoneId?: number;
+}
+
+// Meter Types
+export interface Meter {
+  id: number;
+  account: string; // UUID string
+  meterNo: number;
+  meterStatus: string;
+  sizeOfDia: string;
+  meterInstallationDate?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateMeterDto {
+  account: string; // UUID string
+  meterNo: number;
+  meterStatus: string;
+  sizeOfDia: string;
+  meterInstallationDate?: string;
+}
+
+export interface UpdateMeterDto {
+  meterNo?: number;
+  meterStatus?: string;
+  sizeOfDia?: string;
+  meterInstallationDate?: string;
 }

@@ -20,7 +20,10 @@ export function useApiQuery<TData = unknown, TError = Error>(
   useEffect(() => {
     if (query.error) {
       const errorMessage = query.error instanceof Error ? query.error.message : 'An error occurred';
-      toast.error(errorMessage);
+      // Don't show toast for area_id errors - component will handle with custom UI
+      if (!errorMessage.includes('area_id')) {
+        toast.error(errorMessage);
+      }
       console.error('API Query Error:', query.error);
     }
   }, [query.error]);

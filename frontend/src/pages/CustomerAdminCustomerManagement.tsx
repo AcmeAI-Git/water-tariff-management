@@ -1,20 +1,18 @@
 import { Button } from '../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Textarea } from '../components/ui/textarea';
 import { Dropdown } from '../components/ui/Dropdown';
-import { Plus, Edit, Search, X } from 'lucide-react';
-import { useState, useMemo } from 'react';
-import { cn } from '../utils/utils';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { Plus, Edit, Search, X, Upload, Download, Trash2 } from 'lucide-react';
+import { useState, useMemo, useRef } from 'react';
 import { api } from '../services/api';
 import { useApiQuery, useApiMutation, useAdminId } from '../hooks/useApiQuery';
 import { mapUserToCustomer, type DisplayCustomer } from '../utils/dataMappers';
+import type { Meter, CreateUserDto } from '../types';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
-import { HierarchicalLocationSelector } from '../components/common/HierarchicalLocationSelector';
 import { toast } from 'sonner';
-// import type { Zone, Ward } from '../types';
+import { CustomerMeterModal } from '../components/modals/CustomerMeterModal';
+import { parseCustomerCSV, generateCustomerCSVTemplate, exportCustomersToCSV } from '../utils/customerCsvParser';
 
 export function CustomerAdminCustomerManagement() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -29,6 +27,18 @@ export function CustomerAdminCustomerManagement() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<DisplayCustomer | null>(null);
+  const [csvUploadError, setCsvUploadError] = useState<string | null>(null);
+  const [csvUploadSuccess, setCsvUploadSuccess] = useState<string | null>(null);
+  const [isParsingCSV, setIsParsingCSV] = useState(false);
+  const [csvConfirmModalOpen, setCsvConfirmModalOpen] = useState(false);
+  const [pendingCSVData, setPendingCSVData] = useState<{
+    csvCustomersToAdd: CreateUserDto[];
+    csvCustomersToUpdate: { customer: DisplayCustomer; data: CreateUserDto }[];
+    existingCustomers: DisplayCustomer[];
+  } | null>(null);
+  const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
+  const [customerToDelete, setCustomerToDelete] = useState<DisplayCustomer | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const adminId = useAdminId();
   
   const [formData, setFormData] = useState({
@@ -42,6 +52,10 @@ export function CustomerAdminCustomerManagement() {
     cityCorporationId: '',
     zoneId: '',
     areaId: '',
+    meterNo: '',
+    meterStatus: 'Functional',
+    sizeOfDia: '',
+    meterInstallationDate: '',
   });
 
   const [editFormData, setEditFormData] = useState({
@@ -55,12 +69,27 @@ export function CustomerAdminCustomerManagement() {
     cityCorporationId: '',
     zoneId: '',
     areaId: '',
+    meterNo: '',
+    meterStatus: 'Functional',
+    sizeOfDia: '',
+    meterInstallationDate: '',
   });
 
   // Fetch all users - we'll filter by status in the frontend
-  const { data: users = [], isLoading: usersLoading } = useApiQuery(
+  // Add retry logic to handle transient backend errors (e.g., area_id column issues)
+  const { data: users = [], isLoading: usersLoading, error: usersError } = useApiQuery(
     ['users'],
-    () => api.users.getAll()
+    () => api.users.getAll(),
+    {
+      retry: (failureCount, error) => {
+        // Retry up to 2 times for database column errors (backend might have transient issues)
+        if (failureCount < 2 && error instanceof Error && error.message.includes('area_id')) {
+          return true;
+        }
+        return false;
+      },
+      retryDelay: 1000, // Wait 1 second between retries
+    }
   );
 
   // Fetch city corporations
@@ -79,6 +108,12 @@ export function CustomerAdminCustomerManagement() {
   const { data: allAreas = [], isLoading: areasLoading } = useApiQuery(
     ['areas'],
     () => api.area.getAll()
+  );
+
+  // Fetch meters to get meter data for editing
+  const { data: meters = [] } = useApiQuery(
+    ['meters'],
+    () => api.meters.getAll()
   );
 
   // Map users to customers
@@ -156,7 +191,7 @@ export function CustomerAdminCustomerManagement() {
           (customer.address && customer.address.toLowerCase().includes(term)) ||
           // Backward compatibility
           (customer.fullName && customer.fullName.toLowerCase().includes(term)) ||
-          (customer.meterNo && customer.meterNo.toLowerCase().includes(term)) ||
+          (customer.meterNo && String(customer.meterNo).toLowerCase().includes(term)) ||
           (customer.phone && customer.phone.toLowerCase().includes(term))
       );
     }
@@ -166,22 +201,22 @@ export function CustomerAdminCustomerManagement() {
 
   // Get unique values for filter dropdowns
   const uniqueAccountTypes = useMemo(() => {
-    const types = new Set(customers.map(c => c.accountType).filter(Boolean));
+    const types = new Set(customers.map(c => c.accountType).filter((type): type is string => Boolean(type)));
     return Array.from(types).sort();
   }, [customers]);
 
   const uniqueCustomerCategories = useMemo(() => {
-    const categories = new Set(customers.map(c => c.customerCategory).filter(Boolean));
+    const categories = new Set(customers.map(c => c.customerCategory).filter((cat): cat is string => Boolean(cat)));
     return Array.from(categories).sort();
   }, [customers]);
 
   const uniqueWaterStatuses = useMemo(() => {
-    const statuses = new Set(customers.map(c => c.waterStatus).filter(Boolean));
+    const statuses = new Set(customers.map(c => c.waterStatus).filter((status): status is string => Boolean(status)));
     return Array.from(statuses).sort();
   }, [customers]);
 
   const uniqueSewerStatuses = useMemo(() => {
-    const statuses = new Set(customers.map(c => c.sewerStatus).filter(Boolean));
+    const statuses = new Set(customers.map(c => c.sewerStatus).filter((status): status is string => Boolean(status)));
     return Array.from(statuses).sort();
   }, [customers]);
 
@@ -203,12 +238,12 @@ export function CustomerAdminCustomerManagement() {
     });
   }, [allAreas, zoneFilter]);
 
-  // Create user mutation
+  // Create user mutation (now includes nested meter data)
   const createMutation = useApiMutation(
     (data: Parameters<typeof api.users.create>[0]) => api.users.create(data),
     {
       // Remove successMessage and errorMessage - we'll handle toasts manually for custom messages
-      invalidateQueries: [['users'], ['users', 'pending'], ['users', 'active']],
+      invalidateQueries: [['users'], ['users', 'pending'], ['users', 'active'], ['meters']],
     }
   );
 
@@ -222,6 +257,17 @@ export function CustomerAdminCustomerManagement() {
       invalidateQueries: [['users'], ['users', 'pending'], ['users', 'active']],
     }
   );
+
+  // Delete user mutation
+  const deleteMutation = useApiMutation(
+    (id: number) => api.users.delete(id),
+    {
+      successMessage: 'Customer deleted successfully',
+      errorMessage: 'Failed to delete customer',
+      invalidateQueries: [['users'], ['users', 'pending'], ['users', 'active']],
+    }
+  );
+
 
 
   const handleInputChange = (field: string, value: string | Date | undefined) => {
@@ -289,6 +335,18 @@ export function CustomerAdminCustomerManagement() {
       return;
     }
     
+    // Validate meter fields if waterStatus is Metered
+    if (formData.waterStatus === 'Metered') {
+      if (!formData.meterNo) {
+        toast.error('Please enter meter number');
+        return;
+      }
+      if (!formData.sizeOfDia) {
+        toast.error('Please enter size of diameter');
+        return;
+      }
+    }
+    
     if (!adminId) {
       toast.error('Admin ID not found. Please log in again.');
       return;
@@ -302,7 +360,24 @@ export function CustomerAdminCustomerManagement() {
     }
 
     try {
-      // Create customer with new API structure
+      // Prepare meter data if waterStatus is "Metered"
+      let meterData = undefined;
+      if (formData.waterStatus === 'Metered' && formData.meterNo && formData.sizeOfDia) {
+        const meterNoNum = parseInt(formData.meterNo);
+        if (isNaN(meterNoNum)) {
+          toast.error('Meter number must be a valid number');
+          return;
+        }
+
+        meterData = {
+          meterNo: meterNoNum,
+          meterStatus: formData.meterStatus,
+          sizeOfDia: formData.sizeOfDia.trim(),
+          meterInstallationDate: formData.meterInstallationDate || undefined,
+        };
+      }
+
+      // Create customer/user with nested meter data (if applicable)
       await createMutation.mutateAsync({
         name: formData.name.trim(),
         address: formData.address.trim(),
@@ -312,10 +387,11 @@ export function CustomerAdminCustomerManagement() {
         waterStatus: formData.waterStatus,
         sewerStatus: formData.sewerStatus,
         areaId: parseInt(formData.areaId),
-      });
+        ...(meterData && { meter: meterData }),
+      } as any); // Type assertion - backend API accepts these fields but types are outdated
 
       // Show success toast notification
-      toast.success('Customer created successfully');
+      toast.success(meterData ? 'Customer and meter registered successfully' : 'Customer registered successfully');
       
       // Reset form
       setFormData({
@@ -329,6 +405,10 @@ export function CustomerAdminCustomerManagement() {
         cityCorporationId: '',
         zoneId: '',
         areaId: '',
+        meterNo: '',
+        meterStatus: 'Functional',
+        sizeOfDia: '',
+        meterInstallationDate: '',
       });
       
       setIsDialogOpen(false);
@@ -355,8 +435,9 @@ export function CustomerAdminCustomerManagement() {
   const handleEditClick = (customer: DisplayCustomer) => {
     setSelectedCustomer(customer);
     // Find the user to get full details
-    const user = users.find(u => u.id === customer.id);
+    const user = users.find(u => u.id === customer.id || (u as any).account === customer.id);
     const userData = user as any;
+    const userAccount = (user as any)?.account || customer.id;
     
     // Get areaId from customer (primary source) or user data
     const areaId = customer.areaId || userData?.areaId || userData?.wardId;
@@ -365,6 +446,9 @@ export function CustomerAdminCustomerManagement() {
     const area = allAreas.find(a => a.id === areaId);
     // Get zone from area (nested or by zoneId)
     const zone = area?.zone || zones.find(z => z.id === (area?.zoneId || customer.zoneId));
+    
+    // Find existing meter for this customer
+    const customerMeter = meters.find((m: Meter) => m.account === userAccount);
     
     // Map customer data to edit form (handle both new and old structure)
     setEditFormData({
@@ -378,7 +462,12 @@ export function CustomerAdminCustomerManagement() {
       cityCorporationId: zone?.cityCorporationId?.toString() || '',
       zoneId: zone?.id?.toString() || customer.zoneId?.toString() || '',
       areaId: areaId?.toString() || '',
+      meterNo: customerMeter?.meterNo?.toString() || '',
+      meterStatus: customerMeter?.meterStatus || 'Functional',
+      sizeOfDia: customerMeter?.sizeOfDia || '',
+      meterInstallationDate: customerMeter?.meterInstallationDate ? new Date(customerMeter.meterInstallationDate).toISOString().split('T')[0] : '',
     });
+    
     setIsEditDialogOpen(true);
   };
 
@@ -423,6 +512,24 @@ export function CustomerAdminCustomerManagement() {
     }
 
     try {
+      // Prepare meter data if waterStatus is "Metered"
+      let meterData = undefined;
+      if (editFormData.waterStatus === 'Metered' && editFormData.meterNo && editFormData.sizeOfDia) {
+        const meterNoNum = parseInt(editFormData.meterNo);
+        if (isNaN(meterNoNum)) {
+          toast.error('Meter number must be a valid number');
+          return;
+        }
+
+        meterData = {
+          meterNo: meterNoNum,
+          meterStatus: editFormData.meterStatus,
+          sizeOfDia: editFormData.sizeOfDia.trim(),
+          meterInstallationDate: editFormData.meterInstallationDate || undefined,
+        };
+      }
+
+      // Update customer/user with nested meter data (if applicable)
       await updateMutation.mutateAsync({
         id: selectedCustomer.id,
         data: {
@@ -434,7 +541,8 @@ export function CustomerAdminCustomerManagement() {
           waterStatus: editFormData.waterStatus,
           sewerStatus: editFormData.sewerStatus,
           areaId: parseInt(editFormData.areaId),
-        },
+          ...(meterData && { meter: meterData }),
+        } as any, // Type assertion - backend API accepts these fields but types are outdated
       });
       
       setIsEditDialogOpen(false);
@@ -459,6 +567,231 @@ export function CustomerAdminCustomerManagement() {
     }
   };
 
+  const handleCSVUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Reset messages
+    setCsvUploadError(null);
+    setCsvUploadSuccess(null);
+    setIsParsingCSV(true);
+
+    try {
+      // Parse CSV
+      const result = await parseCustomerCSV(file, allAreas, zones, cityCorporations);
+
+      if (!result.success || result.data.length === 0) {
+        const errorMsg = result.errors.length > 0
+          ? result.errors.join('\n')
+          : 'Failed to parse CSV file';
+        setCsvUploadError(errorMsg);
+        setIsParsingCSV(false);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+        return;
+      }
+
+      // Check for duplicate inspection codes in CSV
+      const duplicateInspCodes = result.data.filter((customer, index, self) =>
+        self.findIndex(c => c.inspCode === customer.inspCode) !== index
+      );
+
+      if (duplicateInspCodes.length > 0) {
+        const duplicateCodes = [...new Set(duplicateInspCodes.map(c => c.inspCode))];
+        setCsvUploadError(`Duplicate inspection codes found in CSV: ${duplicateCodes.join(', ')}`);
+        setIsParsingCSV(false);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+        return;
+      }
+
+      // Separate CSV customers into those that update existing vs those that are new
+      // Match by inspection code (unique identifier)
+      const csvCustomersToAdd: CreateUserDto[] = [];
+      const csvCustomersToUpdate: { customer: DisplayCustomer; data: CreateUserDto }[] = [];
+
+      result.data.forEach(csvCustomer => {
+        const existingCustomer = customers.find(c => c.inspCode?.toString() === csvCustomer.inspCode.toString());
+        if (existingCustomer) {
+          csvCustomersToUpdate.push({ customer: existingCustomer, data: csvCustomer });
+        } else {
+          csvCustomersToAdd.push(csvCustomer);
+        }
+      });
+
+      // Show confirmation modal if there are updates
+      if (csvCustomersToUpdate.length > 0) {
+        setPendingCSVData({
+          csvCustomersToAdd,
+          csvCustomersToUpdate,
+          existingCustomers: customers,
+        });
+        setCsvConfirmModalOpen(true);
+        setIsParsingCSV(false);
+      } else {
+        // Only new customers - process directly
+        await processCSVUpload(csvCustomersToAdd, []);
+      }
+    } catch (error) {
+      setCsvUploadError(`Failed to parse CSV: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setIsParsingCSV(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const processCSVUpload = async (
+    csvCustomersToAdd: CreateUserDto[],
+    csvCustomersToUpdate: { customer: DisplayCustomer; data: CreateUserDto }[]
+  ) => {
+    setIsParsingCSV(true);
+    setCsvConfirmModalOpen(false);
+    let successCount = 0;
+    let errorCount = 0;
+    const errors: string[] = [];
+
+    try {
+      // Process updates first
+      for (const { customer, data } of csvCustomersToUpdate) {
+        try {
+          await updateMutation.mutateAsync({
+            id: customer.id,
+            data: data as any,
+          });
+          successCount++;
+        } catch (error) {
+          errorCount++;
+          const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+          errors.push(`Failed to update ${customer.name || 'customer'} (Insp Code: ${customer.inspCode}): ${errorMsg}`);
+        }
+      }
+
+      // Process new customers
+      for (const customerData of csvCustomersToAdd) {
+        try {
+          await createMutation.mutateAsync(customerData as any);
+          successCount++;
+        } catch (error) {
+          errorCount++;
+          const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+          errors.push(`Failed to create ${customerData.name} (Insp Code: ${customerData.inspCode}): ${errorMsg}`);
+        }
+      }
+
+      // Show results
+      if (errorCount === 0) {
+        setCsvUploadSuccess(`Successfully imported ${successCount} customer(s)${csvCustomersToUpdate.length > 0 ? ` (${csvCustomersToUpdate.length} updated, ${csvCustomersToAdd.length} added)` : ''}.`);
+      } else {
+        setCsvUploadError(`Imported ${successCount} customer(s) successfully, but ${errorCount} failed:\n${errors.join('\n')}`);
+      }
+
+      // Reset pending data
+      setPendingCSVData(null);
+    } catch (error) {
+      setCsvUploadError(`Failed to process CSV: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setPendingCSVData(null);
+    } finally {
+      setIsParsingCSV(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleCSVConfirm = async () => {
+    if (!pendingCSVData) return;
+    
+    await processCSVUpload(
+      pendingCSVData.csvCustomersToAdd,
+      pendingCSVData.csvCustomersToUpdate
+    );
+  };
+
+  const handleCSVCancel = () => {
+    setCsvConfirmModalOpen(false);
+    setPendingCSVData(null);
+    setIsParsingCSV(false);
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleDownloadTemplate = () => {
+    const template = generateCustomerCSVTemplate(allAreas);
+    const blob = new Blob([template], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'customer_template.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportCSV = () => {
+    const csvContent = exportCustomersToCSV(customers, allAreas, zones, cityCorporations, meters);
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `customers_export_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success('Customers exported to CSV successfully');
+  };
+
+  const handleDeleteClick = (customer: DisplayCustomer) => {
+    setCustomerToDelete(customer);
+    setDeleteConfirmModalOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!customerToDelete) return;
+    try {
+      await deleteMutation.mutateAsync(customerToDelete.id);
+      setDeleteConfirmModalOpen(false);
+      setCustomerToDelete(null);
+    } catch (error) {
+      // Error is handled by mutation's errorMessage
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteConfirmModalOpen(false);
+    setCustomerToDelete(null);
+  };
+
+
+  // Show error state if users query fails with area_id error
+  if (usersError && usersError instanceof Error && usersError.message.includes('area_id')) {
+    return (
+      <div className="min-h-screen bg-app flex items-center justify-center">
+        <div className="bg-white p-8 rounded-xl border border-red-200 max-w-md">
+          <h2 className="text-xl font-semibold text-red-700 mb-2">Database Error</h2>
+          <p className="text-gray-600 mb-4">
+            The backend is trying to access a column that doesn't exist. This is a backend issue that needs to be fixed.
+          </p>
+          <p className="text-sm text-gray-500 mb-4">
+            Error: {usersError.message}
+          </p>
+          <Button
+            onClick={() => window.location.reload()}
+            className="bg-primary hover:bg-primary-600 text-white"
+          >
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (usersLoading || zonesLoading || areasLoading || cityCorpsLoading) {
     return (
@@ -476,206 +809,136 @@ export function CustomerAdminCustomerManagement() {
           <h1 className="text-[1.75rem] font-semibold text-gray-900">Customer Management</h1>
         </div>
 
-        {/* Add Button */}
-        <div className="mb-6">
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-primary hover:bg-primary-600 text-white rounded-lg h-11 px-6 flex items-center gap-2">
-                <Plus size={18} />
-                Add New Customer
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px] bg-white">
-              <DialogHeader>
-                <DialogTitle className="text-xl font-semibold text-gray-900">Add New Customer</DialogTitle>
-                <DialogDescription className="text-sm text-gray-600">
-                  Register a new customer. All fields marked with * are required.
-                </DialogDescription>
-              </DialogHeader>
-              
-              <div className="space-y-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name" className="text-sm font-medium text-gray-700">
-                      Customer Name *
-                    </Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) => handleInputChange('name', e.target.value)}
-                      placeholder="Enter customer name"
-                      maxLength={255}
-                      className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="inspCode" className="text-sm font-medium text-gray-700">
-                      Inspection Code *
-                    </Label>
-                    <Input
-                      id="inspCode"
-                      type="number"
-                      value={formData.inspCode}
-                      onChange={(e) => handleInputChange('inspCode', e.target.value)}
-                      placeholder="Enter inspection code"
-                      className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="address" className="text-sm font-medium text-gray-700">
-                    Address *
-                  </Label>
-                  <Textarea
-                    id="address"
-                    value={formData.address}
-                    onChange={(e) => handleInputChange('address', e.target.value)}
-                    placeholder="Enter complete address"
-                    className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500 min-h-[80px]"
-                    required
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="accountType" className="text-sm font-medium text-gray-700">
-                      Account Type *
-                    </Label>
-                    <Dropdown
-                      options={[
-                        { value: 'General', label: 'General' },
-                        { value: 'Tubewell', label: 'Tubewell' }
-                      ]}
-                      value={formData.accountType}
-                      onChange={(value) => handleInputChange('accountType', value)}
-                      placeholder="Select account type"
-                      className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="customerCategory" className="text-sm font-medium text-gray-700">
-                      Customer Category *
-                    </Label>
-                    <Dropdown
-                      options={[
-                        { value: 'Domestic', label: 'Domestic' },
-                        { value: 'Commercial', label: 'Commercial' },
-                        { value: 'Industrial', label: 'Industrial' },
-                        { value: 'Government', label: 'Government' },
-                        { value: 'Community', label: 'Community' }
-                      ]}
-                      value={formData.customerCategory}
-                      onChange={(value) => handleInputChange('customerCategory', value)}
-                      placeholder="Select category"
-                      className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="waterStatus" className="text-sm font-medium text-gray-700">
-                      Water Status *
-                    </Label>
-                    <Dropdown
-                      options={[
-                        { value: 'Metered', label: 'Metered' },
-                        { value: 'Meter Temporarilly Disconnected', label: 'Meter Temporarily Disconnected' },
-                        { value: 'Non-Metered', label: 'Non-Metered' },
-                        { value: 'Connected', label: 'Connected' },
-                        { value: 'Not-connected', label: 'Not Connected' }
-                      ]}
-                      value={formData.waterStatus}
-                      onChange={(value) => handleInputChange('waterStatus', value)}
-                      placeholder="Select water status"
-                      className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="sewerStatus" className="text-sm font-medium text-gray-700">
-                      Sewer Status *
-                    </Label>
-                    <Dropdown
-                      options={[
-                        { value: 'Connected', label: 'Connected' },
-                        { value: 'Not Connected', label: 'Not Connected' },
-                        { value: 'Within 100 feet', label: 'Within 100 feet' }
-                      ]}
-                      value={formData.sewerStatus}
-                      onChange={(value) => handleInputChange('sewerStatus', value)}
-                      placeholder="Select sewer status"
-                      className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
-                    />
-                  </div>
-                </div>
-
-                <HierarchicalLocationSelector
-                  cityCorporations={cityCorporations}
-                  zones={zones}
-                  areas={allAreas}
-                  cityCorporationId={formData.cityCorporationId}
-                  zoneId={formData.zoneId}
-                  areaId={formData.areaId}
-                  onCityCorporationChange={(value) => handleInputChange('cityCorporationId', value)}
-                  onZoneChange={(value) => handleInputChange('zoneId', value)}
-                  onAreaChange={(value) => handleInputChange('areaId', value)}
-                  required
-                  className="bg-gray-50"
-                />
-              </div>
-
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsDialogOpen(false)}
-                  className="border-gray-300 text-gray-700 rounded-lg h-10 px-5 bg-white hover:bg-gray-50"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  onClick={handleSubmit}
-                  disabled={!formData.name || !formData.address || !formData.inspCode || !formData.accountType || !formData.customerCategory || !formData.waterStatus || !formData.sewerStatus || !formData.cityCorporationId || !formData.zoneId || !formData.areaId || createMutation.isPending}
-                  className="bg-primary hover:bg-primary-600 text-white rounded-lg h-10 px-5 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {createMutation.isPending ? 'Adding...' : 'Add Customer'}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+        {/* Add Button and CSV Actions */}
+        <div className="mb-6 flex items-center gap-3">
+          <Button 
+            onClick={() => setIsDialogOpen(true)}
+            className="bg-primary hover:bg-primary-600 text-white rounded-lg h-11 px-6 flex items-center gap-2"
+          >
+            <Plus size={18} />
+            Add New Customer
+          </Button>
+          
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleDownloadTemplate}
+              className="border-gray-300 text-gray-700 rounded-lg h-11 px-4 flex items-center gap-2 bg-white hover:bg-gray-50"
+            >
+              <Download size={16} />
+              Download Template
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv"
+              onChange={handleCSVUpload}
+              className="hidden"
+              id="csv-upload-input"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={allAreas.length === 0 || isParsingCSV}
+              className="border-gray-300 text-gray-700 rounded-lg h-11 px-4 flex items-center gap-2 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Upload size={16} />
+              {isParsingCSV ? 'Parsing...' : 'Upload CSV'}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleExportCSV}
+              disabled={customers.length === 0}
+              className="border-gray-300 text-gray-700 rounded-lg h-11 px-4 flex items-center gap-2 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Download size={16} />
+              Export CSV
+            </Button>
+          </div>
+          
+          <CustomerMeterModal
+            open={isDialogOpen}
+            onOpenChange={setIsDialogOpen}
+            formData={formData}
+            onFormDataChange={handleInputChange}
+            onSubmit={handleSubmit}
+            onCancel={() => setIsDialogOpen(false)}
+            isSubmitting={createMutation.isPending}
+            cityCorporations={cityCorporations}
+            zones={zones}
+            areas={allAreas}
+            mode="add"
+          />
         </div>
+
+        {/* CSV Upload Messages */}
+        {csvUploadError && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-red-800">CSV Upload Error</p>
+                <p className="text-sm text-red-700 mt-1 whitespace-pre-wrap">{csvUploadError}</p>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setCsvUploadError(null)}
+                className="h-6 w-6 p-0 text-red-600 hover:text-red-800"
+              >
+                <X size={16} />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {csvUploadSuccess && (
+          <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-green-800">CSV Upload Success</p>
+                <p className="text-sm text-green-700 mt-1">{csvUploadSuccess}</p>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setCsvUploadSuccess(null)}
+                className="h-6 w-6 p-0 text-green-600 hover:text-green-800"
+              >
+                <X size={16} />
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Search Bar and Filters */}
         <div className="mb-6 flex flex-col gap-4">
           {/* Search Bar and Clear Filters Row */}
           <div className="flex items-center gap-3">
             {/* Search Bar */}
-            <div className="relative flex-1 max-w-md">
+            <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
               <Input
                 type="text"
                 placeholder="Search by name, inspection code, category..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-white border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
+                className="pl-10 bg-white border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-primary/20 focus:border-blue-500 w-full"
               />
             </div>
 
             {/* Clear Filters Button */}
-            {(statusFilter !== 'active' || accountTypeFilter !== 'all' || customerCategoryFilter !== 'all' || 
+            {(statusFilter !== 'all' || accountTypeFilter !== 'all' || customerCategoryFilter !== 'all' || 
               waterStatusFilter !== 'all' || sewerStatusFilter !== 'all' || cityCorporationFilter !== 'all' || 
               zoneFilter !== 'all' || areaFilter !== 'all' || searchQuery.trim() !== '') && (
               <Button
                 variant="outline"
                 onClick={() => {
-                  setStatusFilter('active');
+                  setStatusFilter('all');
                   setAccountTypeFilter('all');
                   setCustomerCategoryFilter('all');
                   setWaterStatusFilter('all');
@@ -718,7 +981,7 @@ export function CustomerAdminCustomerManagement() {
                   <Dropdown
                     options={[
                       { value: 'all', label: 'All Account Types' },
-                      ...uniqueAccountTypes.map(type => ({ value: type, label: type }))
+                      ...uniqueAccountTypes.filter((type): type is string => Boolean(type)).map(type => ({ value: type, label: type }))
                     ]}
                     value={accountTypeFilter}
                     onChange={setAccountTypeFilter}
@@ -732,7 +995,7 @@ export function CustomerAdminCustomerManagement() {
                   <Dropdown
                     options={[
                       { value: 'all', label: 'All Categories' },
-                      ...uniqueCustomerCategories.map(cat => ({ value: cat, label: cat }))
+                      ...uniqueCustomerCategories.filter((cat): cat is string => Boolean(cat)).map(cat => ({ value: cat, label: cat }))
                     ]}
                     value={customerCategoryFilter}
                     onChange={setCustomerCategoryFilter}
@@ -746,7 +1009,7 @@ export function CustomerAdminCustomerManagement() {
                   <Dropdown
                     options={[
                       { value: 'all', label: 'All Water Status' },
-                      ...uniqueWaterStatuses.map(status => ({ value: status, label: status }))
+                      ...uniqueWaterStatuses.filter((status): status is string => Boolean(status)).map(status => ({ value: status, label: status }))
                     ]}
                     value={waterStatusFilter}
                     onChange={setWaterStatusFilter}
@@ -760,7 +1023,7 @@ export function CustomerAdminCustomerManagement() {
                   <Dropdown
                     options={[
                       { value: 'all', label: 'All Sewer Status' },
-                      ...uniqueSewerStatuses.map(status => ({ value: status, label: status }))
+                      ...uniqueSewerStatuses.filter((status): status is string => Boolean(status)).map(status => ({ value: status, label: status }))
                     ]}
                     value={sewerStatusFilter}
                     onChange={setSewerStatusFilter}
@@ -827,168 +1090,174 @@ export function CustomerAdminCustomerManagement() {
           </div>
 
         {/* Edit Customer Modal */}
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="sm:max-w-[600px] bg-white">
+        <CustomerMeterModal
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          formData={editFormData}
+          onFormDataChange={handleEditInputChange}
+          onSubmit={handleEditSubmit}
+          onCancel={() => setIsEditDialogOpen(false)}
+          isSubmitting={updateMutation.isPending}
+          cityCorporations={cityCorporations}
+          zones={zones}
+          areas={allAreas}
+          mode="edit"
+        />
+
+        {/* CSV Confirmation Modal */}
+        <Dialog open={csvConfirmModalOpen} onOpenChange={setCsvConfirmModalOpen}>
+          <DialogContent className="sm:max-w-[500px] bg-white">
             <DialogHeader>
-              <DialogTitle className="text-xl font-semibold text-gray-900">Edit Customer</DialogTitle>
-              <DialogDescription className="text-sm text-gray-600">
-                Update customer information. All fields marked with * are required.
+              <DialogTitle>Confirm CSV Import</DialogTitle>
+              <DialogDescription>
+                This will update existing customers and add new ones. Are you sure you want to continue?
               </DialogDescription>
             </DialogHeader>
-            
-            <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
+            {pendingCSVData && (
+              <div className="py-4 space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="edit-name" className="text-sm font-medium text-gray-700">
-                    Customer Name *
-                  </Label>
-                  <Input
-                    id="edit-name"
-                    value={editFormData.name}
-                    onChange={(e) => handleEditInputChange('name', e.target.value)}
-                    placeholder="Enter customer name"
-                    maxLength={255}
-                    className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
-                    required
-                  />
+                  <p className="text-sm font-medium text-gray-900">
+                    <strong>{pendingCSVData.csvCustomersToUpdate.length}</strong> customer(s) will be updated:
+                  </p>
+                  {pendingCSVData.csvCustomersToUpdate.length > 0 && (
+                    <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-lg bg-gray-50">
+                      <div className="divide-y divide-gray-200">
+                        {pendingCSVData.csvCustomersToUpdate.map((item, index) => (
+                          <div key={index} className="p-3 hover:bg-gray-100 transition-colors">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 truncate">
+                                  {item.customer.name || item.customer.fullName || 'Unknown'}
+                                </p>
+                                <div className="mt-1 space-y-1">
+                                  <p className="text-xs text-gray-600">
+                                    <span className="font-medium">Inspection Code:</span> {item.customer.inspCode || '-'}
+                                  </p>
+                                  <p className="text-xs text-gray-600 truncate">
+                                    <span className="font-medium">Address:</span> {item.customer.address || '-'}
+                                  </p>
+                                  {item.customer.accountType && (
+                                    <p className="text-xs text-gray-600">
+                                      <span className="font-medium">Account Type:</span> {item.customer.accountType}
+                                    </p>
+                                  )}
+                                  {item.customer.customerCategory && (
+                                    <p className="text-xs text-gray-600">
+                                      <span className="font-medium">Category:</span> {item.customer.customerCategory}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-
+                
                 <div className="space-y-2">
-                  <Label htmlFor="edit-inspCode" className="text-sm font-medium text-gray-700">
-                    Inspection Code *
-                  </Label>
-                  <Input
-                    id="edit-inspCode"
-                    type="number"
-                    value={editFormData.inspCode}
-                    onChange={(e) => handleEditInputChange('inspCode', e.target.value)}
-                    placeholder="Enter inspection code"
-                    className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="edit-address" className="text-sm font-medium text-gray-700">
-                  Address *
-                </Label>
-                <Textarea
-                  id="edit-address"
-                  value={editFormData.address}
-                  onChange={(e) => handleEditInputChange('address', e.target.value)}
-                  placeholder="Enter complete address"
-                  className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500 min-h-[80px]"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-accountType" className="text-sm font-medium text-gray-700">
-                    Account Type *
-                  </Label>
-                  <Dropdown
-                    options={[
-                      { value: 'General', label: 'General' },
-                      { value: 'Tubewell', label: 'Tubewell' }
-                    ]}
-                    value={editFormData.accountType}
-                    onChange={(value) => handleEditInputChange('accountType', value)}
-                    placeholder="Select account type"
-                    className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="edit-customerCategory" className="text-sm font-medium text-gray-700">
-                    Customer Category *
-                  </Label>
-                  <Dropdown
-                    options={[
-                      { value: 'Domestic', label: 'Domestic' },
-                      { value: 'Commercial', label: 'Commercial' },
-                      { value: 'Industrial', label: 'Industrial' },
-                      { value: 'Government', label: 'Government' },
-                      { value: 'Community', label: 'Community' }
-                    ]}
-                    value={editFormData.customerCategory}
-                    onChange={(value) => handleEditInputChange('customerCategory', value)}
-                    placeholder="Select category"
-                    className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-waterStatus" className="text-sm font-medium text-gray-700">
-                    Water Status *
-                  </Label>
-                  <Dropdown
-                    options={[
-                      { value: 'Metered', label: 'Metered' },
-                      { value: 'Meter Temporarilly Disconnected', label: 'Meter Temporarily Disconnected' },
-                      { value: 'Non-Metered', label: 'Non-Metered' },
-                      { value: 'Connected', label: 'Connected' },
-                      { value: 'Not-connected', label: 'Not Connected' }
-                    ]}
-                    value={editFormData.waterStatus}
-                    onChange={(value) => handleEditInputChange('waterStatus', value)}
-                    placeholder="Select water status"
-                    className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="edit-sewerStatus" className="text-sm font-medium text-gray-700">
-                    Sewer Status *
-                  </Label>
-                  <Dropdown
-                    options={[
-                      { value: 'Connected', label: 'Connected' },
-                      { value: 'Not Connected', label: 'Not Connected' },
-                      { value: 'Within 100 feet', label: 'Within 100 feet' }
-                    ]}
-                    value={editFormData.sewerStatus}
-                    onChange={(value) => handleEditInputChange('sewerStatus', value)}
-                    placeholder="Select sewer status"
-                    className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
-                  />
+                  <p className="text-sm font-medium text-gray-900">
+                    <strong>{pendingCSVData.csvCustomersToAdd.length}</strong> new customer(s) will be added:
+                  </p>
+                  {pendingCSVData.csvCustomersToAdd.length > 0 && (
+                    <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-lg bg-gray-50">
+                      <div className="divide-y divide-gray-200">
+                        {pendingCSVData.csvCustomersToAdd.map((customer, index) => (
+                          <div key={index} className="p-3 hover:bg-gray-100 transition-colors">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 truncate">
+                                  {customer.name || 'Unknown'}
+                                </p>
+                                <div className="mt-1 space-y-1">
+                                  <p className="text-xs text-gray-600">
+                                    <span className="font-medium">Inspection Code:</span> {customer.inspCode || '-'}
+                                  </p>
+                                  <p className="text-xs text-gray-600 truncate">
+                                    <span className="font-medium">Address:</span> {customer.address || '-'}
+                                  </p>
+                                  {customer.accountType && (
+                                    <p className="text-xs text-gray-600">
+                                      <span className="font-medium">Account Type:</span> {customer.accountType}
+                                    </p>
+                                  )}
+                                  {customer.customerCategory && (
+                                    <p className="text-xs text-gray-600">
+                                      <span className="font-medium">Category:</span> {customer.customerCategory}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex-shrink-0">
+                                <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
+                                  New
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-
-              <HierarchicalLocationSelector
-                cityCorporations={cityCorporations}
-                zones={zones}
-                areas={allAreas}
-                cityCorporationId={editFormData.cityCorporationId}
-                zoneId={editFormData.zoneId}
-                areaId={editFormData.areaId}
-                onCityCorporationChange={(value) => handleEditInputChange('cityCorporationId', value)}
-                onZoneChange={(value) => handleEditInputChange('zoneId', value)}
-                onAreaChange={(value) => handleEditInputChange('areaId', value)}
-                required
-                className="bg-gray-50"
-              />
-            </div>
-
+            )}
             <DialogFooter>
               <Button
-                type="button"
                 variant="outline"
-                onClick={() => setIsEditDialogOpen(false)}
-                className="border-gray-300 text-gray-700 rounded-lg h-10 px-5 bg-white hover:bg-gray-50"
+                onClick={handleCSVCancel}
+                className="border-gray-300 text-gray-700"
               >
                 Cancel
               </Button>
               <Button
-                type="submit"
-                onClick={handleEditSubmit}
-                disabled={!editFormData.name || !editFormData.address || !editFormData.inspCode || !editFormData.accountType || !editFormData.customerCategory || !editFormData.waterStatus || !editFormData.sewerStatus || !editFormData.cityCorporationId || !editFormData.zoneId || !editFormData.areaId || updateMutation.isPending}
-                className="bg-primary hover:bg-primary-600 text-white rounded-lg h-10 px-5 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handleCSVConfirm}
+                disabled={isParsingCSV}
+                className="bg-primary hover:bg-primary-600 text-white"
               >
-                {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
+                {isParsingCSV ? 'Processing...' : 'Confirm Import'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Modal */}
+        <Dialog open={deleteConfirmModalOpen} onOpenChange={setDeleteConfirmModalOpen}>
+          <DialogContent className="sm:max-w-[500px] bg-white">
+            <DialogHeader>
+              <DialogTitle>Delete Customer</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete this customer? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            {customerToDelete && (
+              <div className="py-4 space-y-2">
+                <p className="text-sm text-gray-700">
+                  <strong>Name:</strong> {customerToDelete.name || customerToDelete.fullName}
+                </p>
+                <p className="text-sm text-gray-700">
+                  <strong>Inspection Code:</strong> {customerToDelete.inspCode || '-'}
+                </p>
+                <p className="text-sm text-gray-700">
+                  <strong>Address:</strong> {customerToDelete.address || '-'}
+                </p>
+              </div>
+            )}
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={handleDeleteCancel}
+                className="border-gray-300 text-gray-700"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDeleteConfirm}
+                disabled={deleteMutation.isPending}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                {deleteMutation.isPending ? 'Deleting...' : 'Delete Customer'}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -1000,56 +1269,97 @@ export function CustomerAdminCustomerManagement() {
             <h3 className="text-lg font-semibold text-gray-900">Registered Customers</h3>
           </div>
 
-          <Table>
-            <TableHeader>
-              <TableRow className="border-gray-200 bg-gray-50">
-                <TableHead className="text-sm font-semibold text-gray-700">Name</TableHead>
-                <TableHead className="text-sm font-semibold text-gray-700">Inspection Code</TableHead>
-                <TableHead className="text-sm font-semibold text-gray-700">Category</TableHead>
-                <TableHead className="text-sm font-semibold text-gray-700">Water Status</TableHead>
-                <TableHead className="text-sm font-semibold text-gray-700">Sewer Status</TableHead>
-                <TableHead className="text-sm font-semibold text-gray-700">Address</TableHead>
-                <TableHead className="text-sm font-semibold text-gray-700 text-left">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredCustomers.length === 0 ? (
-                <TableRow key="empty-state">
-                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
-                    No customers found matching your search criteria
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-gray-200 bg-gray-50">
+                  <TableHead className="text-sm font-semibold text-gray-700">Name</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">Inspection Code</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">Account Type</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">Category</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">Status</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">Water Status</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">Sewer Status</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">City Corporation</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">Zone</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">Area</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">Address</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700 text-left">Action</TableHead>
                 </TableRow>
-              ) : (
-                filteredCustomers.map((customer, index) => {
-                  // Ensure unique key - use id, or combination of index and other fields
-                  const uniqueKey = customer.id 
-                    ? `customer-${customer.id}` 
-                    : `customer-${index}-${customer.inspCode || customer.name || 'unknown'}-${index}`;
-                  return (
-                    <TableRow key={uniqueKey} className="border-gray-100">
-                      <TableCell className="text-sm font-medium text-gray-900">{customer.name || customer.fullName || '-'}</TableCell>
-                      <TableCell className="text-sm text-gray-600">{customer.inspCode || '-'}</TableCell>
-                      <TableCell className="text-sm text-gray-600">{customer.customerCategory || '-'}</TableCell>
-                      <TableCell className="text-sm text-gray-600">{customer.waterStatus || '-'}</TableCell>
-                      <TableCell className="text-sm text-gray-600">{customer.sewerStatus || '-'}</TableCell>
-                      <TableCell className="text-sm text-gray-600">{customer.address}</TableCell>
-                      <TableCell className="text-center">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleEditClick(customer)}
-                          className="border-gray-300 text-gray-700 rounded-lg h-8 px-3 bg-white hover:bg-gray-50 flex items-center gap-1.5"
-                        >
-                          <Edit size={14} />
-                          Edit
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredCustomers.length === 0 ? (
+                  <TableRow key="empty-state">
+                    <TableCell colSpan={12} className="text-center py-8 text-gray-500">
+                      No customers found matching your search criteria
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredCustomers.map((customer, index) => {
+                    // Ensure unique key - use id, or combination of index and other fields
+                    const uniqueKey = customer.id 
+                      ? `customer-${customer.id}` 
+                      : `customer-${index}-${customer.inspCode || customer.name || 'unknown'}-${index}`;
+                    
+                    // Find location information - use nested zone object from area if available, otherwise fallback to lookup
+                    const area = allAreas.find(a => a.id === customer.areaId);
+                    const zone = area?.zone || (area?.zoneId ? zones.find(z => z.id === area.zoneId) : null) || (customer.zoneId ? zones.find(z => z.id === customer.zoneId) : null);
+                    const cityCorp = zone?.cityCorporationId 
+                      ? (zone.cityCorporation || cityCorporations.find(cc => cc.id === zone.cityCorporationId))
+                      : null;
+                    
+                    return (
+                      <TableRow key={uniqueKey} className="border-gray-100">
+                        <TableCell className="text-sm font-medium text-gray-900">{customer.name || customer.fullName || '-'}</TableCell>
+                        <TableCell className="text-sm text-gray-600">{customer.inspCode || '-'}</TableCell>
+                        <TableCell className="text-sm text-gray-600">{customer.accountType || '-'}</TableCell>
+                        <TableCell className="text-sm text-gray-600">{customer.customerCategory || '-'}</TableCell>
+                        <TableCell className="text-sm text-gray-600">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            customer.status?.toLowerCase() === 'active' 
+                              ? 'bg-green-100 text-green-800' 
+                              : customer.status?.toLowerCase() === 'inactive'
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {customer.status ? customer.status.charAt(0).toUpperCase() + customer.status.slice(1) : '-'}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-sm text-gray-600">{customer.waterStatus || '-'}</TableCell>
+                        <TableCell className="text-sm text-gray-600">{customer.sewerStatus || '-'}</TableCell>
+                        <TableCell className="text-sm text-gray-600">{cityCorp ? `${cityCorp.name} (${cityCorp.code})` : '-'}</TableCell>
+                        <TableCell className="text-sm text-gray-600">{zone?.name || '-'}</TableCell>
+                        <TableCell className="text-sm text-gray-600">{area?.name || '-'}</TableCell>
+                        <TableCell className="text-sm text-gray-600 max-w-xs truncate" title={customer.address}>{customer.address || '-'}</TableCell>
+                        <TableCell className="text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleEditClick(customer)}
+                              className="border-gray-300 text-gray-700 rounded-lg h-8 w-8 p-0 bg-white hover:bg-gray-50 flex items-center justify-center"
+                              title="Edit customer"
+                            >
+                              <Edit size={14} />
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleDeleteClick(customer)}
+                              className="border-red-300 text-red-600 rounded-lg h-8 w-8 p-0 bg-white hover:bg-red-50 flex items-center justify-center"
+                              title="Delete customer"
+                            >
+                              <Trash2 size={14} />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       </div>
     </div>

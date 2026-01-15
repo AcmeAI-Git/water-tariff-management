@@ -1,12 +1,11 @@
 import { Button } from '../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
-import { X, Send } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useMemo } from 'react';
 import { api } from '../services/api';
 import { useApiQuery, useApiMutation, useAdminId } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { toast } from 'sonner';
-import type { ApprovalStatus } from '../types';
 
 export function MeterAdminPendingSubmissions() {
   const adminId = useAdminId();
@@ -17,43 +16,24 @@ export function MeterAdminPendingSubmissions() {
     () => api.consumption.getAll()
   );
 
-  // Fetch all users to map userId to user details
+  // Fetch all users to map userId/account to user details
   const { data: users = [], isLoading: usersLoading } = useApiQuery(
     ['users'],
     () => api.users.getAll()
   );
 
-  // Fetch approval requests for Consumption module to check which consumptions already have approval requests
-  const { data: consumptionApprovalRequests = [] } = useApiQuery(
-    ['approval-requests', 'Consumption'],
-    () => api.approvalRequests.getAll({ moduleName: 'Consumption' })
-  );
-
-  // Filter pending consumptions that don't have approval requests yet
-  // These are the ones that should appear in "Pending Submissions"
-  const consumptionsWithoutApprovalRequests = useMemo(() => {
-    return consumptions.filter((consumption) => {
-      // Check if status is pending
-      const status = consumption.approvalStatus as ApprovalStatus | undefined;
-      const statusName = status?.statusName || status?.name;
-      if (statusName?.toLowerCase() !== 'pending') {
-        return false; // Not pending, exclude
-      }
-      
-      // Check if this consumption already has an approval request
-      const hasApprovalRequest = consumptionApprovalRequests.some(
-        (req) => req.moduleName === 'Consumption' && req.recordId === consumption.id
-      );
-      
-      // Only include if pending AND no approval request exists yet
-      return !hasApprovalRequest;
-    }).sort((a, b) => {
-      // Sort by creation date descending (newest first)
-      const dateA = new Date(a.createdAt || 0).getTime();
-      const dateB = new Date(b.createdAt || 0).getTime();
-      return dateB - dateA;
-    });
-  }, [consumptions, consumptionApprovalRequests]);
+  // Filter consumptions created by current meter admin
+  const myConsumptions = useMemo(() => {
+    if (!adminId) return [];
+    return consumptions
+      .filter((consumption) => consumption.createdBy === adminId)
+      .sort((a, b) => {
+        // Sort by creation date descending (newest first)
+        const dateA = new Date(a.createdAt || 0).getTime();
+        const dateB = new Date(b.createdAt || 0).getTime();
+        return dateB - dateA;
+      });
+  }, [consumptions, adminId]);
 
   // Delete consumption mutation
   const deleteMutation = useApiMutation(
@@ -65,50 +45,20 @@ export function MeterAdminPendingSubmissions() {
     }
   );
 
-  // Batch create approval requests mutation
-  const batchCreateApprovalRequestsMutation = useApiMutation(
-    async (consumptionIds: number[]) => {
-      if (!adminId) throw new Error('Admin ID not found');
-      // Create approval requests for all consumptions
-      const promises = consumptionIds.map(id =>
-        api.approvalRequests.create({
-          moduleName: 'Consumption',
-          recordId: id,
-          requestedBy: adminId,
-        })
-      );
-      await Promise.all(promises);
-    },
-    {
-      successMessage: 'Batch sent for approval successfully',
-      errorMessage: 'Failed to send batch for approval',
-      invalidateQueries: [
-        ['approval-requests', 'Consumption'],
-        ['approval-requests', 'pending'],
-        ['approval-requests'],
-        ['consumption'],
-      ],
-    }
-  );
-
   const removeReading = async (id: number) => {
     await deleteMutation.mutateAsync(id);
   };
 
-  const handleSendBatchForApproval = async () => {
-    if (consumptionsWithoutApprovalRequests.length === 0) {
-      toast.error('No readings to send for approval');
-      return;
-    }
-    
-    const consumptionIds = consumptionsWithoutApprovalRequests.map(c => c.id);
-    await batchCreateApprovalRequestsMutation.mutateAsync(consumptionIds);
-  };
-
   // Map consumption to display format with user details
   const displayReadings = useMemo(() => {
-    return consumptionsWithoutApprovalRequests.map((consumption) => {
-      const user = users.find((u) => u.id === consumption.userId);
+    return myConsumptions.map((consumption) => {
+      // Find user by userId or account
+      const user = users.find((u) => 
+        u.id === consumption.userId || 
+        u.account === consumption.userId ||
+        (consumption as any).account === u.account ||
+        (consumption as any).account === u.id
+      );
       const billMonthDate = new Date(consumption.billMonth);
       // Ensure currentReading is a number before calling toFixed
       const currentReading = typeof consumption.currentReading === 'number' 
@@ -116,13 +66,13 @@ export function MeterAdminPendingSubmissions() {
         : Number(consumption.currentReading) || 0;
       return {
         id: consumption.id,
-        householdName: user?.fullName || 'Unknown',
+        householdName: user?.fullName || user?.name || 'Unknown',
         meterNo: user?.meterNo || 'N/A',
         reading: currentReading.toFixed(2),
         month: billMonthDate.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit' }),
       };
     });
-  }, [consumptionsWithoutApprovalRequests, users]);
+  }, [myConsumptions, users]);
 
   if (consumptionsLoading || usersLoading) {
     return (
@@ -137,24 +87,14 @@ export function MeterAdminPendingSubmissions() {
       <div className="px-8 py-6">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">Pending Submissions</h1>
-          <p className="text-sm text-gray-500">Review and submit readings for approval</p>
+          <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">My Readings</h1>
+          <p className="text-sm text-gray-500">View all meter readings you have created</p>
         </div>
 
-        {/* Pending Readings Table */}
+        {/* Readings Table */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Readings Pending Submission</h3>
-            {consumptionsWithoutApprovalRequests.length > 0 && (
-              <Button
-                onClick={handleSendBatchForApproval}
-                disabled={batchCreateApprovalRequestsMutation.isPending}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                <Send size={16} className="mr-2" />
-                Send Batch for Approval ({consumptionsWithoutApprovalRequests.length})
-              </Button>
-            )}
+            <h3 className="text-lg font-semibold text-gray-900">Your Meter Readings</h3>
           </div>
           
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -172,7 +112,7 @@ export function MeterAdminPendingSubmissions() {
                 {displayReadings.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center text-gray-500 py-8">
-                      No readings in queue. Add readings from the Meter Data Entry page.
+                      No readings found. Add readings from the Meter Data Entry page.
                     </TableCell>
                   </TableRow>
                 ) : (

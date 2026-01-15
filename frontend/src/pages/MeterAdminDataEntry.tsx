@@ -8,7 +8,7 @@ import { useApiQuery, useApiMutation, useAdminId } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
-import type { User, Consumption, ApprovalStatus } from '../types';
+import type { User, Consumption } from '../types';
 
 export function MeterAdminDataEntry() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -35,9 +35,14 @@ export function MeterAdminDataEntry() {
   );
 
   // Get user's consumptions sorted by date
-  const previousConsumptions = verifiedUser?.id
+  const previousConsumptions = verifiedUser?.id || verifiedUser?.account
     ? allConsumptions
-        .filter(c => c.userId === verifiedUser.id)
+        .filter(c => {
+          const userAccount = verifiedUser?.account || verifiedUser?.id;
+          return c.userId === verifiedUser?.id || 
+                 (c as any).account === userAccount ||
+                 c.userId === userAccount;
+        })
         .sort((a, b) => new Date(b.billMonth).getTime() - new Date(a.billMonth).getTime())
     : [];
 
@@ -68,8 +73,9 @@ export function MeterAdminDataEntry() {
   const handleSearch = () => {
     const foundUser = users.find(
       (user) =>
-        user.meterNo.toLowerCase() === searchQuery.toLowerCase() ||
-        user.fullName.toLowerCase().includes(searchQuery.toLowerCase())
+        (user.meterNo && user.meterNo.toLowerCase() === searchQuery.toLowerCase()) ||
+        (user.fullName && user.fullName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (user.name && user.name.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
     if (foundUser) {
@@ -119,8 +125,12 @@ export function MeterAdminDataEntry() {
     }
 
     // Check if consumption already exists for this user and month
+    const userAccount = verifiedUser.account || verifiedUser.id;
     const existingConsumption = allConsumptions.find((c) => {
-      if (c.userId !== verifiedUser.id) return false;
+      const matchesUser = c.userId === verifiedUser.id || 
+                         (c as any).account === userAccount ||
+                         c.userId === userAccount;
+      if (!matchesUser) return false;
       // Compare bill months (handle both Date objects and strings)
       const cBillMonth = typeof c.billMonth === 'string' 
         ? c.billMonth 
@@ -129,29 +139,10 @@ export function MeterAdminDataEntry() {
     });
 
     if (existingConsumption) {
-      const status = existingConsumption.approvalStatus as ApprovalStatus | undefined;
-      const statusName = status?.statusName || status?.name;
-      const normalizedStatusName = statusName?.toLowerCase();
-
-      if (normalizedStatusName === 'approved') {
-        // Backend blocks updating approved entries, so we can't replace them
-        toast.error(`A reading for ${billMonth} has already been approved for this customer. Approved readings cannot be modified. Please contact an administrator if you need to make changes.`);
-        return;
-      } else if (normalizedStatusName === 'pending') {
-        // Pending entries should not be duplicated
-        toast.error(`A reading for ${billMonth} is already pending approval for this customer. Please wait for approval or contact an administrator.`);
-        return;
-      } else if (normalizedStatusName === 'rejected') {
-        // Rejected entries: Since backend blocks all duplicates (until deployed),
-        // we need to UPDATE the rejected entry instead of creating new
-        // This works around the backend limitation
-        setExistingApprovedConsumption(existingConsumption);
-        setShowReplaceModal(true);
-        return; // Show modal to confirm replacement
-      } else {
-        // Unknown status or no status - try to create, backend will handle validation
-        console.warn('Existing consumption found with unknown status:', statusName);
-      }
+      // If consumption exists, update it instead of creating duplicate
+      setExistingApprovedConsumption(existingConsumption);
+      setShowReplaceModal(true);
+      return; // Show modal to confirm replacement
     }
 
     // Proceed with creation
@@ -174,15 +165,18 @@ export function MeterAdminDataEntry() {
           previousReading: previousReading > 0 ? previousReading : undefined,
         });
       } else {
-        // Create new consumption - ensure all values are properly typed
+        // Create new consumption - use numeric id as account (workaround for backend validation)
+        // Backend validation expects account as number, but users have UUID strings
+        // Using numeric id as workaround since we can't change backend
+        const numericAccount = Number(verifiedUser!.id);
         const payload: {
-          userId: number;
+          account: number; // Numeric ID (workaround for backend validation mismatch)
           createdBy: number;
           billMonth: string;
           currentReading: number;
           previousReading?: number;
         } = {
-          userId: Number(verifiedUser!.id),
+          account: numericAccount, // Use numeric ID as workaround
           createdBy: Number(adminId!),
           billMonth: billMonthDate, // Format: YYYY-MM-DD
           currentReading: Number(currentReadingNum),
@@ -194,10 +188,10 @@ export function MeterAdminDataEntry() {
         }
         
         // Validate payload before sending
-        if (!payload.userId || !payload.createdBy || !payload.billMonth || payload.currentReading === undefined || isNaN(payload.currentReading)) {
+        if (!payload.account || !payload.createdBy || !payload.billMonth || payload.currentReading === undefined || isNaN(payload.currentReading)) {
           toast.error('Invalid form data. Please check all fields and try again.');
           console.error('Invalid payload:', payload, {
-            userId: verifiedUser?.id,
+            account: numericAccount,
             adminId,
             billMonthDate,
             currentReadingNum,
@@ -295,7 +289,7 @@ export function MeterAdminDataEntry() {
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-gray-700">Full Name</Label>
                   <Input
-                    value={verifiedUser.fullName}
+                    value={verifiedUser.fullName || verifiedUser.name || ''}
                     disabled
                     className="bg-gray-100 border-gray-200 text-gray-500 rounded-lg cursor-not-allowed"
                   />
@@ -519,7 +513,7 @@ export function MeterAdminDataEntry() {
               </div>
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
                 <p className="text-sm text-amber-800">
-                  <strong>Note:</strong> Updating this reading will modify the existing rejected record. The status will remain as rejected until you send it for approval again from the Pending Submissions page.
+                  <strong>Note:</strong> Updating this reading will modify the existing record with the new values.
                 </p>
               </div>
             </div>
