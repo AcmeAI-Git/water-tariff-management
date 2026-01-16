@@ -6,7 +6,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Plus, Edit, Trash2, Search, X, FileText } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, FileText } from 'lucide-react';
 import { api } from '../services/api';
 import { useApiQuery, useApiMutation } from '../hooks/useApiQuery';
 import LoadingSpinner from '../components/common/LoadingSpinner';
@@ -319,7 +319,6 @@ export function LocationManagement() {
         setCityCorpToDelete(null);
         setIsCityCorpDeleteDialogOpen(false);
       } catch (error: any) {
-        const errorMessage = error?.response?.data?.message || error?.message || 'Failed to delete city corporation';
         console.error('City corporation deletion error:', error);
         // Error toast is already shown by mutation hook
         if (error?.response?.status === 404) {
@@ -440,7 +439,6 @@ export function LocationManagement() {
         setZoneToDelete(null);
         setIsZoneDeleteDialogOpen(false);
       } catch (error: any) {
-        const errorMessage = error?.response?.data?.message || error?.message || 'Failed to delete zone';
         console.error('Zone deletion error:', error);
         // Error toast is already shown by mutation hook
         if (error?.response?.status === 404) {

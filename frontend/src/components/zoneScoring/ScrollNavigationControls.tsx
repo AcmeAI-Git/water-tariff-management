@@ -1,10 +1,10 @@
 import { Button } from '../ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import type { ScoringParam } from '../../../types';
+import type { ScoringParam } from '../../types';
 
 interface ScrollNavigationControlsProps {
-  tableScrollRef: React.RefObject<HTMLDivElement>;
+  tableScrollRef: React.RefObject<HTMLDivElement | null>;
   calculatedParams: ScoringParam[];
 }
 

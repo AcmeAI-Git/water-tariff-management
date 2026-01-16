@@ -7,7 +7,6 @@ import { Search, CheckCircle2 } from 'lucide-react';
 import { api } from '../services/api';
 import { useApiQuery, useApiMutation } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
-import { toast } from 'sonner';
 import { format } from 'date-fns';
 
 export default function CustomerBillingHistory() {

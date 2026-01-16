@@ -45,7 +45,6 @@ import type {
   CreateNotificationDto,
   UpdateNotificationDto,
   ZoneScoringRuleSet,
-  ScoringParam,
   Area,
   CreateZoneScoringRuleSetDto,
   UpdateZoneScoringRuleSetDto,

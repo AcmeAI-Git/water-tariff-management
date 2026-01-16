@@ -17,8 +17,8 @@ export interface CSVRow {
 export async function parseCustomerCSV(
   file: File,
   areas: Area[],
-  zones: Zone[],
-  cityCorporations: CityCorporation[]
+  _zones: Zone[],
+  _cityCorporations: CityCorporation[]
 ): Promise<CustomerCSVParseResult> {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -52,7 +52,7 @@ export async function parseCustomerCSV(
     const normalizedHeaders = normalizeHeaders(rows[0]); // Pass original row for index mapping
     
     // Debug: Log header mappings in development
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.MODE === 'development') {
       console.log('CSV Headers (raw):', rows[0]);
       console.log('CSV Headers (filtered):', headers);
       console.log('Normalized Headers:', normalizedHeaders);
@@ -77,7 +77,7 @@ export async function parseCustomerCSV(
     
     if (missingColumns.length > 0) {
       errors.push(`Missing required columns: ${missingColumns.join(', ')}`);
-      const foundHeaders = rows[0].filter(h => h && h.trim()).map((h, i) => `"${h}"`).join(', ');
+      const foundHeaders = rows[0].filter(h => h && h.trim()).map((h) => `"${h}"`).join(', ');
       errors.push(`Found headers: [${foundHeaders}]`);
       const normalizedKeys = Object.keys(normalizedHeaders).map(key => `${key} (index: ${normalizedHeaders[key]})`).join(', ');
       errors.push(`Normalized header mappings: [${normalizedKeys}]`);
@@ -102,7 +102,7 @@ export async function parseCustomerCSV(
       const areaNameIndex = normalizedHeaders['areaName'];
       
       // Debug: Log first row to see what we're getting
-      if (i === 1 && process.env.NODE_ENV === 'development') {
+      if (i === 1 && import.meta.env.MODE === 'development') {
         console.log('Row data:', row);
         console.log('Header indices:', {
           name: nameIndex,
@@ -319,8 +319,8 @@ export function generateCustomerCSVTemplate(areas: Area[]): string {
 export function exportCustomersToCSV(
   customers: any[], 
   areas: Area[], 
-  zones: Zone[], 
-  cityCorporations: CityCorporation[],
+  _zones: Zone[], 
+  _cityCorporations: CityCorporation[],
   meters?: any[]
 ): string {
   const headers = [
@@ -342,8 +342,6 @@ export function exportCustomersToCSV(
 
   const rows = customers.map(customer => {
     const area = areas.find(a => a.id === customer.areaId);
-    const zone = zones.find(z => z.id === (area?.zoneId || customer.zoneId));
-    const cityCorp = cityCorporations.find(cc => cc.id === zone?.cityCorporationId);
 
     // Try to find meter data from nested meter object, customer fields, or separate meters array
     let meterNo = customer.meterNo;
@@ -410,7 +408,7 @@ function readFileAsText(file: File): Promise<string> {
     reader.onload = (e) => {
       resolve(e.target?.result as string);
     };
-    reader.onerror = (e) => {
+    reader.onerror = () => {
       reject(new Error('Failed to read file'));
     };
     reader.readAsText(file);

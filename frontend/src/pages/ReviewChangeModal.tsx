@@ -1,7 +1,6 @@
 import { X } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
-import React from 'react';
 
 interface ReviewChangeModalProps {
   request: {

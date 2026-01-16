@@ -5,7 +5,6 @@ import { useMemo } from 'react';
 import { api } from '../services/api';
 import { useApiQuery, useApiMutation, useAdminId } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
-import { toast } from 'sonner';
 
 export function MeterAdminPendingSubmissions() {
   const adminId = useAdminId();

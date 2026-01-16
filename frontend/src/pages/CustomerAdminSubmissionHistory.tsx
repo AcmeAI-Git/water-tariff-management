@@ -73,7 +73,7 @@ export function CustomerAdminSubmissionHistory() {
           submission.requestId?.toLowerCase().includes(query) ||
           submission.name?.toLowerCase().includes(query) ||
           submission.fullName?.toLowerCase().includes(query) ||
-          submission.meterNo?.toLowerCase().includes(query) ||
+          (typeof submission.meterNo === 'string' ? submission.meterNo.toLowerCase() : String(submission.meterNo || '')).includes(query) ||
           submission.phone?.toLowerCase().includes(query) ||
           submission.address?.toLowerCase().includes(query);
         if (!matchesSearch) {

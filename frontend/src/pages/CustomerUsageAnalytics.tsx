@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card } from '../components/ui/card';
 import { Droplet, TrendingUp, TrendingDown } from 'lucide-react';
 import { api } from '../services/api';

@@ -76,7 +76,7 @@ export async function parseScoringParamsCSV(
     if (!hasAreaId && !hasAreaName) {
       missingColumns.push('areaId or areaName');
       // Add helpful debug info
-      const foundHeaders = headers.map((h, i) => `"${h}" (normalized: "${h.toLowerCase().trim()}")`).join(', ');
+      const foundHeaders = headers.map((h) => `"${h}" (normalized: "${h.toLowerCase().trim()}")`).join(', ');
       errors.push(`Missing required columns: ${missingColumns.join(', ')}`);
       errors.push(`Found headers: [${foundHeaders}]`);
       errors.push(`Normalized header keys: [${Object.keys(normalizedHeaders).join(', ')}]`);
@@ -221,7 +221,7 @@ function readFileAsText(file: File): Promise<string> {
     reader.onload = (e) => {
       resolve(e.target?.result as string);
     };
-    reader.onerror = (e) => {
+    reader.onerror = () => {
       reject(new Error('Failed to read file'));
     };
     reader.readAsText(file);

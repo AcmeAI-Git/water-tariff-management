@@ -398,7 +398,7 @@ export function ApprovalQueue() {
             } catch (error) {
               console.error('Failed to fetch customer details, using existing data:', error);
               // Fallback to existing newData but try to enhance it with meter lookup
-              const existingData = request.newData || {};
+              const existingData: Record<string, any> = (request.newData as Record<string, any>) || {};
               
               // If zoneId is missing, try to get it from area
               if (!existingData.zoneId && existingData.areaId) {
@@ -435,7 +435,7 @@ export function ApprovalQueue() {
             }
           } else {
             // Use existing newData but enhance it
-            const existingData = request.newData || {};
+            const existingData: Record<string, any> = (request.newData as Record<string, any>) || {};
             
             // If zoneId is missing, try to get it from area
             if (!existingData.zoneId && existingData.areaId) {

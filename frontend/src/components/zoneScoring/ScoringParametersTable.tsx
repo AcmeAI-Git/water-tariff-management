@@ -1,7 +1,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Button } from '../ui/button';
 import { Edit, Trash2 } from 'lucide-react';
-import type { ScoringParam, Zone, CityCorporation } from '../../../types';
+import type { ScoringParam, Zone, CityCorporation } from '../../types';
 
 interface ScoringParametersTableProps {
   calculatedParams: ScoringParam[];

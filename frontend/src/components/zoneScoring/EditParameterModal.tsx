@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 import { Button } from '../ui/button';
-import type { ScoringParam, ZoneScoringRuleSet } from '../../../types';
+import type { ScoringParam, ZoneScoringRuleSet } from '../../types';
 import { calculatePercentages } from '../../utils/zoneScoringUtils';
 import { ScoringParameterFormFields } from './ScoringParameterFormFields';
 
@@ -29,7 +29,7 @@ export function EditParameterModal({
     if (!editingParamValues || !activeRuleSet || !editingParam) return;
     
     // Update the scoring param in the rule set
-    const updatedParams = activeRuleSet.scoringParams.map(p => 
+    const updatedParams = activeRuleSet.scoringParams.map((p: ScoringParam) => 
       p.id === editingParam.id ? { ...p, ...editingParamValues } : p
     );
     

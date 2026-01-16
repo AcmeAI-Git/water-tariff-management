@@ -1,6 +1,6 @@
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import type { ScoringParam, CreateScoringParamDto } from '../../../types';
+import type { ScoringParam, CreateScoringParamDto } from '../../types';
 
 interface ScoringParameterFormFieldsProps {
   values: Partial<ScoringParam> | CreateScoringParamDto;

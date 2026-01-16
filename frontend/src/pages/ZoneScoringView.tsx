@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
-import { Plus, Edit, Upload, Download, X, Trash2 } from 'lucide-react';
+import { Plus, Edit, Upload, Download, X } from 'lucide-react';
 import { useState, useMemo, useRef } from 'react';
 import { api } from '../services/api';
 import { useApiQuery, useApiMutation, useAdminId } from '../hooks/useApiQuery';
@@ -48,8 +48,8 @@ export function ZoneScoringView() {
 
   // Fetch ruleset by ID
   const { data: rulesetData, isLoading: rulesetLoading } = useApiQuery<ZoneScoringRuleSet>(
-    ['zone-scoring', id],
-    () => api.zoneScoring.getById(parseInt(id!)),
+    ['zone-scoring', id || ''],
+    () => api.zoneScoring.getById(parseInt(id || '0', 10)),
     { enabled: !!id }
   );
 
@@ -74,12 +74,11 @@ export function ZoneScoringView() {
   );
   const cityCorporations: CityCorporation[] = (cityCorporationsData ?? []) as CityCorporation[];
 
-  // Fetch all rulesets to check for active ones
-  const { data: allRulesetsData } = useApiQuery<ZoneScoringRuleSet[]>(
-    ['zone-scoring'],
-    () => api.zoneScoring.getAll()
-  );
-  const allRulesets: ZoneScoringRuleSet[] = (allRulesetsData ?? []) as ZoneScoringRuleSet[];
+  // Fetch all rulesets to check for active ones (for future use)
+  // const { data: allRulesetsData } = useApiQuery<ZoneScoringRuleSet[]>(
+  //   ['zone-scoring'],
+  //   () => api.zoneScoring.getAll()
+  // );
 
   // Mutations
   const updateZoneScoringMutation = useApiMutation(
@@ -87,7 +86,7 @@ export function ZoneScoringView() {
     {
       successMessage: 'Zone scoring rule set updated successfully',
       errorMessage: 'Failed to update zone scoring rule set',
-      invalidateQueries: [['zone-scoring'], ['zone-scoring', id], ['approval-requests'], ['approval-requests', 'pending']],
+      invalidateQueries: [['zone-scoring'], ['zone-scoring', id || ''], ['approval-requests'], ['approval-requests', 'pending']],
     }
   );
 

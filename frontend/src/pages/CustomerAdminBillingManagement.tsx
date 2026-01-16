@@ -5,9 +5,8 @@ import { Input } from '../components/ui/input';
 import { Dropdown } from '../components/ui/Dropdown';
 import { Search, CheckCircle2, Eye } from 'lucide-react';
 import { api } from '../services/api';
-import { useApiQuery, useApiMutation, useAdminId } from '../hooks/useApiQuery';
+import { useApiQuery, useApiMutation } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
-import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../components/ui/dialog';
 
@@ -16,7 +15,6 @@ export function CustomerAdminBillingManagement() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedBill, setSelectedBill] = useState<any>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
-  const adminId = useAdminId();
 
   // Fetch water bills
   const { data: waterBills = [], isLoading: billsLoading } = useApiQuery(

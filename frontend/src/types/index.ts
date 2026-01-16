@@ -48,6 +48,7 @@ export interface ChangePasswordDto {
 export interface User {
   id: number;
   fullName: string;
+  name?: string; // Alias for fullName for backward compatibility
   email: string;
   phone: string;
   address: string;
@@ -57,6 +58,7 @@ export interface User {
   zoneId: number;
   wardId: number;
   status: string;
+  account?: string | number; // Account identifier (can be UUID string or number)
   createdAt?: string;
   updatedAt?: string;
 }
@@ -533,6 +535,7 @@ export interface UpdateAreaDto {
 export interface Meter {
   id: number;
   account: string; // UUID string
+  userAccount?: string | number; // Alias for account for backward compatibility
   meterNo: number;
   meterStatus: string;
   sizeOfDia: string;

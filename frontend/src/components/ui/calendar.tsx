@@ -4,8 +4,6 @@ import * as React from "react";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { cn } from "../../utils/utils";
-import { Button } from "./button";
-import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 
 interface CalendarProps {
   selected?: Date;
@@ -20,13 +18,9 @@ interface CalendarProps {
 export function Calendar({
   selected,
   onSelect,
-  mode = "single",
-  initialFocus,
   className,
   disabled,
-  showOutsideDays = true,
 }: CalendarProps) {
-  const [isOpen, setIsOpen] = React.useState(false);
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(selected);
   const [currentMonth, setCurrentMonth] = React.useState(new Date());
 
@@ -37,9 +31,6 @@ export function Calendar({
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
     onSelect?.(date);
-    if (mode === "single") {
-      setIsOpen(false);
-    }
   };
 
   const getDaysInMonth = (date: Date) => {
