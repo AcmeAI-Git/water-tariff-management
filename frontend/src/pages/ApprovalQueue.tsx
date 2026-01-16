@@ -7,9 +7,10 @@ import { ReviewChangeModal } from './ReviewChangeModal';
 import { api } from '../services/api';
 import { useApiQuery, useApiMutation, useAdminId } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
-import type { Consumption, ZoneScoringRuleSet } from '../types';
+import type { Consumption, ZoneScoringRuleSet, User, Area, Zone, Meter } from '../types';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { mapUserToCustomer } from '../utils/dataMappers';
 
 // Unified display item type for approval queue
 interface ApprovalQueueItem {
@@ -19,9 +20,10 @@ interface ApprovalQueueItem {
   request: string;
   status: string;
   recordId: number;
-  recordType: 'consumption' | 'zone-scoring';
+  recordType: 'consumption' | 'zone-scoring' | 'customer';
   oldData?: unknown;
   newData?: unknown;
+  account?: string; // UUID for customer records
 }
 
 export function ApprovalQueue() {
@@ -52,6 +54,37 @@ export function ApprovalQueue() {
       (ruleset) => ruleset.status?.toLowerCase() === 'pending'
     );
   }, [zoneScoringData]);
+
+  // Fetch inactive customers (users with Inactive status)
+  const { data: allUsers = [], isLoading: usersLoading } = useApiQuery<User[]>(
+    ['users'],
+    () => api.users.getAll()
+  );
+
+  // Fetch areas and zones to get zone information for customers
+  const { data: allAreas = [] } = useApiQuery<Area[]>(
+    ['areas'],
+    () => api.area.getAll()
+  );
+
+  const { data: allZones = [] } = useApiQuery<Zone[]>(
+    ['zones'],
+    () => api.zones.getAll()
+  );
+
+  // Fetch all meters to match with users
+  const { data: allMeters = [] } = useApiQuery<Meter[]>(
+    ['meters'],
+    () => api.meters.getAll()
+  );
+
+  const inactiveCustomers = useMemo(() => {
+    return (allUsers as User[]).filter((user: User) => {
+      const userData = user as any;
+      const status = userData.activeStatus || userData.status || user.status;
+      return status && String(status).toLowerCase() === 'inactive';
+    });
+  }, [allUsers]);
 
   // Filter pending consumptions
   const pendingConsumptions = useMemo(() => {
@@ -124,13 +157,93 @@ export function ApprovalQueue() {
       });
     });
 
+    // Add inactive customers
+    inactiveCustomers.forEach((user: User) => {
+      const userData = user as any;
+      const customerAccount = userData.account || user.id;
+      const customer = mapUserToCustomer(user);
+      const creator = admins.find((a) => a.id === (userData.createdBy || userData.created_by));
+      
+      // Get zone information from area - check nested area.zone first, then lookup
+      let zoneId = customer.zoneId;
+      if (!zoneId && customer.areaId) {
+        const area = (allAreas as Area[]).find((a) => a.id === customer.areaId);
+        if (area) {
+          // Check if area has nested zone object
+          zoneId = (area as any).zone?.id || area.zoneId;
+        }
+      }
+      
+      // Get meter data from meters table by matching account UUID
+      const userMeter = (allMeters as Meter[]).find((m: Meter) => {
+        const meterAccount = (m as any).account || m.userAccount || (m as any).user_account;
+        return meterAccount === customerAccount || meterAccount === String(customerAccount);
+      });
+      
+      // Extract meter data from matched meter or fallback to customer data
+      let meterNo = userMeter?.meterNo || customer.meterNo || '';
+      let meterStatus = userMeter?.meterStatus || customer.meterStatus || '';
+      let sizeOfDia = userMeter?.sizeOfDia || customer.sizeOfDia || '';
+      let meterInstallationDate = userMeter?.meterInstallationDate || customer.meterInstallationDate || '';
+      
+      // Format meter number if it's a number
+      const meterNoStr = meterNo 
+        ? (typeof meterNo === 'number' ? meterNo.toString() : String(meterNo))
+        : '';
+      
+      // Get createdAt from various possible locations
+      // Note: The backend API for /users doesn't return createdAt/updatedAt fields
+      // This is a backend limitation - zone scoring has timestamps, but users don't
+      let createdAt = userData.createdAt || userData.created_at || (user as any).createdAt || (user as any).created_at;
+      
+      // If still not found, the backend doesn't provide this field for users
+      // We'll show "N/A" as the backend API doesn't include timestamp fields for users
+      // (Zone scoring has createdAt/updatedAt, but users endpoint doesn't return them)
+      
+      items.push({
+        id: `CUSTOMER-${customerAccount}`,
+        module: 'Customer',
+        requestedBy: creator?.fullName || 'Customer Admin',
+        request: createdAt
+          ? new Date(createdAt).toLocaleString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+            })
+          : 'N/A',
+        status: 'Inactive',
+        recordId: typeof customerAccount === 'string' ? 0 : customerAccount, // Use 0 for UUID, actual ID for number
+        recordType: 'customer',
+        account: typeof customerAccount === 'string' ? customerAccount : undefined,
+        oldData: null,
+        newData: {
+          name: customer.name || customer.fullName,
+          address: customer.address,
+          inspCode: customer.inspCode,
+          accountType: customer.accountType,
+          customerCategory: customer.customerCategory,
+          waterStatus: customer.waterStatus,
+          sewerStatus: customer.sewerStatus,
+          areaId: customer.areaId,
+          zoneId: zoneId || undefined,
+          meterNo: meterNoStr,
+          meterStatus: meterStatus || undefined,
+          sizeOfDia: sizeOfDia || undefined,
+          meterInstallationDate: meterInstallationDate || undefined,
+        },
+      });
+    });
+
     // Sort by request date (newest first)
     return items.sort((a, b) => {
-      const dateA = new Date(a.request).getTime();
-      const dateB = new Date(b.request).getTime();
+      const dateA = a.request === 'N/A' ? 0 : new Date(a.request).getTime();
+      const dateB = b.request === 'N/A' ? 0 : new Date(b.request).getTime();
       return dateB - dateA;
     });
-  }, [pendingConsumptions, pendingZoneScoringRulesets, admins]);
+  }, [pendingConsumptions, pendingZoneScoringRulesets, inactiveCustomers, admins, allAreas, allZones, allMeters]);
 
   // Approve consumption mutation
   const approveConsumptionMutation = useApiMutation(
@@ -167,11 +280,16 @@ export function ApprovalQueue() {
     }
   );
 
-  const isLoading = consumptionsLoading;
+  const isLoading = consumptionsLoading || usersLoading;
 
   const handleReview = async (request: ApprovalQueueItem) => {
-    // If oldData/newData are missing (null/undefined), fetch the actual record data
-    if ((!request.oldData && !request.newData) || request.newData === null || request.newData === undefined) {
+    // Always fetch customer data to ensure we have complete meter information
+    // For other modules, only fetch if data is missing
+    const shouldFetch = (request.module === 'Customer' || request.recordType === 'customer') 
+      ? true 
+      : ((!request.oldData && !request.newData) || request.newData === null || request.newData === undefined);
+    
+    if (shouldFetch) {
       setIsLoadingRecordData(true);
       try {
         let newData: unknown = null;
@@ -216,25 +334,146 @@ export function ApprovalQueue() {
             })) || [],
             totalParameters: ruleset.scoringParams?.length || 0,
           };
+        } else if (request.module === 'Customer' || request.recordType === 'customer') {
+          // Fetch full customer data to ensure we have all fields including meter data
+          if (request.account) {
+            try {
+              // Try to fetch user by account UUID (the backend supports this via /users/{account}/status, so might support GET too)
+              // If that fails, fall back to using existing data
+              const authToken = localStorage.getItem('authToken');
+              const baseUrl = import.meta.env.VITE_API_BASE_URL || 'https://water-tariff-backend.onrender.com';
+              const response = await fetch(`${baseUrl}/users/${request.account}`, {
+                headers: {
+                  'Authorization': `Bearer ${authToken || ''}`,
+                  'Content-Type': 'application/json'
+                }
+              });
+              
+              if (response.ok) {
+                const userData = await response.json();
+                const user = userData.data || userData;
+                const customer = mapUserToCustomer(user);
+                
+                // Get zone from area
+                let zoneId = customer.zoneId;
+                if (!zoneId && customer.areaId) {
+                  const area = (allAreas as Area[]).find((a) => a.id === customer.areaId);
+                  if (area) {
+                    zoneId = (area as any).zone?.id || area.zoneId;
+                  }
+                }
+                
+                // Get meter data from meters table by matching account UUID
+                const userMeter = (allMeters as Meter[]).find((m: Meter) => {
+                  const meterAccount = (m as any).account || m.userAccount || (m as any).user_account;
+                  return meterAccount === request.account || meterAccount === String(request.account);
+                });
+                
+                // Extract meter data from matched meter
+                const meterNo = userMeter?.meterNo || '';
+                const meterStatus = userMeter?.meterStatus || '';
+                const sizeOfDia = userMeter?.sizeOfDia || '';
+                const meterInstallationDate = userMeter?.meterInstallationDate || '';
+                
+                newData = {
+                  name: customer.name || customer.fullName,
+                  address: customer.address,
+                  inspCode: customer.inspCode,
+                  accountType: customer.accountType,
+                  customerCategory: customer.customerCategory,
+                  waterStatus: customer.waterStatus,
+                  sewerStatus: customer.sewerStatus,
+                  areaId: customer.areaId,
+                  zoneId: zoneId || undefined,
+                  // Include meter fields if they have values
+                  ...(meterNo && { meterNo: typeof meterNo === 'number' ? meterNo.toString() : String(meterNo) }),
+                  ...(meterStatus && { meterStatus }),
+                  ...(sizeOfDia && { sizeOfDia }),
+                  ...(meterInstallationDate && { meterInstallationDate }),
+                };
+              } else {
+                // If fetch fails, use existing data but enhance it
+                throw new Error('Failed to fetch user');
+              }
+            } catch (error) {
+              console.error('Failed to fetch customer details, using existing data:', error);
+              // Fallback to existing newData but try to enhance it with meter lookup
+              const existingData = request.newData || {};
+              
+              // If zoneId is missing, try to get it from area
+              if (!existingData.zoneId && existingData.areaId) {
+                const area = (allAreas as Area[]).find((a) => a.id === existingData.areaId);
+                if (area) {
+                  existingData.zoneId = (area as any).zone?.id || area.zoneId;
+                }
+              }
+              
+              // Try to get meter data from meters table
+              if (request.account) {
+                const userMeter = (allMeters as Meter[]).find((m: Meter) => {
+                  const meterAccount = (m as any).account || m.userAccount || (m as any).user_account;
+                  return meterAccount === request.account || meterAccount === String(request.account);
+                });
+                
+                if (userMeter) {
+                  if (!existingData.meterNo && userMeter.meterNo) {
+                    existingData.meterNo = typeof userMeter.meterNo === 'number' ? userMeter.meterNo.toString() : String(userMeter.meterNo);
+                  }
+                  if (!existingData.meterStatus && userMeter.meterStatus) {
+                    existingData.meterStatus = userMeter.meterStatus;
+                  }
+                  if (!existingData.sizeOfDia && userMeter.sizeOfDia) {
+                    existingData.sizeOfDia = userMeter.sizeOfDia;
+                  }
+                  if (!existingData.meterInstallationDate && userMeter.meterInstallationDate) {
+                    existingData.meterInstallationDate = userMeter.meterInstallationDate;
+                  }
+                }
+              }
+              
+              newData = existingData;
+            }
+          } else {
+            // Use existing newData but enhance it
+            const existingData = request.newData || {};
+            
+            // If zoneId is missing, try to get it from area
+            if (!existingData.zoneId && existingData.areaId) {
+              const area = (allAreas as Area[]).find((a) => a.id === existingData.areaId);
+              if (area) {
+                existingData.zoneId = (area as any).zone?.id || area.zoneId;
+              }
+            }
+            
+            newData = existingData;
+          }
         }
         
-        // Update request with fetched data
+        // Update request with fetched data, preserving the original request timestamp
         setSelectedRequest({
           ...request,
           oldData: null,
           newData: newData,
+          // Preserve the original request timestamp
+          request: request.request,
         });
       } catch (error) {
         console.error('Failed to fetch record data:', error);
         toast.error('Failed to load record data');
-        // Still show modal with existing data
-        setSelectedRequest(request);
+        // Still show modal with existing data, preserving timestamp
+        setSelectedRequest({
+          ...request,
+          request: request.request, // Preserve timestamp
+        });
       } finally {
         setIsLoadingRecordData(false);
       }
     } else {
-      // Data already available, just set the request
-      setSelectedRequest(request);
+      // Data already available, just set the request with preserved timestamp
+      setSelectedRequest({
+        ...request,
+        request: request.request, // Preserve timestamp
+      });
     }
   };
 
@@ -257,6 +496,13 @@ export function ApprovalQueue() {
         await approveConsumptionMutation.mutateAsync({
           id: request.recordId,
         });
+      } else if (request.recordType === 'customer') {
+        // Approve customer - update status to Active
+        if (!request.account) {
+          throw new Error('Customer account UUID not found');
+        }
+        await api.users.updateStatus(request.account, 'Active');
+        toast.success('Customer approved successfully');
       }
       
       // Invalidate and refetch all related queries to ensure UI updates immediately
@@ -276,11 +522,21 @@ export function ApprovalQueue() {
         await Promise.all([
           queryClient.refetchQueries({ queryKey: ['consumption'] }),
         ]);
+      } else if (request.recordType === 'customer') {
+        // For customers, invalidate users queries
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['users'], refetchType: 'active' }),
+        ]);
+        await Promise.all([
+          queryClient.refetchQueries({ queryKey: ['users'] }),
+        ]);
       }
       
       setSelectedRequest(null);
     } catch (error) {
       console.error('Failed to approve:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to approve';
+      toast.error(`Failed to approve: ${errorMessage}`);
     }
   };
 
@@ -312,6 +568,13 @@ export function ApprovalQueue() {
         await rejectConsumptionMutation.mutateAsync({
           id: recordId,
         });
+      } else if (recordType === 'customer') {
+        // Reject customer - ensure status remains Inactive (or explicitly set to Inactive)
+        if (!requestToReject.account) {
+          throw new Error('Customer account UUID not found');
+        }
+        await api.users.updateStatus(requestToReject.account, 'Inactive');
+        toast.success('Customer rejected');
       }
       
       // Close modal after successful rejection
@@ -335,6 +598,14 @@ export function ApprovalQueue() {
             queryKey: ['consumption'],
             type: 'active'
           }),
+        ]);
+      } else if (recordType === 'customer') {
+        // For customers, invalidate users queries
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['users'], refetchType: 'active' }),
+        ]);
+        await Promise.all([
+          queryClient.refetchQueries({ queryKey: ['users'] }),
         ]);
       }
     } catch (error) {

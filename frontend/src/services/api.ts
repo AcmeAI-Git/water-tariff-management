@@ -115,6 +115,10 @@ export const usersApi = {
   activate: (id: number): Promise<User> => {
     return fetchService.put<User>(`/users/${id}/activate`, {});
   },
+
+  updateStatus: (account: string, activeStatus: 'Active' | 'Inactive'): Promise<User> => {
+    return fetchService.put<User>(`/users/${account}/status`, { activeStatus });
+  },
 };
 
 // ==================== ROLES ====================

@@ -100,6 +100,10 @@ export interface UpdateUserDto {
   meter?: UpdateUserMeterDto; // Optional nested meter object for updates
 }
 
+export interface UpdateUserStatusDto {
+  activeStatus: 'Active' | 'Inactive';
+}
+
 // Role Types
 export interface Role {
   id: number;

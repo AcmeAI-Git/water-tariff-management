@@ -106,6 +106,33 @@ export function ReviewChangeModal({ request, onClose, onApprove, onReject, isLoa
 
     const newData = request.newData;
     const isZoneScoring = request.module === 'ZoneScoring';
+    const isCustomer = request.module === 'Customer';
+
+    // For Customer, show customer information in a formatted way
+    if (isCustomer) {
+      return (
+        <div className="space-y-4">
+          <div>
+            <h4 className="text-sm font-semibold text-gray-700 mb-3">Customer Information</h4>
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              {safeObjectEntries(newData).map(([key, value]) => {
+                const formattedValue = formatValue(key, value);
+                return (
+                  <div key={key} className="py-2 border-b border-gray-200 last:border-0">
+                    <div className="flex items-start justify-between">
+                      <span className="text-sm text-gray-600 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
+                      <span className="text-sm font-medium text-gray-900 text-right ml-4">
+                        {formattedValue}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      );
+    }
 
     // For ZoneScoring, always show just the new data (no comparison)
     if (isZoneScoring) {
@@ -345,7 +372,7 @@ export function ReviewChangeModal({ request, onClose, onApprove, onReject, isLoa
                 <p className="text-sm font-semibold text-gray-900">{request.module}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-600 mb-1">Request</p>
+                <p className="text-xs text-gray-600 mb-1">Request Timestamp</p>
                 <p className="text-sm font-semibold text-gray-900">{request.request}</p>
               </div>
             </div>
