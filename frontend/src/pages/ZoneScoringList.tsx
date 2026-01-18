@@ -10,7 +10,6 @@ import { StatusBadge } from '../components/zoneScoring/StatusBadge';
 import { DeleteConfirmationDialog } from '../components/zoneScoring/DeleteConfirmationDialog';
 import { PageHeader } from '../components/zoneScoring/PageHeader';
 import { EmptyState } from '../components/zoneScoring/EmptyState';
-import { calculatePercentages } from '../utils/zoneScoringUtils';
 import type { ZoneScoringRuleSet, ZoneScore } from '../types';
 
 export function ZoneScoringList() {
@@ -25,61 +24,45 @@ export function ZoneScoringList() {
   );
   const zoneScoringRuleSets: ZoneScoringRuleSet[] = (zoneScoringData ?? []) as ZoneScoringRuleSet[];
 
-  // Calculate zone scores client-side from scoring parameters for each ruleset
-  // This ensures all rulesets show their calculated scores, not just published ones
-  const scoresByRuleset = useMemo(() => {
-    const stats: Record<number, { avgGeoMean: number; avgZoneScore: number; min: number; max: number; count: number; stdDev: number }> = {};
-    
-    zoneScoringRuleSets.forEach(ruleset => {
-      if (!ruleset.scoringParams || ruleset.scoringParams.length === 0) {
-        return;
-      }
+  // Fetch zone scores from API
+  const { data: zoneScoresData, isLoading: scoresLoading } = useApiQuery<ZoneScore[]>(
+    ['zone-scoring-scores'],
+    () => api.zoneScoring.getScores()
+  );
+  const zoneScores: ZoneScore[] = (zoneScoresData ?? []) as ZoneScore[];
 
-      // Calculate percentages and geoMean for all parameters in this ruleset
-      const calculatedParams = calculatePercentages(ruleset.scoringParams);
-      
-      // Calculate zone scores: 1 + (geoMeanValue - avgGeoMean) / avgGeoMean
-      const geoMeanValues = calculatedParams
-        .map(p => parseFloat(p.geoMean))
+  // Group zone scores by ruleset ID and calculate statistics from API data
+  const scoresByRuleset = useMemo(() => {
+    const grouped: Record<number, ZoneScore[]> = {};
+    zoneScores.forEach(score => {
+      if (!grouped[score.ruleSetId]) {
+        grouped[score.ruleSetId] = [];
+      }
+      grouped[score.ruleSetId].push(score);
+    });
+
+    // Calculate statistics for each ruleset from API scores
+    const stats: Record<number, { avg: number; min: number; max: number; count: number }> = {};
+    Object.keys(grouped).forEach(rulesetIdStr => {
+      const rulesetId = parseInt(rulesetIdStr, 10);
+      const scores = grouped[rulesetId];
+      const scoreValues = scores
+        .map(s => parseFloat(s.score))
         .filter(v => !isNaN(v) && v > 0);
       
-      if (geoMeanValues.length < 2) {
-        // Need at least 2 parameters to calculate zone scores
-        return;
+      if (scoreValues.length > 0) {
+        const sum = scoreValues.reduce((a, b) => a + b, 0);
+        stats[rulesetId] = {
+          avg: sum / scoreValues.length,
+          min: Math.min(...scoreValues),
+          max: Math.max(...scoreValues),
+          count: scoreValues.length,
+        };
       }
-
-      const avgGeoMean = geoMeanValues.reduce((sum, val) => sum + val, 0) / geoMeanValues.length;
-      
-      if (avgGeoMean <= 0) {
-        return;
-      }
-
-      // Calculate zone score for each parameter
-      const zoneScores = geoMeanValues.map(geoMeanValue => {
-        return 1 + (geoMeanValue - avgGeoMean) / avgGeoMean;
-      });
-
-      // Calculate statistics
-      const avgZoneScore = zoneScores.reduce((a, b) => a + b, 0) / zoneScores.length; // Will always be 1
-      const min = Math.min(...zoneScores);
-      const max = Math.max(...zoneScores);
-      
-      // Calculate standard deviation
-      const variance = zoneScores.reduce((sum, score) => sum + Math.pow(score - avgZoneScore, 2), 0) / zoneScores.length;
-      const stdDev = Math.sqrt(variance);
-
-      stats[ruleset.id] = {
-        avgGeoMean,
-        avgZoneScore, // Always 1, but kept for reference
-        min,
-        max,
-        count: zoneScores.length,
-        stdDev,
-      };
     });
 
     return stats;
-  }, [zoneScoringRuleSets]);
+  }, [zoneScores]);
 
 
   const deleteZoneScoringMutation = useApiMutation(
@@ -141,7 +124,7 @@ export function ZoneScoringList() {
     await setActiveMutation.mutateAsync(ruleset.id);
   };
 
-  if (isLoading) {
+  if (isLoading || scoresLoading) {
     return (
       <div className="min-h-screen bg-[#f8f9fb] flex items-center justify-center">
         <LoadingSpinner />
@@ -188,6 +171,7 @@ export function ZoneScoringList() {
                   <TableHead className="text-sm font-semibold text-gray-700">Status</TableHead>
                   <TableHead className="text-sm font-semibold text-gray-700">Description</TableHead>
                   <TableHead className="text-sm font-semibold text-gray-700">Parameters</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">Zone Scores</TableHead>
                   <TableHead className="text-sm font-semibold text-gray-700 text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -206,6 +190,23 @@ export function ZoneScoringList() {
                       </TableCell>
                       <TableCell className="text-sm text-gray-600">
                         {ruleset.scoringParams?.length || 0} parameters
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-600">
+                        {scoresByRuleset[ruleset.id] ? (
+                          <div className="flex flex-col gap-1">
+                            <span className="font-medium text-gray-900">
+                              Avg: {scoresByRuleset[ruleset.id].avg.toFixed(6)}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              Range: {scoresByRuleset[ruleset.id].min.toFixed(6)} - {scoresByRuleset[ruleset.id].max.toFixed(6)}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              ({scoresByRuleset[ruleset.id].count} scores)
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 italic">No scores</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-center">
                       <div className="grid grid-cols-[auto_160px_auto] items-center gap-2 mx-auto w-fit">

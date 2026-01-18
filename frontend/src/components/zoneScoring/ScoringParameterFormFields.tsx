@@ -92,55 +92,10 @@ export function ScoringParameterFormFields({
   };
 
   const getZoneScoreValue = (): string => {
-    if (!calculatedParams.length) return '-';
-    
-    // Need at least 2 parameters to calculate zone score
-    if (calculatedParams.length <= 1) return '-';
-    
-    // For new params (add modal), check if all required fields are filled
-    if (!editingParamId) {
-      const hasAllRequiredFields = 
-        values.landHomeRate && 
-        values.landRate && 
-        values.landTaxRate && 
-        values.buildingTaxRateUpto120sqm && 
-        values.buildingTaxRateUpto200sqm && 
-        values.buildingTaxRateAbove200sqm && 
-        values.highIncomeGroupConnectionPercentage;
-      
-      // Don't show zone score until all required fields are filled
-      if (!hasAllRequiredFields) return '-';
-    }
-    
-    let param: ScoringParam | undefined;
-    
-    // If editing, find the param by ID
-    if (editingParamId) {
-      param = calculatedParams.find(p => p.id === editingParamId);
-    } else {
-      // For new params (add modal), find by matching areaId
-      const areaId = (values as any).areaId;
-      if (areaId) {
-        param = calculatedParams.find(p => p.areaId === areaId);
-      }
-    }
-    
-    if (!param) return '-';
-    
-    // Calculate zone score: 1 + (geoMeanValue - avgGeoMean) / avgGeoMean
-    const geoMeanValue = parseFloat(param.geoMean) || 0;
-    const geoMeanValues = calculatedParams
-      .map(p => parseFloat(p.geoMean))
-      .filter(v => !isNaN(v) && v > 0);
-    
-    if (geoMeanValues.length < 2 || geoMeanValue <= 0) return '-';
-    
-    const avgGeoMean = geoMeanValues.reduce((sum, val) => sum + val, 0) / geoMeanValues.length;
-    
-    if (avgGeoMean <= 0) return '-';
-    
-    const zoneScore = 1 + (geoMeanValue - avgGeoMean) / avgGeoMean;
-    return zoneScore.toFixed(6);
+    // Zone score is calculated by the backend API using zone-grouped calculations
+    // Score = averageGeomean / zoneGeomean (where zoneGeomean is average of geoMeans for areas in that zone)
+    // This field is read-only and will be populated when the ruleset is published
+    return '-';
   };
 
   const gridCols = showPercentages ? 'grid-cols-2' : 'grid-cols-1';
