@@ -91,6 +91,58 @@ export function ScoringParameterFormFields({
     return param?.geoMean || '-';
   };
 
+  const getZoneScoreValue = (): string => {
+    if (!calculatedParams.length) return '-';
+    
+    // Need at least 2 parameters to calculate zone score
+    if (calculatedParams.length <= 1) return '-';
+    
+    // For new params (add modal), check if all required fields are filled
+    if (!editingParamId) {
+      const hasAllRequiredFields = 
+        values.landHomeRate && 
+        values.landRate && 
+        values.landTaxRate && 
+        values.buildingTaxRateUpto120sqm && 
+        values.buildingTaxRateUpto200sqm && 
+        values.buildingTaxRateAbove200sqm && 
+        values.highIncomeGroupConnectionPercentage;
+      
+      // Don't show zone score until all required fields are filled
+      if (!hasAllRequiredFields) return '-';
+    }
+    
+    let param: ScoringParam | undefined;
+    
+    // If editing, find the param by ID
+    if (editingParamId) {
+      param = calculatedParams.find(p => p.id === editingParamId);
+    } else {
+      // For new params (add modal), find by matching areaId
+      const areaId = (values as any).areaId;
+      if (areaId) {
+        param = calculatedParams.find(p => p.areaId === areaId);
+      }
+    }
+    
+    if (!param) return '-';
+    
+    // Calculate zone score: 1 + (geoMeanValue - avgGeoMean) / avgGeoMean
+    const geoMeanValue = parseFloat(param.geoMean) || 0;
+    const geoMeanValues = calculatedParams
+      .map(p => parseFloat(p.geoMean))
+      .filter(v => !isNaN(v) && v > 0);
+    
+    if (geoMeanValues.length < 2 || geoMeanValue <= 0) return '-';
+    
+    const avgGeoMean = geoMeanValues.reduce((sum, val) => sum + val, 0) / geoMeanValues.length;
+    
+    if (avgGeoMean <= 0) return '-';
+    
+    const zoneScore = 1 + (geoMeanValue - avgGeoMean) / avgGeoMean;
+    return zoneScore.toFixed(6);
+  };
+
   const gridCols = showPercentages ? 'grid-cols-2' : 'grid-cols-1';
   
   return (
@@ -279,13 +331,23 @@ export function ScoringParameterFormFields({
 
       {/* GeoMean (read-only) */}
       {showReadOnlyFields && (
-        <div className="space-y-2 border-t border-gray-200 pt-4">
-          <Label className="text-sm font-medium text-gray-700">GeoMean</Label>
-          <Input
-            value={getGeoMeanValue()}
-            readOnly
-            className="border-gray-300 rounded-lg h-11 bg-gray-50"
-          />
+        <div className="space-y-4 border-t border-gray-200 pt-4">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700">GeoMean</Label>
+            <Input
+              value={getGeoMeanValue()}
+              readOnly
+              className="border-gray-300 rounded-lg h-11 bg-gray-50"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700">Zone Score</Label>
+            <Input
+              value={getZoneScoreValue()}
+              readOnly
+              className="border-gray-300 rounded-lg h-11 bg-gray-50"
+            />
+          </div>
         </div>
       )}
     </div>

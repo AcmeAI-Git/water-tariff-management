@@ -45,6 +45,7 @@ import type {
   CreateNotificationDto,
   UpdateNotificationDto,
   ZoneScoringRuleSet,
+  ZoneScore,
   Area,
   CreateZoneScoringRuleSetDto,
   UpdateZoneScoringRuleSetDto,
@@ -498,6 +499,11 @@ export const zoneScoringApi = {
   // Status endpoint - updates the status of a ruleset
   updateStatus: (id: number, status: string): Promise<ZoneScoringRuleSet> => {
     return fetchService.patch<ZoneScoringRuleSet>(`/zone-scoring/status/${id}`, { status });
+  },
+
+  // Get zone scores endpoint - returns calculated zone scores for all rulesets
+  getScores: (): Promise<ZoneScore[]> => {
+    return fetchService.get<ZoneScore[]>('/zone-scoring/scores');
   },
 };
 

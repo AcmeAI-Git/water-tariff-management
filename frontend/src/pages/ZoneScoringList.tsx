@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Plus, Edit, Trash2, Send, CheckCircle } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { api } from '../services/api';
 import { useApiQuery, useApiMutation, useAdminId } from '../hooks/useApiQuery';
 import LoadingSpinner from '../components/common/LoadingSpinner';
@@ -10,7 +10,8 @@ import { StatusBadge } from '../components/zoneScoring/StatusBadge';
 import { DeleteConfirmationDialog } from '../components/zoneScoring/DeleteConfirmationDialog';
 import { PageHeader } from '../components/zoneScoring/PageHeader';
 import { EmptyState } from '../components/zoneScoring/EmptyState';
-import type { ZoneScoringRuleSet } from '../types';
+import { calculatePercentages } from '../utils/zoneScoringUtils';
+import type { ZoneScoringRuleSet, ZoneScore } from '../types';
 
 export function ZoneScoringList() {
   const navigate = useNavigate();
@@ -23,6 +24,62 @@ export function ZoneScoringList() {
     () => api.zoneScoring.getAll()
   );
   const zoneScoringRuleSets: ZoneScoringRuleSet[] = (zoneScoringData ?? []) as ZoneScoringRuleSet[];
+
+  // Calculate zone scores client-side from scoring parameters for each ruleset
+  // This ensures all rulesets show their calculated scores, not just published ones
+  const scoresByRuleset = useMemo(() => {
+    const stats: Record<number, { avgGeoMean: number; avgZoneScore: number; min: number; max: number; count: number; stdDev: number }> = {};
+    
+    zoneScoringRuleSets.forEach(ruleset => {
+      if (!ruleset.scoringParams || ruleset.scoringParams.length === 0) {
+        return;
+      }
+
+      // Calculate percentages and geoMean for all parameters in this ruleset
+      const calculatedParams = calculatePercentages(ruleset.scoringParams);
+      
+      // Calculate zone scores: 1 + (geoMeanValue - avgGeoMean) / avgGeoMean
+      const geoMeanValues = calculatedParams
+        .map(p => parseFloat(p.geoMean))
+        .filter(v => !isNaN(v) && v > 0);
+      
+      if (geoMeanValues.length < 2) {
+        // Need at least 2 parameters to calculate zone scores
+        return;
+      }
+
+      const avgGeoMean = geoMeanValues.reduce((sum, val) => sum + val, 0) / geoMeanValues.length;
+      
+      if (avgGeoMean <= 0) {
+        return;
+      }
+
+      // Calculate zone score for each parameter
+      const zoneScores = geoMeanValues.map(geoMeanValue => {
+        return 1 + (geoMeanValue - avgGeoMean) / avgGeoMean;
+      });
+
+      // Calculate statistics
+      const avgZoneScore = zoneScores.reduce((a, b) => a + b, 0) / zoneScores.length; // Will always be 1
+      const min = Math.min(...zoneScores);
+      const max = Math.max(...zoneScores);
+      
+      // Calculate standard deviation
+      const variance = zoneScores.reduce((sum, score) => sum + Math.pow(score - avgZoneScore, 2), 0) / zoneScores.length;
+      const stdDev = Math.sqrt(variance);
+
+      stats[ruleset.id] = {
+        avgGeoMean,
+        avgZoneScore, // Always 1, but kept for reference
+        min,
+        max,
+        count: zoneScores.length,
+        stdDev,
+      };
+    });
+
+    return stats;
+  }, [zoneScoringRuleSets]);
 
 
   const deleteZoneScoringMutation = useApiMutation(

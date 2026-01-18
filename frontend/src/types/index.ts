@@ -513,6 +513,20 @@ export interface CreateScoringParamDto {
   geoMean: string;
 }
 
+export interface ZoneScore {
+  id: number;
+  area: Area;
+  areaId: number;
+  ruleSet: ZoneScoringRuleSet;
+  ruleSetId: number;
+  score: string;
+  areaGeomean: string;
+  zoneGeomean: string;
+  averageGeomean: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface CreateAreaDto {
   name: string;
   geojson: {
