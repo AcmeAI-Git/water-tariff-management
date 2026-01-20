@@ -107,6 +107,9 @@ function SelectItem({
   children,
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Item>) {
+  // Check if whitespace-normal is in className to allow text wrapping
+  const shouldWrap = className?.includes('whitespace-normal');
+  
   return (
     <SelectPrimitive.Item
       data-slot="select-item"
@@ -121,7 +124,12 @@ function SelectItem({
           <CheckIcon className="size-4" />
         </SelectPrimitive.ItemIndicator>
       </span>
-      <SelectPrimitive.ItemText className="truncate block w-full min-w-0">{children}</SelectPrimitive.ItemText>
+      <SelectPrimitive.ItemText className={cn(
+        "block w-full min-w-0",
+        shouldWrap ? "whitespace-normal" : "truncate"
+      )}>
+        {children}
+      </SelectPrimitive.ItemText>
     </SelectPrimitive.Item>
   );
 }

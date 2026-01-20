@@ -36,14 +36,13 @@ export function Dropdown({
             <DropdownMenuTrigger asChild disabled={disabled}>
                 <button
                     className={cn(
-                        "flex items-center justify-between text-sm text-gray-600 bg-white border border-gray-300 rounded-lg px-3 py-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-blue-500 hover:bg-gray-50 transition-colors w-full",
+                        "flex items-center justify-between text-sm text-gray-600 bg-white border border-gray-300 rounded-lg px-3 py-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-blue-500 hover:bg-gray-50 transition-colors w-full min-w-0",
                         disabled && "opacity-50 cursor-not-allowed bg-gray-100 hover:bg-gray-100",
                         className
                     )}
                     disabled={disabled}
-                    style={{ minWidth: 0 }}
                 >
-                    <span className="truncate flex-1 text-left min-w-0 mr-2">
+                    <span className="truncate flex-1 text-left min-w-0 mr-2 block">
                         {selectedOption ? selectedOption.label : placeholder}
                     </span>
                     <ChevronDown size={16} className="text-gray-400 flex-shrink-0" />
@@ -51,14 +50,15 @@ export function Dropdown({
             </DropdownMenuTrigger>
             <DropdownMenuContent
                 align="start"
-                className="min-w-[var(--radix-dropdown-menu-trigger-width)] max-w-[var(--radix-dropdown-menu-trigger-width)] bg-white"
+                className="min-w-[var(--radix-dropdown-menu-trigger-width)] max-w-[min(400px,90vw)] bg-white"
+                sideOffset={4}
             >
                 {options.map((option) => (
                     <DropdownMenuItem
                         key={option.value}
                         onClick={() => onChange?.(option.value)}
                         className={cn(
-                            "cursor-pointer truncate",
+                            "cursor-pointer whitespace-normal min-w-0",
                             value === option.value && "bg-gray-100"
                         )}
                         title={option.label}

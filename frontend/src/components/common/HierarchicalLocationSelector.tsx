@@ -87,7 +87,7 @@ export function HierarchicalLocationSelector({
 
   if (layout === 'horizontal') {
     return (
-      <div className={`grid ${showArea ? 'grid-cols-3' : 'grid-cols-2'} gap-4 ${className}`}>
+      <div className={`grid ${showArea ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2'} gap-4 ${className}`}>
         {/* City Corporation */}
         <div className="space-y-2">
           <Label className="text-sm font-medium text-gray-700">
@@ -98,15 +98,15 @@ export function HierarchicalLocationSelector({
             onValueChange={handleCityCorporationChange}
             disabled={disabled}
           >
-            <SelectTrigger className="w-full border-gray-300 rounded-lg h-11 bg-white disabled:opacity-50 disabled:cursor-not-allowed min-w-0 [&>*:first-child]:truncate [&>*:first-child]:min-w-0">
+            <SelectTrigger className="w-full border-gray-300 rounded-lg h-11 bg-white disabled:opacity-50 disabled:cursor-not-allowed min-w-0">
               <SelectValue placeholder={cityCorporationPlaceholder} />
             </SelectTrigger>
-            <SelectContent className="bg-white border border-gray-200">
+            <SelectContent className="bg-white border border-gray-200 max-w-[min(400px,90vw)]" position="popper">
               {cityCorporations.length === 0 ? (
                 <div className="px-2 py-1.5 text-sm text-gray-500">No city corporations available</div>
               ) : (
                 cityCorporations.map((cc) => (
-                  <SelectItem key={cc.id} value={cc.id.toString()} className="truncate" title={`${cc.name} (${cc.code})`}>
+                  <SelectItem key={cc.id} value={cc.id.toString()} className="whitespace-normal" title={`${cc.name} (${cc.code})`}>
                     {cc.name} ({cc.code})
                   </SelectItem>
                 ))
@@ -125,10 +125,10 @@ export function HierarchicalLocationSelector({
             onValueChange={handleZoneChange}
             disabled={disabled || !cityCorporationId}
           >
-            <SelectTrigger className="w-full border-gray-300 rounded-lg h-11 bg-white disabled:opacity-50 disabled:cursor-not-allowed min-w-0 [&>*:first-child]:truncate [&>*:first-child]:min-w-0">
+            <SelectTrigger className="w-full border-gray-300 rounded-lg h-11 bg-white disabled:opacity-50 disabled:cursor-not-allowed min-w-0">
               <SelectValue placeholder={cityCorporationId ? zonePlaceholder : 'Select city corporation first'} />
             </SelectTrigger>
-            <SelectContent className="bg-white border border-gray-200" position="popper">
+            <SelectContent className="bg-white border border-gray-200 max-w-[min(400px,90vw)]" position="popper">
               {!cityCorporationId ? (
                 <div className="px-2 py-1.5 text-sm text-gray-500">Please select a city corporation first</div>
               ) : filteredZones.length === 0 ? (
@@ -138,7 +138,7 @@ export function HierarchicalLocationSelector({
                   <SelectItem
                     key={zone.id}
                     value={zone.id.toString()}
-                    className="truncate"
+                    className="whitespace-normal"
                     title={`${zone.name} - ${zone.cityName}`}
                   >
                     {zone.name} - {zone.cityName}
@@ -159,10 +159,10 @@ export function HierarchicalLocationSelector({
             onValueChange={onAreaChange}
             disabled={disabled || !zoneId}
           >
-            <SelectTrigger className="w-full border-gray-300 rounded-lg h-11 bg-white disabled:opacity-50 disabled:cursor-not-allowed min-w-0 [&>*:first-child]:truncate [&>*:first-child]:min-w-0">
+            <SelectTrigger className="w-full border-gray-300 rounded-lg h-11 bg-white disabled:opacity-50 disabled:cursor-not-allowed min-w-0">
               <SelectValue placeholder={zoneId ? areaPlaceholder : 'Select zone first'} />
             </SelectTrigger>
-            <SelectContent className="bg-white border border-gray-200" style={{ maxWidth: '100%', width: 'var(--radix-select-trigger-width)' }}>
+            <SelectContent className="bg-white border border-gray-200 max-w-[min(400px,90vw)]" position="popper">
               {!zoneId ? (
                 <div className="px-2 py-1.5 text-sm text-gray-500">Please select a zone first</div>
               ) : filteredAreas.length === 0 ? (
@@ -172,7 +172,7 @@ export function HierarchicalLocationSelector({
                   <SelectItem
                     key={area.id}
                     value={area.id.toString()}
-                    className="truncate"
+                    className="whitespace-normal"
                     title={area.name || area.id.toString()}
                   >
                     {area.name || area.id.toString()}
@@ -199,15 +199,15 @@ export function HierarchicalLocationSelector({
           onValueChange={handleCityCorporationChange}
           disabled={disabled}
         >
-          <SelectTrigger className="w-full border-gray-300 rounded-lg h-11 bg-white disabled:opacity-50 disabled:cursor-not-allowed min-w-0 [&>*:first-child]:truncate [&>*:first-child]:min-w-0">
+          <SelectTrigger className="w-full border-gray-300 rounded-lg h-11 bg-white disabled:opacity-50 disabled:cursor-not-allowed min-w-0">
             <SelectValue placeholder={cityCorporationPlaceholder} />
           </SelectTrigger>
-          <SelectContent className="bg-white border border-gray-200">
+          <SelectContent className="bg-white border border-gray-200 max-w-[min(var(--radix-select-trigger-width),90vw)]" position="popper">
             {cityCorporations.length === 0 ? (
               <div className="px-2 py-1.5 text-sm text-gray-500">No city corporations available</div>
             ) : (
               cityCorporations.map((cc) => (
-                <SelectItem key={cc.id} value={cc.id.toString()} className="truncate" title={`${cc.name} (${cc.code})`}>
+                <SelectItem key={cc.id} value={cc.id.toString()} title={`${cc.name} (${cc.code})`}>
                   {cc.name} ({cc.code})
                 </SelectItem>
               ))
@@ -217,7 +217,7 @@ export function HierarchicalLocationSelector({
       </div>
 
       {/* Zone and Area in a grid */}
-      <div className={`grid ${showArea ? 'grid-cols-2' : 'grid-cols-1'} gap-4`}>
+      <div className={`grid ${showArea ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'} gap-4`}>
         {/* Zone */}
         <div className="space-y-2">
           <Label className="text-sm font-medium text-gray-700">
@@ -228,10 +228,10 @@ export function HierarchicalLocationSelector({
             onValueChange={handleZoneChange}
             disabled={disabled || !cityCorporationId}
           >
-            <SelectTrigger className="w-full border-gray-300 rounded-lg h-11 bg-white disabled:opacity-50 disabled:cursor-not-allowed min-w-0 [&>*:first-child]:truncate [&>*:first-child]:min-w-0">
+            <SelectTrigger className="w-full border-gray-300 rounded-lg h-11 bg-white disabled:opacity-50 disabled:cursor-not-allowed min-w-0">
               <SelectValue placeholder={cityCorporationId ? zonePlaceholder : 'Select city corporation first'} />
             </SelectTrigger>
-            <SelectContent className="bg-white border border-gray-200" position="popper">
+            <SelectContent className="bg-white border border-gray-200 max-w-[min(400px,90vw)]" position="popper">
               {!cityCorporationId ? (
                 <div className="px-2 py-1.5 text-sm text-gray-500">Please select a city corporation first</div>
               ) : filteredZones.length === 0 ? (
@@ -241,7 +241,7 @@ export function HierarchicalLocationSelector({
                   <SelectItem
                     key={zone.id}
                     value={zone.id.toString()}
-                    className="truncate"
+                    className="whitespace-normal"
                     title={`${zone.name} - ${zone.cityName}`}
                   >
                     {zone.name} - {zone.cityName}
@@ -262,10 +262,10 @@ export function HierarchicalLocationSelector({
             onValueChange={onAreaChange}
             disabled={disabled || !zoneId}
           >
-            <SelectTrigger className="w-full border-gray-300 rounded-lg h-11 bg-white disabled:opacity-50 disabled:cursor-not-allowed min-w-0 [&>*:first-child]:truncate [&>*:first-child]:min-w-0">
+            <SelectTrigger className="w-full border-gray-300 rounded-lg h-11 bg-white disabled:opacity-50 disabled:cursor-not-allowed min-w-0">
               <SelectValue placeholder={zoneId ? areaPlaceholder : 'Select zone first'} />
             </SelectTrigger>
-            <SelectContent className="bg-white border border-gray-200" style={{ maxWidth: '100%', width: 'var(--radix-select-trigger-width)' }}>
+            <SelectContent className="bg-white border border-gray-200 max-w-[min(400px,90vw)]" position="popper">
               {!zoneId ? (
                 <div className="px-2 py-1.5 text-sm text-gray-500">Please select a zone first</div>
               ) : filteredAreas.length === 0 ? (
@@ -275,7 +275,7 @@ export function HierarchicalLocationSelector({
                   <SelectItem
                     key={area.id}
                     value={area.id.toString()}
-                    className="truncate"
+                    className="whitespace-normal"
                     title={area.name || area.id.toString()}
                   >
                     {area.name || area.id.toString()}
