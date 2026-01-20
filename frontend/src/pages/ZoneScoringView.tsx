@@ -17,7 +17,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { calculatePercentages, initializeScoringParam, mapScoringParamsToDto } from '../utils/zoneScoringUtils';
 import { parseScoringParamsCSV, generateCSVTemplate } from '../utils/csvParser';
-import type { ZoneScoringRuleSet, ScoringParam, Area, CreateScoringParamDto, Zone, CityCorporation } from '../types';
+import type { ZoneScoringRuleSet, ScoringParam, Area, CreateScoringParamDto, Zone, CityCorporation, ZoneScore } from '../types';
 
 export function ZoneScoringView() {
   const { id } = useParams<{ id: string }>();
@@ -73,6 +73,13 @@ export function ZoneScoringView() {
     () => api.cityCorporations.getAll()
   );
   const cityCorporations: CityCorporation[] = (cityCorporationsData ?? []) as CityCorporation[];
+
+  // Fetch zone scores from API
+  const { data: zoneScoresData } = useApiQuery<ZoneScore[]>(
+    ['zone-scoring-scores'],
+    () => api.zoneScoring.getScores()
+  );
+  const zoneScores: ZoneScore[] = (zoneScoresData ?? []) as ZoneScore[];
 
   // Fetch all rulesets to check for active ones (for future use)
   // const { data: allRulesetsData } = useApiQuery<ZoneScoringRuleSet[]>(
@@ -150,6 +157,7 @@ export function ZoneScoringView() {
   const handleEditParam = (param: ScoringParam) => {
     setEditingParam(param);
     setEditingParamValues({
+      areaId: param.areaId,
       landHomeRate: param.landHomeRate,
       landRate: param.landRate,
       landTaxRate: param.landTaxRate,
@@ -746,6 +754,8 @@ export function ZoneScoringView() {
                 onRemoveParam={handleRemoveParameter}
                 zones={zones}
                 cityCorporations={cityCorporations}
+                zoneScores={zoneScores}
+                ruleSetId={rulesetData?.id}
               />
             </div>
           </div>
@@ -782,6 +792,7 @@ export function ZoneScoringView() {
           onAdd={handleAddParameter}
           isPending={updateZoneScoringMutation.isPending}
           calculatedParams={calculatedParams}
+          ruleSetId={rulesetData?.id}
         />
 
         {/* Edit Ruleset Modal */}

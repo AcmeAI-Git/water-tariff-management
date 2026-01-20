@@ -18,6 +18,7 @@ interface AddParameterModalProps {
   onAdd: () => Promise<void>;
   isPending: boolean;
   calculatedParams?: ScoringParam[];
+  ruleSetId?: number;
 }
 
 export function AddParameterModal({
@@ -31,6 +32,7 @@ export function AddParameterModal({
   onAdd,
   isPending,
   calculatedParams = [],
+  ruleSetId,
 }: AddParameterModalProps) {
   const [selectedCityCorpId, setSelectedCityCorpId] = useState<string>('');
   const [selectedZoneId, setSelectedZoneId] = useState<string>('');
@@ -184,6 +186,7 @@ export function AddParameterModal({
             calculatedParams={calculatedParams}
             showPercentages={true}
             showReadOnlyFields={true}
+            ruleSetId={ruleSetId}
           />
         </div>
         <DialogFooter>

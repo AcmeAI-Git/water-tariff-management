@@ -62,6 +62,7 @@ export function EditParameterModal({
             editingParamId={editingParam.id}
             showPercentages={true}
             showReadOnlyFields={true}
+            ruleSetId={activeRuleSet?.id}
           />
         </div>
 

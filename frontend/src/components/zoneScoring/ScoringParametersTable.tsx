@@ -1,7 +1,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Button } from '../ui/button';
 import { Edit, Trash2 } from 'lucide-react';
-import type { ScoringParam, Zone, CityCorporation } from '../../types';
+import type { ScoringParam, Zone, CityCorporation, ZoneScore } from '../../types';
 
 interface ScoringParametersTableProps {
   calculatedParams: ScoringParam[];
@@ -9,9 +9,11 @@ interface ScoringParametersTableProps {
   onRemoveParam?: (paramId: number) => void;
   zones?: Zone[];
   cityCorporations?: CityCorporation[];
+  zoneScores?: ZoneScore[];
+  ruleSetId?: number;
 }
 
-export function ScoringParametersTable({ calculatedParams, onEditParam, onRemoveParam, zones = [], cityCorporations = [] }: ScoringParametersTableProps) {
+export function ScoringParametersTable({ calculatedParams, onEditParam, onRemoveParam, zones = [], cityCorporations = [], zoneScores = [], ruleSetId }: ScoringParametersTableProps) {
   // Helper function to format percentage display
   const formatPercentage = (percentage: string): string => {
     // If there's only one parameter, percentages are meaningless (would be 100%)
@@ -54,14 +56,11 @@ export function ScoringParametersTable({ calculatedParams, onEditParam, onRemove
       </TableHeader>
       <TableBody>
         {calculatedParams.map((param, index) => {
-          // Calculate zone score: 1 + (% of Zonal Average of Geomeans - average) / average
-          const geoMeanValue = parseFloat(param.geoMean) || 0;
-          const avgGeoMean = calculatedParams.length > 1 
-            ? calculatedParams.reduce((sum, p) => sum + (parseFloat(p.geoMean) || 0), 0) / calculatedParams.length 
-            : 0;
-          const zoneScore = calculatedParams.length > 1 && avgGeoMean > 0 
-            ? (1 + (geoMeanValue - avgGeoMean) / avgGeoMean).toFixed(6) 
-            : '-';
+          // Get zone score from API data
+          const apiZoneScore = zoneScores.find(
+            score => score.areaId === param.areaId && score.ruleSetId === ruleSetId
+          );
+          const zoneScore = apiZoneScore?.score || '-';
           
           // Get zone and city corporation info
           // Use nested zone object from area if available, otherwise fallback to lookup
