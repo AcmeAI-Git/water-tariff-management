@@ -15,6 +15,8 @@ import { api } from "../services/api";
 import { useApiQuery, useApiMutation } from "../hooks/useApiQuery";
 import { mapAdminToDisplay, type DisplayAdmin } from "../utils/dataMappers";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
+import { toast } from "sonner";
+import type { Admin } from "../types";
 
 interface Agent {
     name: string;
@@ -36,7 +38,19 @@ export function AgentManagement() {
     const [showModal, setShowModal] = useState(false);
     const [editMode, setEditMode] = useState(false);
     const [editingAgent, setEditingAgent] = useState<EditingAgent | null>(null);
-    // const adminId = useAdminId();
+    
+    // Get current logged-in admin
+    const getCurrentAdmin = (): Admin | null => {
+        const adminStr = localStorage.getItem('admin');
+        if (!adminStr) return null;
+        try {
+            return JSON.parse(adminStr);
+        } catch {
+            return null;
+        }
+    };
+    
+    const currentAdmin = getCurrentAdmin();
 
     // Fetch admins and roles
     const { data: admins = [], isLoading: adminsLoading } = useApiQuery(
@@ -166,6 +180,12 @@ export function AgentManagement() {
 
     const handleDelete = async () => {
         if (!editingAgent) return;
+
+        // Prevent super admin from deleting themselves
+        if (currentAdmin && editingAgent.id === currentAdmin.id) {
+            toast.error('You cannot delete your own account');
+            return;
+        }
 
         await deleteMutation.mutateAsync(editingAgent.id);
         setShowModal(false);
@@ -309,7 +329,7 @@ export function AgentManagement() {
                     phone: editingAgent.phone,
                     role: editingAgent.role,
                 } : null}
-                onDelete={editMode ? handleDelete : undefined}
+                onDelete={editMode && editingAgent && currentAdmin && editingAgent.id !== currentAdmin.id ? handleDelete : undefined}
                 roleOptions={roleOptions}
             />
         </div>

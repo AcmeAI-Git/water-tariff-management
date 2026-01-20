@@ -15,6 +15,8 @@ import { api } from "../services/api";
 import { useApiQuery, useApiMutation } from "../hooks/useApiQuery";
 import { mapAdminToDisplay, type DisplayAdmin } from "../utils/dataMappers";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
+import { toast } from "sonner";
+import type { Admin } from "../types";
 
 interface Agent {
     name: string;
@@ -47,6 +49,19 @@ export default function MeterReaderManagement() {
     const [showModal, setShowModal] = useState(false);
     const [editMode, setEditMode] = useState(false);
     const [editingAgent, setEditingAgent] = useState<EditingMeterReader | null>(null);
+    
+    // Get current logged-in admin
+    const getCurrentAdmin = (): Admin | null => {
+        const adminStr = localStorage.getItem('admin');
+        if (!adminStr) return null;
+        try {
+            return JSON.parse(adminStr);
+        } catch {
+            return null;
+        }
+    };
+    
+    const currentAdmin = getCurrentAdmin();
 
     // Fetch roles to find Meter Admin role ID
     const { data: roles = [], isLoading: rolesLoading } = useApiQuery(
@@ -175,6 +190,12 @@ export default function MeterReaderManagement() {
 
     const handleDelete = async () => {
         if (!editingAgent) return;
+
+        // Prevent admin from deleting themselves
+        if (currentAdmin && editingAgent.id === currentAdmin.id) {
+            toast.error('You cannot delete your own account');
+            return;
+        }
 
         await deleteMutation.mutateAsync(editingAgent.id);
         setShowModal(false);
@@ -326,7 +347,7 @@ export default function MeterReaderManagement() {
                     role: editingAgent.role,
                 } : null}
                 roleFixed="Meter Admin"
-                onDelete={editMode ? handleDelete : undefined}
+                onDelete={editMode && editingAgent && currentAdmin && editingAgent.id !== currentAdmin.id ? handleDelete : undefined}
                 modalTitle={editMode ? "Edit Meter Reader" : "Add Meter Reader"}
                 submitButtonText={editMode ? "Save Changes" : "Add Meter Reader"}
             />
