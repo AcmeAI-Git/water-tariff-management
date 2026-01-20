@@ -365,15 +365,9 @@ export function ReviewChangeModal({ request, onClose, onApprove, onReject, isLoa
         <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
           {/* Request Info */}
           <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs text-gray-600 mb-1">Module</p>
-                <p className="text-sm font-semibold text-gray-900">{request.module}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-600 mb-1">Request Timestamp</p>
-                <p className="text-sm font-semibold text-gray-900">{request.request}</p>
-              </div>
+            <div>
+              <p className="text-xs text-gray-600 mb-1">Module</p>
+              <p className="text-sm font-semibold text-gray-900">{request.module}</p>
             </div>
           </div>
 

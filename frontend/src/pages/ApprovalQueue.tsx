@@ -24,6 +24,8 @@ interface ApprovalQueueItem {
   oldData?: unknown;
   newData?: unknown;
   account?: string; // UUID for customer records
+  details?: string; // Context-specific description
+  affectedEntity?: string; // Secondary info about what's affected
 }
 
 export function ApprovalQueue() {
@@ -98,6 +100,10 @@ export function ApprovalQueue() {
     // Add pending consumptions
     pendingConsumptions.forEach((consumption: Consumption) => {
       const creator = admins.find((a) => a.id === consumption.createdBy);
+      // Find user/customer for this consumption
+      const customer = (allUsers as User[]).find((u: User) => u.id === consumption.userId);
+      const customerName = customer?.fullName || customer?.name || `Customer #${consumption.userId}`;
+      
       items.push({
         id: `CONSUMPTION-${consumption.id}`,
         module: 'Consumption',
@@ -115,6 +121,8 @@ export function ApprovalQueue() {
         status: 'Pending',
         recordId: consumption.id,
         recordType: 'consumption',
+        details: `${consumption.billMonth} - ${customerName}`,
+        affectedEntity: `${consumption.consumption || 0} m³`,
         oldData: null,
         newData: {
           userId: consumption.userId,
@@ -129,6 +137,8 @@ export function ApprovalQueue() {
     // Add pending ZoneScoring rulesets
     pendingZoneScoringRulesets.forEach((ruleset: ZoneScoringRuleSet) => {
       // ZoneScoringRuleSet doesn't have createdBy/requestedBy fields
+      const areaCount = ruleset.scoringParams?.length || 0;
+      
       items.push({
         id: `ZONE-SCORING-${ruleset.id}`,
         module: 'ZoneScoring',
@@ -146,6 +156,8 @@ export function ApprovalQueue() {
         status: 'Pending',
         recordId: ruleset.id,
         recordType: 'zone-scoring',
+        details: ruleset.title,
+        affectedEntity: `${areaCount} area${areaCount !== 1 ? 's' : ''}`,
         oldData: null,
         newData: {
           title: ruleset.title,
@@ -200,6 +212,9 @@ export function ApprovalQueue() {
       // We'll show "N/A" as the backend API doesn't include timestamp fields for users
       // (Zone scoring has createdAt/updatedAt, but users endpoint doesn't return them)
       
+      const customerName = customer.name || customer.fullName || 'Unknown Customer';
+      const inspCodeStr = customer.inspCode ? `IC-${customer.inspCode}` : '-';
+      
       items.push({
         id: `CUSTOMER-${customerAccount}`,
         module: 'Customer',
@@ -218,6 +233,8 @@ export function ApprovalQueue() {
         recordId: typeof customerAccount === 'string' ? 0 : customerAccount, // Use 0 for UUID, actual ID for number
         recordType: 'customer',
         account: typeof customerAccount === 'string' ? customerAccount : undefined,
+        details: `${customerName} (${inspCodeStr})`,
+        affectedEntity: customer.customerCategory || '-',
         oldData: null,
         newData: {
           name: customer.name || customer.fullName,
@@ -666,15 +683,16 @@ export function ApprovalQueue() {
             <TableHeader>
               <TableRow className="border-gray-200 bg-gray-50 hover:bg-gray-50">
                 <TableHead className="font-semibold text-gray-700">Module</TableHead>
-                <TableHead className="font-semibold text-gray-700">Request Timestamp</TableHead>
-                <TableHead className="font-semibold text-gray-700">Status</TableHead>
+                <TableHead className="font-semibold text-gray-700">Details</TableHead>
+                <TableHead className="font-semibold text-gray-700">Category</TableHead>
+                <TableHead className="font-semibold text-gray-700">Requested By</TableHead>
                 <TableHead className="font-semibold text-gray-700 text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {displayRequests.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={5} className="text-center py-8 text-gray-500">
                     No pending approval requests
                   </TableCell>
                 </TableRow>
@@ -682,15 +700,9 @@ export function ApprovalQueue() {
                 displayRequests.map((request) => (
                   <TableRow key={request.id} className="border-gray-100">
                     <TableCell className="font-medium text-gray-900">{request.module}</TableCell>
-                    <TableCell className="text-gray-600">{request.request}</TableCell>
-                    <TableCell>
-                      <Badge 
-                        variant="secondary" 
-                        className="bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-50"
-                      >
-                        {request.status}
-                      </Badge>
-                    </TableCell>
+                    <TableCell className="text-gray-700">{request.details || '-'}</TableCell>
+                    <TableCell className="text-gray-600 text-sm">{request.affectedEntity || '-'}</TableCell>
+                    <TableCell className="text-gray-600 text-sm">{request.requestedBy}</TableCell>
                     <TableCell className="text-right">
                       <Button
                         onClick={() => handleReview(request)}
