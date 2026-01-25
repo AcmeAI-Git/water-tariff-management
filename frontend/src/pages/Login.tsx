@@ -5,6 +5,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { api } from '../services/api';
 import { toast } from 'sonner';
+import { getRouteForRole } from '../utils/roleUtils';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -22,16 +23,6 @@ export default function Login() {
     'tariff-admin': { email: 'tariff-admin@demo.com', password: 'demo123' },
     'approval-admin': { email: 'approval-admin@demo.com', password: 'demo123' },
     'general-info': { email: 'general-info@demo.com', password: 'demo123' },
-  };
-
-  // Route mapping for navigation after login
-  const routeMap: Record<string, string> = {
-    admin: '/admin/dashboard',
-    'meter-admin': '/meter-admin/entry',
-    'customer-admin': '/customer-admin/households',
-    'tariff-admin': '/tariff-admin/config',
-    'approval-admin': '/approval-admin/queue',
-    'general-info': '/general-info/dashboard',
   };
 
   const handleLogin = async (e?: React.FormEvent) => {
@@ -57,9 +48,16 @@ export default function Login() {
       
       toast.success('Login successful!');
       
-      // Navigate based on role (you can customize this based on roleId)
-      // For now, navigate to admin dashboard
-      navigate('/admin/dashboard');
+      // Navigate based on role
+      const roleName = admin.role?.name || '';
+      const route = getRouteForRole(roleName);
+      
+      // Debug logging (can be removed in production)
+      if (!roleName) {
+        console.warn('No role name found in admin object:', admin);
+      }
+      
+      navigate(route);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Login failed. Please check your credentials.';
       setError(errorMessage);
@@ -70,6 +68,47 @@ export default function Login() {
   };
 
   const handleDemo = async (role: string) => {
+    // Handle customer portal demo login separately
+    if (role === 'customer') {
+      try {
+        setDemoLoading('customer');
+        setError('');
+        
+        // Get first active user for demo
+        const users = await api.users.getAll('active');
+        if (users.length === 0) {
+          toast.error('No active users found. Please create a customer first.');
+          setDemoLoading(null);
+          return;
+        }
+
+        const demoUser = users[0];
+        const userPasswords = JSON.parse(localStorage.getItem('userPasswords') || '{}');
+        const demoPassword = userPasswords[demoUser.id] || 'demo123';
+
+        // If no password exists, set a default demo password
+        if (!userPasswords[demoUser.id]) {
+          userPasswords[demoUser.id] = demoPassword;
+          localStorage.setItem('userPasswords', JSON.stringify(userPasswords));
+        }
+
+        // Store authenticated customer user
+        localStorage.setItem('customerUser', JSON.stringify(demoUser));
+        localStorage.setItem('isCustomerAuthenticated', 'true');
+        
+        toast.success('Login successful!');
+        navigate('/customer/dashboard');
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Demo login failed';
+        setError(errorMessage);
+        toast.error(errorMessage);
+      } finally {
+        setDemoLoading(null);
+      }
+      return;
+    }
+
+    // Handle admin demo logins
     const credentials = demoCredentials[role];
     if (!credentials) {
       toast.error('Invalid demo role');
@@ -90,15 +129,22 @@ export default function Login() {
       localStorage.setItem('admin', JSON.stringify(admin));
       localStorage.setItem('isAuthenticated', 'true');
       
-      toast.success('Demo login successful!');
+      toast.success('Login successful!');
       
-      // Navigate to the appropriate route for this role
-      const dest = routeMap[role] ?? '/admin/dashboard';
-      navigate(dest);
+      // Navigate based on role (same logic as regular login)
+      const roleName = admin.role?.name || '';
+      const route = getRouteForRole(roleName);
+      
+      // Debug logging (can be removed in production)
+      if (!roleName) {
+        console.warn('No role name found in admin object:', admin);
+      }
+      
+      navigate(route);
     } catch (err) {
       const errorMessage = err instanceof Error 
         ? err.message 
-        : 'Demo login failed. Please ensure demo accounts are set up in the database.';
+        : 'Login failed. Please check your credentials.';
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -197,7 +243,7 @@ export default function Login() {
                 disabled={loading || demoLoading !== null}
                 className="border-gray-300 text-gray-700 rounded-lg h-10 text-sm hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {demoLoading === 'meter-admin' ? 'Logging in...' : 'Meter Admin'}
+                {demoLoading === 'meter-admin' ? 'Logging in...' : 'Meter Reader'}
               </Button>
               <Button 
                 onClick={() => handleDemo('customer-admin')}
@@ -229,7 +275,15 @@ export default function Login() {
                 disabled={loading || demoLoading !== null}
                 className="border-gray-300 text-gray-700 rounded-lg h-10 text-sm hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {demoLoading === 'general-info' ? 'Logging in...' : 'General Info Admin'}
+                {demoLoading === 'general-info' ? 'Logging in...' : 'General Admin'}
+              </Button>
+              <Button 
+                onClick={() => handleDemo('customer')}
+                variant="outline"
+                disabled={loading || demoLoading !== null}
+                className="border-gray-300 text-gray-700 rounded-lg h-10 text-sm hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed col-span-2"
+              >
+                {demoLoading === 'customer' ? 'Logging in...' : 'Customer Portal'}
               </Button>
             </div>
           </div>

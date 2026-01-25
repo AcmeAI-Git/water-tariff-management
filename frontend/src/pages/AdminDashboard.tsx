@@ -69,7 +69,14 @@ export default function AdminDashboard() {
     const avgConsumption = useMemo(() => {
         if (consumptions.length === 0) return 0;
         const totalConsumption = consumptions.reduce((sum, c) => {
-            const consumption = c.currentReading - (c.previousReading || 0);
+            // Ensure values are numbers
+            const current = typeof c.currentReading === 'number' 
+                ? c.currentReading 
+                : Number(c.currentReading) || 0;
+            const previous = typeof c.previousReading === 'number' 
+                ? c.previousReading 
+                : Number(c.previousReading) || 0;
+            const consumption = current - previous;
             return sum + Math.max(0, consumption); // Ensure non-negative
         }, 0);
         return parseFloat((totalConsumption / consumptions.length).toFixed(1));
@@ -120,7 +127,7 @@ export default function AdminDashboard() {
                 const billDate = new Date(bill.billMonth);
                 const month = billDate.toLocaleDateString('en-US', { month: 'short' });
                 monthlyRevenue[month] = (monthlyRevenue[month] || 0) + (bill.totalBill || 0);
-            } catch (e) {
+            } catch {
                 // Skip invalid dates
             }
         });
@@ -142,7 +149,7 @@ export default function AdminDashboard() {
     // Map pending approvals to display format
     const pendingData = useMemo(() => {
         return pendingApprovals.slice(0, 4).map((approval) => {
-            const moduleName = (approval as any).moduleName || 'Unknown';
+            const moduleName = approval.moduleName || 'Unknown';
             return {
                 consumer: moduleName,
                 type: moduleName.includes('Tariff') ? 'Commercial' : 'Residential',

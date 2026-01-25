@@ -1,4 +1,4 @@
-﻿import { Users, TrendingUp, BarChart3, LogOut } from "lucide-react";
+import { Users, TrendingUp, BarChart3, LogOut, Clock, FileText } from "lucide-react";
 
 interface CustomerAdminSidebarProps {
     activePage: string;
@@ -11,9 +11,14 @@ export function CustomerAdminSidebar({
 }: CustomerAdminSidebarProps) {
     const menuItems = [
         {
-            id: "customer-admin-households",
-            label: "Household Management",
+            id: "customer-admin-customers",
+            label: "Customer Management",
             icon: Users,
+        },
+        {
+            id: "customer-admin-pending",
+            label: "Submission History",
+            icon: Clock,
         },
         {
             id: "customer-admin-visualizer",
@@ -21,6 +26,11 @@ export function CustomerAdminSidebar({
             icon: TrendingUp,
         },
         { id: "customer-admin-metrics", label: "My Metrics", icon: BarChart3 },
+        {
+            id: "customer-admin-billing",
+            label: "Billing Management",
+            icon: FileText,
+        },
     ];
 
     return (
@@ -39,24 +49,28 @@ export function CustomerAdminSidebar({
 
             {/* Navigation */}
             <nav className="flex-1 px-4 py-6">
-                {menuItems.map((item) => {
+                {menuItems.map((item, index) => {
                     const Icon = item.icon;
                     const isActive = activePage === item.id;
                     return (
-                        <button
-                            key={item.id}
-                            onClick={() => onNavigate(item.id)}
-                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-1 transition-all ${
-                                isActive
-                                    ? "bg-primary text-white"
-                                    : "text-gray-700 hover:bg-gray-50"
-                            }`}
-                        >
-                            <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-                            <span className="text-[0.9375rem] font-medium">
-                                {item.label}
-                            </span>
-                        </button>
+                        <div key={item.id}>
+                            <button
+                                onClick={() => onNavigate(item.id)}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                                    isActive
+                                        ? "bg-primary text-white"
+                                        : "text-gray-700 hover:bg-gray-50"
+                                }`}
+                            >
+                                <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+                                <span className="text-[0.9375rem] font-medium">
+                                    {item.label}
+                                </span>
+                            </button>
+                            {index < menuItems.length - 1 && (
+                                <div className="border-b border-gray-400 mx-4"></div>
+                            )}
+                        </div>
                     );
                 })}
             </nav>

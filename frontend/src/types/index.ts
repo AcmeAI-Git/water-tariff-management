@@ -15,6 +15,7 @@ export interface Admin {
   email: string;
   phone: string;
   roleId: number;
+  role?: Role; // Role relation from backend
   createdAt?: string;
   updatedAt?: string;
 }
@@ -47,6 +48,7 @@ export interface ChangePasswordDto {
 export interface User {
   id: number;
   fullName: string;
+  name?: string; // Alias for fullName for backward compatibility
   email: string;
   phone: string;
   address: string;
@@ -56,33 +58,61 @@ export interface User {
   zoneId: number;
   wardId: number;
   status: string;
+  account?: string | number; // Account identifier (can be UUID string or number)
+  landSizeDecimal?: number;
+  numberOfStories?: number;
+  numberOfFlats?: number;
   createdAt?: string;
   updatedAt?: string;
 }
 
+// Nested meter DTO for user creation (no account field needed)
+export interface CreateUserMeterDto {
+  meterNo: number;
+  meterStatus: string;
+  sizeOfDia: string;
+  meterInstallationDate?: string;
+}
+
 export interface CreateUserDto {
-  fullName: string;
-  email: string;
-  phone: string;
+  name: string;
   address: string;
-  hourseType: string;
-  meterNo: string;
-  installDate: string;
-  zoneId: number;
-  wardId: number;
+  inspCode: number;
+  areaId: number;
+  accountType: string;
+  customerCategory: string;
+  waterStatus: string;
+  sewerStatus: string;
+  landSizeDecimal?: number;
+  numberOfStories?: number;
+  numberOfFlats?: number;
+  meter?: CreateUserMeterDto; // Optional nested meter object
+}
+
+export interface UpdateUserMeterDto {
+  meterNo?: number;
+  meterStatus?: string;
+  sizeOfDia?: string;
+  meterInstallationDate?: string;
 }
 
 export interface UpdateUserDto {
-  fullName?: string;
-  email?: string;
-  phone?: string;
+  name?: string;
   address?: string;
-  hourseType?: string;
-  meterNo?: string;
-  installDate?: string;
-  zoneId?: number;
-  wardId?: number;
-  status?: string;
+  inspCode?: number;
+  areaId?: number;
+  accountType?: string;
+  customerCategory?: string;
+  waterStatus?: string;
+  sewerStatus?: string;
+  landSizeDecimal?: number;
+  numberOfStories?: number;
+  numberOfFlats?: number;
+  meter?: UpdateUserMeterDto; // Optional nested meter object for updates
+}
+
+export interface UpdateUserStatusDto {
+  activeStatus: 'Active' | 'Inactive';
 }
 
 // Role Types
@@ -133,6 +163,7 @@ export interface Zone {
   cityName: string;
   tariffCategory: string;
   cityCorporationId: number;
+  cityCorporation?: CityCorporation; // Optional relation
   createdAt?: string;
 }
 
@@ -140,8 +171,8 @@ export interface CreateZoneDto {
   name: string;
   zoneNo: string;
   cityName: string;
-  tariffCategory: string;
   cityCorporationId: number;
+  // Note: tariffCategory is not in the DTO - backend rejects it
 }
 
 export interface UpdateZoneDto {
@@ -251,9 +282,11 @@ export interface RejectTariffPlanDto {
 }
 
 // Approval Status Types
+// Note: Backend uses statusName, but we support both for compatibility
 export interface ApprovalStatus {
   id: number;
-  name: string;
+  name?: string; // Frontend type (may not match backend)
+  statusName?: string; // Backend field name
   description?: string;
 }
 
@@ -303,10 +336,13 @@ export interface Consumption {
   consumption?: number;
   status?: string;
   createdAt?: string;
+  approvalStatusId?: number;
+  approvalStatus?: ApprovalStatus;
+  approvedBy?: number | null;
 }
 
 export interface CreateConsumptionDto {
-  userId: number;
+  account: number; // Numeric ID (workaround: backend validation expects number but users have UUID strings)
   createdBy: number;
   billMonth: string;
   currentReading: number;
@@ -331,7 +367,7 @@ export interface WaterBill {
   tariffPlanId: number;
   consumptionId: number;
   totalBill: number;
-  breakdown?: any;
+  breakdown?: unknown;
   billMonth: string;
   status: string;
   createdAt?: string;
@@ -342,14 +378,14 @@ export interface CreateWaterBillDto {
   tariffPlanId: number;
   consumptionId: number;
   totalBill: number;
-  breakdown?: any;
+  breakdown?: unknown;
   billMonth: string;
   status?: string;
 }
 
 export interface UpdateWaterBillDto {
   totalBill?: number;
-  breakdown?: any;
+  breakdown?: unknown;
   billMonth?: string;
   status?: string;
 }
@@ -361,8 +397,8 @@ export interface AuditLog {
   action: string;
   tableName: string;
   recordId: number;
-  oldData?: any | null;
-  newData?: any | null;
+  oldData?: unknown | null;
+  newData?: unknown | null;
   ipAddress?: string | null;
   createdAt: string;
   // Relations (populated by backend)
@@ -406,4 +442,231 @@ export interface UpdateNotificationDto {
   message?: string;
   type?: string;
   isRead?: boolean;
+}
+
+// Zone Scoring Types
+export interface Area {
+  id: number;
+  name: string;
+  zoneId: number;
+  zone?: Zone; // Optional relation
+  geojson: {
+    type: string;
+    coordinates: number[][][];
+  };
+}
+
+export interface ScoringParam {
+  id: number;
+  area: Area;
+  areaId: number;
+  landHomeRate: string;
+  landHomeRatePercentage: string;
+  landRate: string;
+  landRatePercentage: string;
+  landTaxRate: string;
+  landTaxRatePercentage: string;
+  buildingTaxRateUpto120sqm: string;
+  buildingTaxRateUpto120sqmPercentage: string;
+  buildingTaxRateUpto200sqm: string;
+  buildingTaxRateUpto200sqmPercentage: string;
+  buildingTaxRateAbove200sqm: string;
+  buildingTaxRateAbove200sqmPercentage: string;
+  highIncomeGroupConnectionPercentage: string;
+  geoMean: string;
+  ruleSetId: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ZoneScoringRuleSet {
+  id: number;
+  title: string;
+  description: string;
+  status: string;
+  scoringParams: ScoringParam[];
+  effectiveFrom: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateZoneScoringRuleSetDto {
+  title: string;
+  description?: string;
+  status?: string;
+  scoringParams?: CreateScoringParamDto[];
+}
+
+export interface UpdateZoneScoringRuleSetDto {
+  title?: string;
+  description?: string;
+  status?: string;
+  scoringParams?: CreateScoringParamDto[];
+}
+
+export interface CreateScoringParamDto {
+  areaId: number;
+  landHomeRate: string;
+  landHomeRatePercentage: string;
+  landRate: string;
+  landRatePercentage: string;
+  landTaxRate: string;
+  landTaxRatePercentage: string;
+  buildingTaxRateUpto120sqm: string;
+  buildingTaxRateUpto120sqmPercentage: string;
+  buildingTaxRateUpto200sqm: string;
+  buildingTaxRateUpto200sqmPercentage: string;
+  buildingTaxRateAbove200sqm: string;
+  buildingTaxRateAbove200sqmPercentage: string;
+  highIncomeGroupConnectionPercentage: string;
+  geoMean: string;
+}
+
+export interface ZoneScore {
+  id: number;
+  area: Area;
+  areaId: number;
+  ruleSet: ZoneScoringRuleSet;
+  ruleSetId: number;
+  score: string;
+  areaGeomean: string;
+  zoneGeomean: string;
+  averageGeomean: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateAreaDto {
+  name: string;
+  geojson: {
+    type: string;
+    coordinates: number[][][];
+  };
+  zoneId?: number;
+}
+
+export interface UpdateAreaDto {
+  name?: string;
+  geojson?: {
+    type: string;
+    coordinates: number[][][];
+  };
+  zoneId?: number;
+}
+
+// Meter Types
+export interface Meter {
+  id: number;
+  account: string; // UUID string
+  userAccount?: string | number; // Alias for account for backward compatibility
+  meterNo: number;
+  meterStatus: string;
+  sizeOfDia: string;
+  meterInstallationDate?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateMeterDto {
+  account: string; // UUID string
+  meterNo: number;
+  meterStatus: string;
+  sizeOfDia: string;
+  meterInstallationDate?: string;
+}
+
+export interface UpdateMeterDto {
+  meterNo?: number;
+  meterStatus?: string;
+  sizeOfDia?: string;
+  meterInstallationDate?: string;
+}
+
+// Tariff Category Types
+export interface TariffCategory {
+  id: number;
+  slNo: number;
+  category: 'Domestic' | 'Commercial' | 'Industrial' | 'Government' | 'Community';
+  name: string;
+  lowerRange?: number;
+  upperRange?: number;
+  rangeDescription?: string;
+  isBaseCategory: boolean;
+  isFixedRate: boolean;
+  isActive: boolean;
+  settingsId: number;
+  wasaTariff?: number;
+  tubewellTariff?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateTariffCategoryDto {
+  slNo: number;
+  category: 'Domestic' | 'Commercial' | 'Industrial' | 'Government' | 'Community';
+  name: string;
+  lowerRange?: number;
+  upperRange?: number;
+  rangeDescription?: string;
+  isBaseCategory?: boolean;
+  isFixedRate?: boolean;
+  isActive?: boolean;
+  settingsId: number;
+}
+
+export interface UpdateTariffCategoryDto {
+  slNo?: number;
+  category?: 'Domestic' | 'Commercial' | 'Industrial' | 'Government' | 'Community';
+  name?: string;
+  lowerRange?: number;
+  upperRange?: number;
+  rangeDescription?: string;
+  isBaseCategory?: boolean;
+  isFixedRate?: boolean;
+  isActive?: boolean;
+  settingsId?: number;
+}
+
+// Tariff Category Settings Types
+export interface TariffCategorySettings {
+  id: number;
+  productionCost: number;
+  baseRate: number;
+  currentTariff: number;
+  currentTubewellTariff: number;
+  tubewellRatioStandard?: number;
+  tubewellRatioCommercial?: number;
+  aboveBaseIncreasePercent?: number;
+  belowBaseDecreasePercent?: number;
+  commercialIncreasePercent?: number;
+  governmentIncreasePercent?: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateTariffCategorySettingsDto {
+  productionCost: number;
+  baseRate: number;
+  currentTariff: number;
+  currentTubewellTariff: number;
+  tubewellRatioStandard?: number;
+  tubewellRatioCommercial?: number;
+  aboveBaseIncreasePercent?: number;
+  belowBaseDecreasePercent?: number;
+  commercialIncreasePercent?: number;
+  governmentIncreasePercent?: number;
+}
+
+export interface UpdateTariffCategorySettingsDto {
+  productionCost?: number;
+  baseRate?: number;
+  currentTariff?: number;
+  currentTubewellTariff?: number;
+  tubewellRatioStandard?: number;
+  tubewellRatioCommercial?: number;
+  aboveBaseIncreasePercent?: number;
+  belowBaseDecreasePercent?: number;
+  commercialIncreasePercent?: number;
+  governmentIncreasePercent?: number;
 }

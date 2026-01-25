@@ -8,19 +8,19 @@ import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-export type GeneralInfoAdminSidebarProps = {
+export type GeneralAdminSidebarProps = {
     activePage?: string;
     onNavigate?: (page: string) => void;
 };
 
-export function GeneralInfoAdminSidebar({ activePage, onNavigate }: GeneralInfoAdminSidebarProps) {
+export function GeneralAdminSidebar({ activePage, onNavigate }: GeneralAdminSidebarProps) {
     const navigate = useNavigate();
     const qc = useQueryClient();
 
     const routeMap: Record<string, string> = {
-        dashboard: "/general-info/dashboard",
-        users: "/general-info/users",
-        audit: "/general-info/audit",
+        dashboard: "/general-admin/dashboard",
+        users: "/general-admin/meter-readers",
+        audit: "/general-admin/audit",
     };
 
     const handleNav = (id: string) => {
@@ -51,7 +51,7 @@ export function GeneralInfoAdminSidebar({ activePage, onNavigate }: GeneralInfoA
 
     const menuItems = [
         { id: "dashboard", label: "Dashboard", icon: Home },
-        { id: "users", label: "User Management", icon: Users },
+        { id: "users", label: "Meter Reader Management", icon: Users },
         { id: "audit", label: "System Audit Log", icon: ClipboardList },
     ];
 
@@ -68,24 +68,28 @@ export function GeneralInfoAdminSidebar({ activePage, onNavigate }: GeneralInfoA
 
             {/* Navigation */}
             <nav className="flex-1 px-4 py-6">
-                {menuItems.map((item) => {
+                {menuItems.map((item, index) => {
                     const Icon = item.icon;
                     const isActive = activePage === item.id;
                     return (
-                        <button
-                            key={item.id}
-                            onClick={() => handleNav(item.id)}
-                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-1 transition-all ${
-                                isActive
-                                    ? "bg-primary text-white"
-                                    : "text-gray-700 hover:bg-gray-50"
-                            }`}
-                        >
-                            <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-                            <span className="text-[0.9375rem] font-medium">
-                                {item.label}
-                            </span>
-                        </button>
+                        <div key={item.id}>
+                            <button
+                                onClick={() => handleNav(item.id)}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                                    isActive
+                                        ? "bg-primary text-white"
+                                        : "text-gray-700 hover:bg-gray-50"
+                                }`}
+                            >
+                                <Icon size={20} strokeWidth={isActive ? 2.5 : 2} className="flex-shrink-0" />
+                                <span className="text-[0.9375rem] font-medium whitespace-nowrap text-left">
+                                    {item.label}
+                                </span>
+                            </button>
+                            {index < menuItems.length - 1 && (
+                                <div className="border-b border-gray-400 mx-4"></div>
+                            )}
+                        </div>
                     );
                 })}
             </nav>

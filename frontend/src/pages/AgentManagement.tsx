@@ -1,4 +1,3 @@
-import { Dropdown } from "../components/ui/Dropdown";
 import { Button } from "../components/ui/button";
 import {
     Table,
@@ -16,6 +15,8 @@ import { api } from "../services/api";
 import { useApiQuery, useApiMutation } from "../hooks/useApiQuery";
 import { mapAdminToDisplay, type DisplayAdmin } from "../utils/dataMappers";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
+import { toast } from "sonner";
+import type { Admin } from "../types";
 
 interface Agent {
     name: string;
@@ -34,12 +35,28 @@ interface EditingAgent extends DisplayAdmin {
 
 export function AgentManagement() {
     const [searchTerm, setSearchTerm] = useState("");
-    const [selectedZone, setSelectedZone] = useState("");
-    const [selectedWard, setSelectedWard] = useState("");
     const [showModal, setShowModal] = useState(false);
     const [editMode, setEditMode] = useState(false);
     const [editingAgent, setEditingAgent] = useState<EditingAgent | null>(null);
-    // const adminId = useAdminId();
+    
+    // Get current logged-in admin
+    const getCurrentAdmin = (): Admin | null => {
+        const adminStr = localStorage.getItem('admin');
+        if (!adminStr) return null;
+        try {
+            return JSON.parse(adminStr);
+        } catch {
+            return null;
+        }
+    };
+    
+    const currentAdmin = getCurrentAdmin();
+
+    // Calculate if delete button should be shown (only if editing other admin, not self)
+    const shouldShowDeleteButton = useMemo(() => {
+        if (!editMode || !editingAgent || !currentAdmin) return false;
+        return editingAgent.id !== currentAdmin.id;
+    }, [editMode, editingAgent, currentAdmin]);
 
     // Fetch admins and roles
     const { data: admins = [], isLoading: adminsLoading } = useApiQuery(
@@ -50,17 +67,6 @@ export function AgentManagement() {
     const { data: roles = [], isLoading: rolesLoading } = useApiQuery(
         ['roles'],
         () => api.roles.getAll()
-    );
-
-    // Fetch zones and wards for dropdowns
-    const { data: zones = [], isLoading: zonesLoading } = useApiQuery(
-        ['zones'],
-        () => api.zones.getAll()
-    );
-
-    const { data: wards = [], isLoading: wardsLoading } = useApiQuery(
-        ['wards'],
-        () => api.wards.getAll()
     );
 
     // Map admins to display format
@@ -181,35 +187,32 @@ export function AgentManagement() {
     const handleDelete = async () => {
         if (!editingAgent) return;
 
+        // Recalculate current admin to ensure we have the latest data
+        const currentAdminData = getCurrentAdmin();
+
+        // Prevent admin from deleting themselves
+        if (currentAdminData && editingAgent.id === currentAdminData.id) {
+            toast.error('You cannot delete your own account');
+            return;
+        }
+
         await deleteMutation.mutateAsync(editingAgent.id);
         setShowModal(false);
         setEditMode(false);
         setEditingAgent(null);
     };
 
-    // Prepare role options for dropdown
-    const roleOptions = roles.map((role) => ({
-        value: role.name,
-        label: role.name,
-    }));
+    // Prepare role options for dropdown (excluding Meter Admin)
+    const roleOptions = useMemo(() => {
+        return roles
+            .filter((role) => !role.name.toLowerCase().includes('meter'))
+            .map((role) => ({
+                value: role.name,
+                label: role.name,
+            }));
+    }, [roles]);
 
-    // Prepare zone options for dropdown
-    const zoneOptions = useMemo(() => {
-        return zones.map((zone) => ({
-            value: zone.id.toString(),
-            label: zone.name || zone.zoneNo,
-        }));
-    }, [zones]);
-
-    // Prepare ward options for dropdown
-    const wardOptions = useMemo(() => {
-        return wards.map((ward) => ({
-            value: ward.id.toString(),
-            label: ward.name || ward.wardNo,
-        }));
-    }, [wards]);
-
-    if (adminsLoading || rolesLoading || zonesLoading || wardsLoading) {
+    if (adminsLoading || rolesLoading) {
         return (
             <div className="min-h-screen bg-app flex items-center justify-center">
                 <LoadingSpinner />
@@ -254,23 +257,6 @@ export function AgentManagement() {
                             className="pl-10 bg-white border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                         />
                     </div>
-                </div>
-                {/* Drop Downs */}
-                <div className="mb-6 flex gap-4">
-                    <Dropdown
-                        options={zoneOptions}
-                        value={selectedZone}
-                        onChange={setSelectedZone}
-                        placeholder="Select Zone"
-                        className="w-48"
-                    />
-                    <Dropdown
-                        options={wardOptions}
-                        value={selectedWard}
-                        onChange={setSelectedWard}
-                        placeholder="Select Ward"
-                        className="w-48"
-                    />
                 </div>
 
                 {/* Table */}
@@ -352,9 +338,7 @@ export function AgentManagement() {
                     phone: editingAgent.phone,
                     role: editingAgent.role,
                 } : null}
-                onDelete={editMode ? handleDelete : undefined}
-                zoneOptions={zoneOptions}
-                wardOptions={wardOptions}
+                onDelete={shouldShowDeleteButton ? handleDelete : undefined}
                 roleOptions={roleOptions}
             />
         </div>

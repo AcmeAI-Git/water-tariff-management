@@ -11,28 +11,38 @@ export interface DisplayAdmin {
   createdAt?: string;
 }
 
-export interface DisplayHousehold {
+export interface DisplayCustomer {
   id: number;
-  fullName: string;
-  meterNo: string;
-  phone: string;
+  name: string;
   address: string;
+  inspCode?: number;
+  accountType?: string;
+  customerCategory?: string;
+  waterStatus?: string;
+  sewerStatus?: string;
   status: string;
-  email?: string;
   zoneId?: number;
-  wardId?: number;
+  areaId?: number;
+  // Backward compatibility fields
+  fullName?: string;
+  meterNo?: string | number;
+  meterStatus?: string;
+  sizeOfDia?: string;
+  meterInstallationDate?: string;
+  phone?: string;
+  email?: string;
 }
 
 export interface DisplayApprovalRequest {
   id: string;
   module: string;
   requestedBy: string;
-  requestDate: string;
+  request: string;
   status: string;
-  oldData: any;
-  newData: any;
+  oldData: unknown;
+  newData: unknown;
   reviewedBy?: string;
-  reviewedDate?: string;
+  review?: string;
   comments?: string;
 }
 
@@ -62,19 +72,49 @@ export function mapAdminToDisplay(admin: Admin, roles: Role[]): DisplayAdmin {
 }
 
 /**
- * Maps backend User to household display format
+ * Maps backend User to customer display format
  */
-export function mapUserToHousehold(user: User): DisplayHousehold {
+export function mapUserToCustomer(user: User): DisplayCustomer {
+  // Handle both id (number) and account (UUID string) fields
+  const userId = (user as any).account || user.id;
+  const userData = user as any;
+  
+  // Get status - check multiple possible field names
+  // Note: New API structure might not include status field
+  // Since customers register directly without approval, default to 'active' if status is missing
+  const rawStatus = userData.activeStatus || userData.status || user.status;
+  
+  // If status exists, use it (normalize to lowercase)
+  // If status doesn't exist, default to 'active' (customers register directly as active now)
+  const status = rawStatus ? String(rawStatus).toLowerCase() : 'active';
+  
+  // Extract meter data from nested meter object or direct fields
+  const meterData = userData.meter || {};
+  const meterNo = meterData.meterNo || userData.meterNo || user.meterNo || '';
+  const meterStatus = meterData.meterStatus || userData.meterStatus || '';
+  const sizeOfDia = meterData.sizeOfDia || userData.sizeOfDia || '';
+  const meterInstallationDate = meterData.meterInstallationDate || userData.meterInstallationDate || '';
+
   return {
-    id: user.id,
-    fullName: user.fullName,
-    meterNo: user.meterNo,
-    phone: user.phone,
-    address: user.address,
-    status: user.status || 'Pending',
+    id: userId,
+    name: userData.name || user.fullName || '',
+    address: user.address || '',
+    inspCode: userData.inspCode,
+    accountType: userData.accountType,
+    customerCategory: userData.customerCategory,
+    waterStatus: userData.waterStatus,
+    sewerStatus: userData.sewerStatus,
+    status: status,
+    zoneId: user.zoneId || userData.zoneId || userData.dmaId,
+    areaId: userData.areaId || user.wardId, // Support both for backward compatibility
+    // Backward compatibility
+    fullName: userData.name || user.fullName || '',
+    meterNo: meterNo,
+    meterStatus: meterStatus,
+    sizeOfDia: sizeOfDia,
+    meterInstallationDate: meterInstallationDate,
+    phone: user.phone || '',
     email: user.email,
-    zoneId: user.zoneId,
-    wardId: user.wardId,
   };
 }
 
@@ -88,39 +128,47 @@ export function mapApprovalRequestToDisplay(
 ): DisplayApprovalRequest {
   // Extract oldData and newData from the request if available
   // The backend structure may vary, so we handle it flexibly
-  const oldData = (request as any).oldData || null;
-  const newData = (request as any).newData || null;
+  const requestWithExtras = request as ApprovalRequest & {
+    oldData?: unknown;
+    newData?: unknown;
+  };
+  const oldData = requestWithExtras.oldData || null;
+  const newData = requestWithExtras.newData || null;
 
-  // Map status - backend uses approvalStatusId, frontend expects status string
-  const status = (request as any).approvalStatus?.name || 'Pending';
+  // Map status - backend uses statusName, not name
+  const status = (request.approvalStatus as any)?.statusName || 
+                 request.approvalStatus?.name || 
+                 'Pending';
 
   return {
     id: `REQ-${String(request.id).padStart(3, '0')}`,
     module: request.moduleName || 'Unknown',
     requestedBy: adminName || `Admin #${request.requestedBy}`,
-    requestDate: request.requestedAt
+    request: request.requestedAt
       ? new Date(request.requestedAt).toLocaleString('en-US', {
           year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
+          month: 'short',
+          day: 'numeric',
           hour: '2-digit',
           minute: '2-digit',
+          second: '2-digit',
         })
       : '',
     status,
     oldData,
     newData,
-    reviewedBy: (request as any).reviewer?.fullName,
-    reviewedDate: (request as any).reviewedAt
-      ? new Date((request as any).reviewedAt).toLocaleString('en-US', {
+    reviewedBy: request.reviewer?.fullName,
+    review: request.reviewedAt
+      ? new Date(request.reviewedAt).toLocaleString('en-US', {
           year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
+          month: 'short',
+          day: 'numeric',
           hour: '2-digit',
           minute: '2-digit',
+          second: '2-digit',
         })
       : undefined,
-    comments: (request as any).comments,
+    comments: request.comments || undefined,
   };
 }
 
@@ -139,7 +187,11 @@ export function mapAuditLogToDisplay(
   const action = log.action.toUpperCase();
 
   // Format details from oldData/newData if available
-  let details = (log as any).details || '';
+  interface AuditLogWithExtras extends AuditLog {
+    details?: string;
+  }
+  const logWithExtras = log as AuditLogWithExtras;
+  let details = logWithExtras.details || '';
   if (!details && log.oldData && log.newData) {
     details = `Changed ${log.tableName} record #${log.recordId}`;
   } else if (!details) {
@@ -168,7 +220,7 @@ export function mapAuditLogToDisplay(
 /**
  * Formats JSONB data for display in approval requests
  */
-export function formatJsonbData(data: any): string {
+export function formatJsonbData(data: unknown): string {
   if (!data) return 'N/A';
   if (typeof data === 'string') return data;
   try {

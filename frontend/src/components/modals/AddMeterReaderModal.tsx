@@ -63,7 +63,7 @@ export function AddMeterReaderModal({ open, onClose, onSave, zoneOptions = [], w
         </div>
         <div className="flex justify-end gap-2 mt-6">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button className="bg-primary text-white" onClick={handleSubmit}>Add Household</Button>
+          <Button className="bg-primary text-white" onClick={handleSubmit}>Add User</Button>
         </div>
       </div>
     </div>

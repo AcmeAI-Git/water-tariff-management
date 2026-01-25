@@ -44,6 +44,22 @@ import type {
   Notification,
   CreateNotificationDto,
   UpdateNotificationDto,
+  ZoneScoringRuleSet,
+  ZoneScore,
+  Area,
+  CreateZoneScoringRuleSetDto,
+  UpdateZoneScoringRuleSetDto,
+  CreateAreaDto,
+  UpdateAreaDto,
+  Meter,
+  CreateMeterDto,
+  UpdateMeterDto,
+  TariffCategory,
+  CreateTariffCategoryDto,
+  UpdateTariffCategoryDto,
+  TariffCategorySettings,
+  CreateTariffCategorySettingsDto,
+  UpdateTariffCategorySettingsDto,
 } from "../types";
 
 // ==================== ADMINS ====================
@@ -70,7 +86,8 @@ export const adminsApi = {
   },
 
   login: (data: LoginAdminDto): Promise<Admin> => {
-    return fetchService.post<Admin>("/admins/login", data);
+    // No timeout for login - Render backend needs time to wake up from dormancy
+    return fetchService.post<Admin>("/admins/login", data, { timeout: 0 });
   },
 
   changePassword: (id: number, data: ChangePasswordDto): Promise<void> => {
@@ -103,6 +120,10 @@ export const usersApi = {
 
   activate: (id: number): Promise<User> => {
     return fetchService.put<User>(`/users/${id}/activate`, {});
+  },
+
+  updateStatus: (account: string, activeStatus: 'Active' | 'Inactive'): Promise<User> => {
+    return fetchService.put<User>(`/users/${account}/status`, { activeStatus });
   },
 };
 
@@ -267,8 +288,22 @@ export const approvalStatusApi = {
 
 // ==================== APPROVAL REQUESTS ====================
 export const approvalRequestsApi = {
-  getAll: (statusId?: number): Promise<ApprovalRequest[]> => {
-    const query = statusId ? `?statusId=${statusId}` : "";
+  getAll: (optionsOrStatusId?: { statusId?: number; moduleName?: string } | number): Promise<ApprovalRequest[]> => {
+    const params: string[] = [];
+    
+    // Handle backward compatibility: if it's a number, treat it as statusId
+    if (typeof optionsOrStatusId === 'number') {
+      params.push(`statusId=${optionsOrStatusId}`);
+    } else if (optionsOrStatusId) {
+      if (optionsOrStatusId.statusId) {
+        params.push(`statusId=${optionsOrStatusId.statusId}`);
+      }
+      if (optionsOrStatusId.moduleName) {
+        params.push(`moduleName=${encodeURIComponent(optionsOrStatusId.moduleName)}`);
+      }
+    }
+    
+    const query = params.length > 0 ? `?${params.join('&')}` : "";
     return fetchService.get<ApprovalRequest[]>(`/approval-requests${query}`);
   },
 
@@ -332,12 +367,17 @@ export const consumptionApi = {
 
 // ==================== WATER BILLS ====================
 export const waterBillsApi = {
-  getAll: (): Promise<WaterBill[]> => {
-    return fetchService.get<WaterBill[]>("/water-bills");
+  getAll: (userId?: number): Promise<WaterBill[]> => {
+    const query = userId ? `?userId=${userId}` : "";
+    return fetchService.get<WaterBill[]>(`/water-bills${query}`);
   },
 
   getById: (id: number): Promise<WaterBill> => {
     return fetchService.get<WaterBill>(`/water-bills/${id}`);
+  },
+
+  getByUserId: (userId: number): Promise<WaterBill[]> => {
+    return fetchService.get<WaterBill[]>(`/water-bills?userId=${userId}`);
   },
 
   create: (data: CreateWaterBillDto): Promise<WaterBill> => {
@@ -435,6 +475,149 @@ export const notificationsApi = {
   },
 };
 
+// ==================== ZONE SCORING ====================
+export const zoneScoringApi = {
+  getAll: (): Promise<ZoneScoringRuleSet[]> => {
+    return fetchService.get<ZoneScoringRuleSet[]>('/zone-scoring');
+  },
+
+  getById: (id: number): Promise<ZoneScoringRuleSet> => {
+    return fetchService.get<ZoneScoringRuleSet>(`/zone-scoring/${id}`);
+  },
+
+  create: (data: CreateZoneScoringRuleSetDto): Promise<ZoneScoringRuleSet> => {
+    return fetchService.post<ZoneScoringRuleSet>('/zone-scoring', data);
+  },
+
+  update: (id: number, data: UpdateZoneScoringRuleSetDto): Promise<ZoneScoringRuleSet> => {
+    return fetchService.put<ZoneScoringRuleSet>(`/zone-scoring/${id}`, data);
+  },
+
+  delete: (id: number): Promise<void> => {
+    return fetchService.delete<void>(`/zone-scoring/${id}`);
+  },
+
+  // Publish endpoint - makes a ruleset active/published
+  publish: (id: number): Promise<ZoneScoringRuleSet> => {
+    return fetchService.patch<ZoneScoringRuleSet>(`/zone-scoring/publish/${id}`, {});
+  },
+
+  // Status endpoint - updates the status of a ruleset
+  updateStatus: (id: number, status: string): Promise<ZoneScoringRuleSet> => {
+    return fetchService.patch<ZoneScoringRuleSet>(`/zone-scoring/status/${id}`, { status });
+  },
+
+  // Get zone scores endpoint - returns calculated zone scores for all rulesets
+  getScores: (): Promise<ZoneScore[]> => {
+    return fetchService.get<ZoneScore[]>('/zone-scoring/scores');
+  },
+};
+
+// ==================== AREA ====================
+export const areaApi = {
+  getAll: (): Promise<Area[]> => {
+    return fetchService.get<Area[]>('/area');
+  },
+
+  getById: (id: number): Promise<Area> => {
+    return fetchService.get<Area>(`/area/${id}`);
+  },
+
+  getByZone: (zoneId: number): Promise<Area[]> => {
+    return fetchService.get<Area[]>(`/area/zone/${zoneId}`);
+  },
+
+  create: (data: CreateAreaDto): Promise<Area> => {
+    return fetchService.post<Area>('/area', data);
+  },
+
+  update: (id: number, data: UpdateAreaDto): Promise<Area> => {
+    return fetchService.put<Area>(`/area/${id}`, data);
+  },
+
+  delete: (id: number): Promise<void> => {
+    return fetchService.delete<void>(`/area/${id}`);
+  },
+};
+
+// ==================== METERS ====================
+export const metersApi = {
+  getAll: (): Promise<Meter[]> => {
+    return fetchService.get<Meter[]>("/meters");
+  },
+
+  getById: (id: number): Promise<Meter> => {
+    return fetchService.get<Meter>(`/meters/${id}`);
+  },
+
+  create: (data: CreateMeterDto): Promise<Meter> => {
+    return fetchService.post<Meter>("/meters", data);
+  },
+
+  update: (id: number, data: UpdateMeterDto): Promise<Meter> => {
+    return fetchService.put<Meter>(`/meters/${id}`, data);
+  },
+
+  delete: (id: number): Promise<void> => {
+    return fetchService.delete<void>(`/meters/${id}`);
+  },
+};
+
+// ==================== TARIFF CATEGORY ====================
+export const tariffCategoryApi = {
+  getAll: (settingsId?: number): Promise<TariffCategory[]> => {
+    const query = settingsId ? `?settingsId=${settingsId}` : "";
+    return fetchService.get<TariffCategory[]>(`/tariff-category${query}`);
+  },
+
+  getById: (id: number): Promise<TariffCategory> => {
+    return fetchService.get<TariffCategory>(`/tariff-category/${id}`);
+  },
+
+  create: (data: CreateTariffCategoryDto): Promise<TariffCategory> => {
+    return fetchService.post<TariffCategory>("/tariff-category", data);
+  },
+
+  update: (id: number, data: UpdateTariffCategoryDto): Promise<TariffCategory> => {
+    return fetchService.put<TariffCategory>(`/tariff-category/${id}`, data);
+  },
+
+  delete: (id: number): Promise<void> => {
+    return fetchService.delete<void>(`/tariff-category/${id}`);
+  },
+};
+
+// ==================== TARIFF CATEGORY SETTINGS ====================
+export const tariffCategorySettingsApi = {
+  getAll: (): Promise<TariffCategorySettings[]> => {
+    return fetchService.get<TariffCategorySettings[]>("/tariff-category-settings");
+  },
+
+  getActive: (): Promise<TariffCategorySettings> => {
+    return fetchService.get<TariffCategorySettings>("/tariff-category-settings/active");
+  },
+
+  getById: (id: number): Promise<TariffCategorySettings> => {
+    return fetchService.get<TariffCategorySettings>(`/tariff-category-settings/${id}`);
+  },
+
+  create: (data: CreateTariffCategorySettingsDto): Promise<TariffCategorySettings> => {
+    return fetchService.post<TariffCategorySettings>("/tariff-category-settings", data);
+  },
+
+  update: (id: number, data: UpdateTariffCategorySettingsDto): Promise<TariffCategorySettings> => {
+    return fetchService.put<TariffCategorySettings>(`/tariff-category-settings/${id}`, data);
+  },
+
+  delete: (id: number): Promise<void> => {
+    return fetchService.delete<void>(`/tariff-category-settings/${id}`);
+  },
+
+  activate: (id: number): Promise<TariffCategorySettings> => {
+    return fetchService.put<TariffCategorySettings>(`/tariff-category-settings/${id}/activate`, {});
+  },
+};
+
 // Export all APIs as a single object for convenience
 export const api = {
   admins: adminsApi,
@@ -450,6 +633,11 @@ export const api = {
   waterBills: waterBillsApi,
   auditLogs: auditLogsApi,
   notifications: notificationsApi,
+  zoneScoring: zoneScoringApi,
+  area: areaApi,
+  meters: metersApi,
+  tariffCategory: tariffCategoryApi,
+  tariffCategorySettings: tariffCategorySettingsApi,
 };
 
 export default api;

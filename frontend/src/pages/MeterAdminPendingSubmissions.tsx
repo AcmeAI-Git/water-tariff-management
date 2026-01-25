@@ -3,30 +3,36 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { X } from 'lucide-react';
 import { useMemo } from 'react';
 import { api } from '../services/api';
-import { useApiQuery, useApiMutation } from '../hooks/useApiQuery';
+import { useApiQuery, useApiMutation, useAdminId } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 
 export function MeterAdminPendingSubmissions() {
+  const adminId = useAdminId();
+
   // Fetch all consumption entries
   const { data: consumptions = [], isLoading: consumptionsLoading } = useApiQuery(
     ['consumption'],
     () => api.consumption.getAll()
   );
 
-  // Fetch all users to map userId to user details
+  // Fetch all users to map userId/account to user details
   const { data: users = [], isLoading: usersLoading } = useApiQuery(
     ['users'],
     () => api.users.getAll()
   );
 
-  // Filter pending consumptions (those not yet approved)
-  // Note: Backend may not have explicit approval status, so we'll show all recent entries
-  // In a real system, you'd filter by approvalStatusId
-  const pendingConsumptions = useMemo(() => {
-    // For now, show all consumptions as pending
-    // You may need to add approval status filtering based on your backend structure
-    return consumptions.slice().reverse(); // Show most recent first
-  }, [consumptions]);
+  // Filter consumptions created by current meter admin
+  const myConsumptions = useMemo(() => {
+    if (!adminId) return [];
+    return consumptions
+      .filter((consumption) => consumption.createdBy === adminId)
+      .sort((a, b) => {
+        // Sort by creation date descending (newest first)
+        const dateA = new Date(a.createdAt || 0).getTime();
+        const dateB = new Date(b.createdAt || 0).getTime();
+        return dateB - dateA;
+      });
+  }, [consumptions, adminId]);
 
   // Delete consumption mutation
   const deleteMutation = useApiMutation(
@@ -44,18 +50,28 @@ export function MeterAdminPendingSubmissions() {
 
   // Map consumption to display format with user details
   const displayReadings = useMemo(() => {
-    return pendingConsumptions.map((consumption) => {
-      const user = users.find((u) => u.id === consumption.userId);
+    return myConsumptions.map((consumption) => {
+      // Find user by userId or account
+      const user = users.find((u) => 
+        u.id === consumption.userId || 
+        u.account === consumption.userId ||
+        (consumption as any).account === u.account ||
+        (consumption as any).account === u.id
+      );
       const billMonthDate = new Date(consumption.billMonth);
+      // Ensure currentReading is a number before calling toFixed
+      const currentReading = typeof consumption.currentReading === 'number' 
+        ? consumption.currentReading 
+        : Number(consumption.currentReading) || 0;
       return {
         id: consumption.id,
-        householdName: user?.fullName || 'Unknown',
+        householdName: user?.fullName || user?.name || 'Unknown',
         meterNo: user?.meterNo || 'N/A',
-        reading: consumption.currentReading.toFixed(2),
+        reading: currentReading.toFixed(2),
         month: billMonthDate.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit' }),
       };
     });
-  }, [pendingConsumptions, users]);
+  }, [myConsumptions, users]);
 
   if (consumptionsLoading || usersLoading) {
     return (
@@ -70,13 +86,15 @@ export function MeterAdminPendingSubmissions() {
       <div className="px-8 py-6">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">Pending Submissions</h1>
-          <p className="text-sm text-gray-500">Review and submit readings for approval</p>
+          <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">My Readings</h1>
+          <p className="text-sm text-gray-500">View all meter readings you have created</p>
         </div>
 
-        {/* Pending Readings Table */}
+        {/* Readings Table */}
         <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Readings Pending Submission</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Your Meter Readings</h3>
+          </div>
           
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             <Table>
@@ -93,7 +111,7 @@ export function MeterAdminPendingSubmissions() {
                 {displayReadings.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center text-gray-500 py-8">
-                      No readings in queue. Add readings from the Meter Data Entry page.
+                      No readings found. Add readings from the Meter Data Entry page.
                     </TableCell>
                   </TableRow>
                 ) : (

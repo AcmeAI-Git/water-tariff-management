@@ -1,4 +1,4 @@
-import { FileCheck, History, FileText, LogOut } from 'lucide-react';
+import { FileCheck, History, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -15,7 +15,6 @@ export function ApprovalAdminSidebar({ activePage, onNavigate }: ApprovalAdminSi
   const routeMap: Record<string, string> = {
     'approval-queue': '/approval-admin/queue',
     'my-history': '/approval-admin/history',
-    'system-audit': '/approval-admin/audit',
   };
 
   const handleNav = (id: string) => {
@@ -47,46 +46,46 @@ export function ApprovalAdminSidebar({ activePage, onNavigate }: ApprovalAdminSi
   const menuItems = [
     { id: 'approval-queue', label: 'Approval Queue', icon: FileCheck },
     { id: 'my-history', label: 'My History', icon: History },
-    { id: 'system-audit', label: 'System Audit Log', icon: FileText },
   ];
 
   return (
-    <div className="fixed left-0 top-0 w-64 bg-white border-r border-gray-200 flex flex-col h-screen">
+    <div className="w-[280px] bg-white h-screen fixed left-0 top-0 flex flex-col border-r border-gray-200">
       {/* Header */}
-      <div className="p-6 border-b border-gray-200">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#4C6EF5] to-[#3B5EE5] flex items-center justify-center">
-            <FileCheck className="text-white" size={20} />
-          </div>
-          <div>
-            <h2 className="font-semibold text-gray-900">Approval Admin</h2>
-            <p className="text-xs text-gray-500">Review & Approve</p>
-          </div>
+      <div className="px-6 py-6 border-b border-gray-200">
+        <div className="flex items-center gap-3">
+          <span className="text-lg font-semibold text-gray-900">
+            Water Tariff
+          </span>
         </div>
+        <p className="text-xs text-gray-500 mt-1">
+          Approval Admin Portal
+        </p>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4">
-        <div className="space-y-1">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activePage === item.id;
-            return (
+      <nav className="flex-1 px-4 py-6">
+        {menuItems.map((item, index) => {
+          const Icon = item.icon;
+          const isActive = activePage === item.id;
+          return (
+            <div key={item.id}>
               <button
-                key={item.id}
                 onClick={() => handleNav(item.id)}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors ${
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
                   isActive
-                    ? 'bg-blue-50 text-[#4C6EF5]'
+                    ? 'bg-primary text-white'
                     : 'text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                <Icon size={18} />
-                <span className="text-sm font-medium">{item.label}</span>
+                <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+                <span className="text-[0.9375rem] font-medium">{item.label}</span>
               </button>
-            );
-          })}
-        </div>
+              {index < menuItems.length - 1 && (
+                <div className="border-b border-gray-400 mx-4"></div>
+              )}
+            </div>
+          );
+        })}
       </nav>
 
       {/* Bottom Section */}
@@ -96,7 +95,7 @@ export function ApprovalAdminSidebar({ activePage, onNavigate }: ApprovalAdminSi
           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-red-50 hover:text-red-600 transition-all"
         >
           <LogOut size={20} strokeWidth={2} />
-          <span className="text-[15px] font-medium">Log Out</span>
+          <span className="text-[0.9375rem] font-medium">Log Out</span>
         </button>
       </div>
     </div>
