@@ -285,7 +285,7 @@ export async function parseCustomerCSV(
         inspCode,
         areaId,
         accountType,
-        customerCategory,
+        customerCategories: [{ customerCategory: customerCategory, ratio: 100 }], // Array of objects with category and ratio
         waterStatus,
         sewerStatus,
         landSizeDecimal,

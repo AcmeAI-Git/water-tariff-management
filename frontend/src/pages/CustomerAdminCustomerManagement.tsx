@@ -389,7 +389,7 @@ export function CustomerAdminCustomerManagement() {
         address: formData.address.trim(),
         inspCode: inspCodeNum,
         accountType: formData.accountType,
-        customerCategory: formData.customerCategory,
+        customerCategories: [{ customerCategory: formData.customerCategory, ratio: 100 }], // Array of objects with category and ratio
         waterStatus: formData.waterStatus,
         sewerStatus: formData.sewerStatus,
         areaId: parseInt(formData.areaId),
@@ -468,7 +468,16 @@ export function CustomerAdminCustomerManagement() {
       address: customer.address || '',
       inspCode: customer.inspCode?.toString() || userData?.inspCode?.toString() || '',
       accountType: customer.accountType || userData?.accountType || 'General',
-      customerCategory: customer.customerCategory || userData?.customerCategory || 'Domestic',
+      // Handle both array (customerCategories) and single value (customerCategory) from backend
+      customerCategory: customer.customerCategory || 
+        (Array.isArray(userData?.customerCategories) && userData.customerCategories.length > 0
+          ? (typeof userData.customerCategories[0] === 'object' && userData.customerCategories[0]?.customerCategory
+              ? userData.customerCategories[0].customerCategory
+              : typeof userData.customerCategories[0] === 'string'
+              ? userData.customerCategories[0]
+              : userData?.customerCategory)
+          : userData?.customerCategory) || 
+        'Domestic',
       waterStatus: customer.waterStatus || userData?.waterStatus || 'Metered',
       sewerStatus: customer.sewerStatus || userData?.sewerStatus || 'Connected',
       cityCorporationId: zone?.cityCorporationId?.toString() || '',
@@ -552,7 +561,7 @@ export function CustomerAdminCustomerManagement() {
           address: editFormData.address.trim(),
           inspCode: inspCodeNum,
           accountType: editFormData.accountType,
-          customerCategory: editFormData.customerCategory,
+          customerCategories: [{ customerCategory: editFormData.customerCategory, ratio: 100 }], // Array of objects with category and ratio
           waterStatus: editFormData.waterStatus,
           sewerStatus: editFormData.sewerStatus,
           areaId: parseInt(editFormData.areaId),
@@ -1302,13 +1311,16 @@ export function CustomerAdminCustomerManagement() {
                   <TableHead className="text-sm font-semibold text-gray-700">Zone</TableHead>
                   <TableHead className="text-sm font-semibold text-gray-700">Area</TableHead>
                   <TableHead className="text-sm font-semibold text-gray-700">Address</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">Land Size (sq ft)</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">Stories</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">Flats</TableHead>
                   <TableHead className="text-sm font-semibold text-gray-700 text-left">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredCustomers.length === 0 ? (
                   <TableRow key="empty-state">
-                    <TableCell colSpan={12} className="text-center py-8 text-gray-500">
+                    <TableCell colSpan={15} className="text-center py-8 text-gray-500">
                       No customers found matching your search criteria
                     </TableCell>
                   </TableRow>
@@ -1349,6 +1361,9 @@ export function CustomerAdminCustomerManagement() {
                         <TableCell className="text-sm text-gray-600">{zone?.name || '-'}</TableCell>
                         <TableCell className="text-sm text-gray-600">{area?.name || '-'}</TableCell>
                         <TableCell className="text-sm text-gray-600 max-w-xs truncate" title={customer.address}>{customer.address || '-'}</TableCell>
+                        <TableCell className="text-sm text-gray-600">{customer.landSizeDecimal !== undefined && customer.landSizeDecimal !== null ? customer.landSizeDecimal.toLocaleString() : '-'}</TableCell>
+                        <TableCell className="text-sm text-gray-600">{customer.numberOfStories !== undefined && customer.numberOfStories !== null ? customer.numberOfStories : '-'}</TableCell>
+                        <TableCell className="text-sm text-gray-600">{customer.numberOfFlats !== undefined && customer.numberOfFlats !== null ? customer.numberOfFlats : '-'}</TableCell>
                         <TableCell className="text-center">
                           <div className="flex items-center justify-center gap-2">
                             <Button 

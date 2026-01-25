@@ -80,7 +80,7 @@ export interface CreateUserDto {
   inspCode: number;
   areaId: number;
   accountType: string;
-  customerCategory: string;
+  customerCategories: Array<{ customerCategory: string; ratio: number }>; // Array of objects with customerCategory and ratio
   waterStatus: string;
   sewerStatus: string;
   landSizeDecimal?: number;
@@ -102,7 +102,7 @@ export interface UpdateUserDto {
   inspCode?: number;
   areaId?: number;
   accountType?: string;
-  customerCategory?: string;
+  customerCategories?: Array<{ customerCategory: string; ratio: number }>; // Array of objects with customerCategory and ratio
   waterStatus?: string;
   sewerStatus?: string;
   landSizeDecimal?: number;

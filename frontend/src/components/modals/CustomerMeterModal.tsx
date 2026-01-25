@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogFooter } from '../ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogTitle, DialogDescription } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -76,9 +76,12 @@ export function CustomerMeterModal({
       <DialogContent className="w-[95vw] sm:w-full max-w-[700px] max-h-[95vh] h-[90vh] sm:h-[85vh] bg-white flex flex-col overflow-hidden m-4 sm:m-0">
         {/* Header */}
         <div className="px-4 sm:px-6 pt-4 sm:pt-6 border-b border-gray-200 flex-shrink-0">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 pb-3">
+          <DialogTitle className="text-lg sm:text-xl font-semibold text-gray-900 pb-3">
             {mode === 'add' ? 'Add New Customer' : 'Edit Customer'}
-          </h2>
+          </DialogTitle>
+          <DialogDescription className="sr-only">
+            {mode === 'add' ? 'Fill in the form to add a new customer' : 'Update customer information'}
+          </DialogDescription>
         </div>
         
         {/* Scrollable Content */}
