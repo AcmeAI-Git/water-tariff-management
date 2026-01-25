@@ -22,6 +22,8 @@ import { ZoneScoringView } from '../pages/ZoneScoringView';
 import { LocationManagement } from '../pages/LocationManagement';
 import { ApprovalQueue } from '../pages/ApprovalQueue';
 import { ApprovalHistory } from '../pages/ApprovalHistory';
+import { TariffCategoryManagement } from '../pages/TariffCategoryManagement';
+import { TariffCategorySettingsManagement } from '../pages/TariffCategorySettingsManagement';
 import { ProtectedRoute } from "../components/common/ProtectedRoute";
 import CustomerDashboard from "../pages/CustomerDashboard";
 import CustomerBillingHistory from "../pages/CustomerBillingHistory";
@@ -208,6 +210,22 @@ const RouterIndex = () => {
           element={
             <ProtectedRoute allowedRoles={['tariff-admin']}>
               <LocationManagement />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/tariff-admin/tariff-categories" 
+          element={
+            <ProtectedRoute allowedRoles={['tariff-admin']}>
+              <TariffCategoryManagement />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/tariff-admin/tariff-category-settings" 
+          element={
+            <ProtectedRoute allowedRoles={['tariff-admin']}>
+              <TariffCategorySettingsManagement />
             </ProtectedRoute>
           } 
         />

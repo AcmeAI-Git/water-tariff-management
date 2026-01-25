@@ -160,11 +160,50 @@ export async function parseCustomerCSV(
       const customerCategoryIndex = normalizedHeaders['customerCategory'];
       const waterStatusIndex = normalizedHeaders['waterStatus'];
       const sewerStatusIndex = normalizedHeaders['sewerStatus'];
+      const landSizeDecimalIndex = normalizedHeaders['landSizeDecimal'];
+      const numberOfStoriesIndex = normalizedHeaders['numberOfStories'];
+      const numberOfFlatsIndex = normalizedHeaders['numberOfFlats'];
       
       const accountType = (accountTypeIndex !== undefined ? row[accountTypeIndex]?.trim() : '') || 'General';
       const customerCategory = (customerCategoryIndex !== undefined ? row[customerCategoryIndex]?.trim() : '') || 'Domestic';
       const waterStatus = (waterStatusIndex !== undefined ? row[waterStatusIndex]?.trim() : '') || 'Metered';
       const sewerStatus = (sewerStatusIndex !== undefined ? row[sewerStatusIndex]?.trim() : '') || 'Connected';
+      
+      // Parse new optional fields
+      const landSizeDecimalStr = (landSizeDecimalIndex !== undefined ? row[landSizeDecimalIndex]?.trim() : '') || '';
+      const numberOfStoriesStr = (numberOfStoriesIndex !== undefined ? row[numberOfStoriesIndex]?.trim() : '') || '';
+      const numberOfFlatsStr = (numberOfFlatsIndex !== undefined ? row[numberOfFlatsIndex]?.trim() : '') || '';
+      
+      let landSizeDecimal: number | undefined = undefined;
+      let numberOfStories: number | undefined = undefined;
+      let numberOfFlats: number | undefined = undefined;
+      
+      if (landSizeDecimalStr) {
+        const parsed = parseFloat(landSizeDecimalStr);
+        if (!isNaN(parsed) && parsed >= 0) {
+          landSizeDecimal = parsed;
+        } else {
+          warnings.push(`Row ${i + 1}: Invalid landSizeDecimal "${landSizeDecimalStr}", skipping`);
+        }
+      }
+      
+      if (numberOfStoriesStr) {
+        const parsed = parseInt(numberOfStoriesStr, 10);
+        if (!isNaN(parsed) && parsed >= 0) {
+          numberOfStories = parsed;
+        } else {
+          warnings.push(`Row ${i + 1}: Invalid numberOfStories "${numberOfStoriesStr}", skipping`);
+        }
+      }
+      
+      if (numberOfFlatsStr) {
+        const parsed = parseInt(numberOfFlatsStr, 10);
+        if (!isNaN(parsed) && parsed >= 0) {
+          numberOfFlats = parsed;
+        } else {
+          warnings.push(`Row ${i + 1}: Invalid numberOfFlats "${numberOfFlatsStr}", skipping`);
+        }
+      }
 
       // Validate enum values
       const validAccountTypes = ['General', 'Tubewell'];
@@ -249,6 +288,9 @@ export async function parseCustomerCSV(
         customerCategory,
         waterStatus,
         sewerStatus,
+        landSizeDecimal,
+        numberOfStories,
+        numberOfFlats,
         ...(meter && { meter }),
       };
 
@@ -286,6 +328,9 @@ export function generateCustomerCSVTemplate(areas: Area[]): string {
     'Customer Category',
     'Water Status',
     'Sewer Status',
+    'Land Size (sq ft)',
+    'Number of Stories',
+    'Number of Flats',
     'Meter Number',
     'Meter Status',
     'Size of Diameter',
@@ -304,6 +349,9 @@ export function generateCustomerCSVTemplate(areas: Area[]): string {
     'Domestic',
     'Metered',
     'Connected',
+    '1200.50',
+    '3',
+    '6',
     '123456',
     'Functional',
     '20mm',
@@ -333,6 +381,9 @@ export function exportCustomersToCSV(
     'Customer Category',
     'Water Status',
     'Sewer Status',
+    'Land Size (sq ft)',
+    'Number of Stories',
+    'Number of Flats',
     'Status',
     'Meter Number',
     'Meter Status',
@@ -381,6 +432,9 @@ export function exportCustomersToCSV(
       customer.customerCategory || '',
       customer.waterStatus || '',
       customer.sewerStatus || '',
+      (customer as any).landSizeDecimal?.toString() || (customer as any).land_size_decimal?.toString() || '',
+      (customer as any).numberOfStories?.toString() || (customer as any).number_of_stories?.toString() || '',
+      (customer as any).numberOfFlats?.toString() || (customer as any).number_of_flats?.toString() || '',
       customer.status || (customer as any).activeStatus || '',
       meterNoStr,
       meterStatus || '',
@@ -488,6 +542,9 @@ function normalizeHeaders(headers: string[]): { [key: string]: number } {
     meterStatus: ['meterstatus', 'meter_status', 'meter status'],
     sizeOfDia: ['sizeofdia', 'size_of_dia', 'size of diameter', 'diameter', 'size'],
     meterInstallationDate: ['meterinstallationdate', 'meter_installation_date', 'meter installation date', 'installation date', 'install_date'],
+    landSizeDecimal: ['landsizedecimal', 'land_size_decimal', 'land size', 'land size (sq ft)', 'land_size', 'landsize'],
+    numberOfStories: ['numberofstories', 'number_of_stories', 'number of stories', 'stories', 'stories count'],
+    numberOfFlats: ['numberofflats', 'number_of_flats', 'number of flats', 'flats', 'flats count'],
   };
 
   headers.forEach((header, index) => {

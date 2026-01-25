@@ -63,6 +63,12 @@ export default function MeterReaderManagement() {
     
     const currentAdmin = getCurrentAdmin();
 
+    // Calculate if delete button should be shown (only if editing other admin, not self)
+    const shouldShowDeleteButton = useMemo(() => {
+        if (!editMode || !editingAgent || !currentAdmin) return false;
+        return editingAgent.id !== currentAdmin.id;
+    }, [editMode, editingAgent, currentAdmin]);
+
     // Fetch roles to find Meter Admin role ID
     const { data: roles = [], isLoading: rolesLoading } = useApiQuery(
         ['roles'],
@@ -191,8 +197,11 @@ export default function MeterReaderManagement() {
     const handleDelete = async () => {
         if (!editingAgent) return;
 
+        // Recalculate current admin to ensure we have the latest data
+        const currentAdminData = getCurrentAdmin();
+
         // Prevent admin from deleting themselves
-        if (currentAdmin && editingAgent.id === currentAdmin.id) {
+        if (currentAdminData && editingAgent.id === currentAdminData.id) {
             toast.error('You cannot delete your own account');
             return;
         }
@@ -347,7 +356,7 @@ export default function MeterReaderManagement() {
                     role: editingAgent.role,
                 } : null}
                 roleFixed="Meter Admin"
-                onDelete={editMode && editingAgent && currentAdmin && editingAgent.id !== currentAdmin.id ? handleDelete : undefined}
+                onDelete={shouldShowDeleteButton ? handleDelete : undefined}
                 modalTitle={editMode ? "Edit Meter Reader" : "Add Meter Reader"}
                 submitButtonText={editMode ? "Save Changes" : "Add Meter Reader"}
             />

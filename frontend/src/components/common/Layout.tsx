@@ -65,12 +65,16 @@ export default function Layout({ children }: LayoutProps) {
     "tariff-visualizer": "/tariff-admin/visualizer",
     "zone-scoring": "/tariff-admin/zone-scoring",
     "location-management": "/tariff-admin/location-management",
+    "tariff-category-settings": "/tariff-admin/tariff-category-settings",
+    "tariff-categories": "/tariff-admin/tariff-categories",
     "my-metrics": "/tariff-admin/metrics",
   };
   const tariffActive = isTariffAdmin
     ? (() => {
         if (pathname.startsWith("/tariff-admin/zone-scoring")) return "zone-scoring";
         if (pathname.startsWith("/tariff-admin/location-management")) return "location-management";
+        if (pathname.startsWith("/tariff-admin/tariff-category-settings")) return "tariff-category-settings";
+        if (pathname.startsWith("/tariff-admin/tariff-categories")) return "tariff-categories";
         const match = pathname.match(/^\/tariff-admin\/(\w+)/);
         if (!match) return "zone-scoring";
         switch (match[1]) {

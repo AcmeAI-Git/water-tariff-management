@@ -54,6 +54,12 @@ import type {
   Meter,
   CreateMeterDto,
   UpdateMeterDto,
+  TariffCategory,
+  CreateTariffCategoryDto,
+  UpdateTariffCategoryDto,
+  TariffCategorySettings,
+  CreateTariffCategorySettingsDto,
+  UpdateTariffCategorySettingsDto,
 } from "../types";
 
 // ==================== ADMINS ====================
@@ -557,6 +563,61 @@ export const metersApi = {
   },
 };
 
+// ==================== TARIFF CATEGORY ====================
+export const tariffCategoryApi = {
+  getAll: (settingsId?: number): Promise<TariffCategory[]> => {
+    const query = settingsId ? `?settingsId=${settingsId}` : "";
+    return fetchService.get<TariffCategory[]>(`/tariff-category${query}`);
+  },
+
+  getById: (id: number): Promise<TariffCategory> => {
+    return fetchService.get<TariffCategory>(`/tariff-category/${id}`);
+  },
+
+  create: (data: CreateTariffCategoryDto): Promise<TariffCategory> => {
+    return fetchService.post<TariffCategory>("/tariff-category", data);
+  },
+
+  update: (id: number, data: UpdateTariffCategoryDto): Promise<TariffCategory> => {
+    return fetchService.put<TariffCategory>(`/tariff-category/${id}`, data);
+  },
+
+  delete: (id: number): Promise<void> => {
+    return fetchService.delete<void>(`/tariff-category/${id}`);
+  },
+};
+
+// ==================== TARIFF CATEGORY SETTINGS ====================
+export const tariffCategorySettingsApi = {
+  getAll: (): Promise<TariffCategorySettings[]> => {
+    return fetchService.get<TariffCategorySettings[]>("/tariff-category-settings");
+  },
+
+  getActive: (): Promise<TariffCategorySettings> => {
+    return fetchService.get<TariffCategorySettings>("/tariff-category-settings/active");
+  },
+
+  getById: (id: number): Promise<TariffCategorySettings> => {
+    return fetchService.get<TariffCategorySettings>(`/tariff-category-settings/${id}`);
+  },
+
+  create: (data: CreateTariffCategorySettingsDto): Promise<TariffCategorySettings> => {
+    return fetchService.post<TariffCategorySettings>("/tariff-category-settings", data);
+  },
+
+  update: (id: number, data: UpdateTariffCategorySettingsDto): Promise<TariffCategorySettings> => {
+    return fetchService.put<TariffCategorySettings>(`/tariff-category-settings/${id}`, data);
+  },
+
+  delete: (id: number): Promise<void> => {
+    return fetchService.delete<void>(`/tariff-category-settings/${id}`);
+  },
+
+  activate: (id: number): Promise<TariffCategorySettings> => {
+    return fetchService.put<TariffCategorySettings>(`/tariff-category-settings/${id}/activate`, {});
+  },
+};
+
 // Export all APIs as a single object for convenience
 export const api = {
   admins: adminsApi,
@@ -575,6 +636,8 @@ export const api = {
   zoneScoring: zoneScoringApi,
   area: areaApi,
   meters: metersApi,
+  tariffCategory: tariffCategoryApi,
+  tariffCategorySettings: tariffCategorySettingsApi,
 };
 
 export default api;

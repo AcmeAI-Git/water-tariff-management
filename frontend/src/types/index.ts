@@ -59,6 +59,9 @@ export interface User {
   wardId: number;
   status: string;
   account?: string | number; // Account identifier (can be UUID string or number)
+  landSizeDecimal?: number;
+  numberOfStories?: number;
+  numberOfFlats?: number;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -80,6 +83,9 @@ export interface CreateUserDto {
   customerCategory: string;
   waterStatus: string;
   sewerStatus: string;
+  landSizeDecimal?: number;
+  numberOfStories?: number;
+  numberOfFlats?: number;
   meter?: CreateUserMeterDto; // Optional nested meter object
 }
 
@@ -99,6 +105,9 @@ export interface UpdateUserDto {
   customerCategory?: string;
   waterStatus?: string;
   sewerStatus?: string;
+  landSizeDecimal?: number;
+  numberOfStories?: number;
+  numberOfFlats?: number;
   meter?: UpdateUserMeterDto; // Optional nested meter object for updates
 }
 
@@ -571,4 +580,93 @@ export interface UpdateMeterDto {
   meterStatus?: string;
   sizeOfDia?: string;
   meterInstallationDate?: string;
+}
+
+// Tariff Category Types
+export interface TariffCategory {
+  id: number;
+  slNo: number;
+  category: 'Domestic' | 'Commercial' | 'Industrial' | 'Government' | 'Community';
+  name: string;
+  lowerRange?: number;
+  upperRange?: number;
+  rangeDescription?: string;
+  isBaseCategory: boolean;
+  isFixedRate: boolean;
+  isActive: boolean;
+  settingsId: number;
+  wasaTariff?: number;
+  tubewellTariff?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateTariffCategoryDto {
+  slNo: number;
+  category: 'Domestic' | 'Commercial' | 'Industrial' | 'Government' | 'Community';
+  name: string;
+  lowerRange?: number;
+  upperRange?: number;
+  rangeDescription?: string;
+  isBaseCategory?: boolean;
+  isFixedRate?: boolean;
+  isActive?: boolean;
+  settingsId: number;
+}
+
+export interface UpdateTariffCategoryDto {
+  slNo?: number;
+  category?: 'Domestic' | 'Commercial' | 'Industrial' | 'Government' | 'Community';
+  name?: string;
+  lowerRange?: number;
+  upperRange?: number;
+  rangeDescription?: string;
+  isBaseCategory?: boolean;
+  isFixedRate?: boolean;
+  isActive?: boolean;
+  settingsId?: number;
+}
+
+// Tariff Category Settings Types
+export interface TariffCategorySettings {
+  id: number;
+  productionCost: number;
+  baseRate: number;
+  currentTariff: number;
+  currentTubewellTariff: number;
+  tubewellRatioStandard: number;
+  tubewellRatioCommercial: number;
+  aboveBaseIncreasePercent: number;
+  belowBaseDecreasePercent: number;
+  commercialIncreasePercent: number;
+  governmentIncreasePercent: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateTariffCategorySettingsDto {
+  productionCost: number;
+  baseRate: number;
+  currentTariff: number;
+  currentTubewellTariff: number;
+  tubewellRatioStandard?: number;
+  tubewellRatioCommercial?: number;
+  aboveBaseIncreasePercent?: number;
+  belowBaseDecreasePercent?: number;
+  commercialIncreasePercent?: number;
+  governmentIncreasePercent?: number;
+}
+
+export interface UpdateTariffCategorySettingsDto {
+  productionCost?: number;
+  baseRate?: number;
+  currentTariff?: number;
+  currentTubewellTariff?: number;
+  tubewellRatioStandard?: number;
+  tubewellRatioCommercial?: number;
+  aboveBaseIncreasePercent?: number;
+  belowBaseDecreasePercent?: number;
+  commercialIncreasePercent?: number;
+  governmentIncreasePercent?: number;
 }

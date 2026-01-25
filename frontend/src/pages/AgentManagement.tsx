@@ -52,6 +52,12 @@ export function AgentManagement() {
     
     const currentAdmin = getCurrentAdmin();
 
+    // Calculate if delete button should be shown (only if editing other admin, not self)
+    const shouldShowDeleteButton = useMemo(() => {
+        if (!editMode || !editingAgent || !currentAdmin) return false;
+        return editingAgent.id !== currentAdmin.id;
+    }, [editMode, editingAgent, currentAdmin]);
+
     // Fetch admins and roles
     const { data: admins = [], isLoading: adminsLoading } = useApiQuery(
         ['admins'],
@@ -181,8 +187,11 @@ export function AgentManagement() {
     const handleDelete = async () => {
         if (!editingAgent) return;
 
-        // Prevent super admin from deleting themselves
-        if (currentAdmin && editingAgent.id === currentAdmin.id) {
+        // Recalculate current admin to ensure we have the latest data
+        const currentAdminData = getCurrentAdmin();
+
+        // Prevent admin from deleting themselves
+        if (currentAdminData && editingAgent.id === currentAdminData.id) {
             toast.error('You cannot delete your own account');
             return;
         }
@@ -329,7 +338,7 @@ export function AgentManagement() {
                     phone: editingAgent.phone,
                     role: editingAgent.role,
                 } : null}
-                onDelete={editMode && editingAgent && currentAdmin && editingAgent.id !== currentAdmin.id ? handleDelete : undefined}
+                onDelete={shouldShowDeleteButton ? handleDelete : undefined}
                 roleOptions={roleOptions}
             />
         </div>

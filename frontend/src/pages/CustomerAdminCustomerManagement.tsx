@@ -56,6 +56,9 @@ export function CustomerAdminCustomerManagement() {
     meterStatus: 'Functional',
     sizeOfDia: '',
     meterInstallationDate: '',
+    landSizeDecimal: '',
+    numberOfStories: '',
+    numberOfFlats: '',
   });
 
   const [editFormData, setEditFormData] = useState({
@@ -73,6 +76,9 @@ export function CustomerAdminCustomerManagement() {
     meterStatus: 'Functional',
     sizeOfDia: '',
     meterInstallationDate: '',
+    landSizeDecimal: '',
+    numberOfStories: '',
+    numberOfFlats: '',
   });
 
   // Fetch all users - we'll filter by status in the frontend
@@ -387,6 +393,9 @@ export function CustomerAdminCustomerManagement() {
         waterStatus: formData.waterStatus,
         sewerStatus: formData.sewerStatus,
         areaId: parseInt(formData.areaId),
+        landSizeDecimal: formData.landSizeDecimal ? parseFloat(formData.landSizeDecimal) : undefined,
+        numberOfStories: formData.numberOfStories ? parseInt(formData.numberOfStories) : undefined,
+        numberOfFlats: formData.numberOfFlats ? parseInt(formData.numberOfFlats) : undefined,
         ...(meterData && { meter: meterData }),
       } as any); // Type assertion - backend API accepts these fields but types are outdated
 
@@ -409,6 +418,9 @@ export function CustomerAdminCustomerManagement() {
         meterStatus: 'Functional',
         sizeOfDia: '',
         meterInstallationDate: '',
+        landSizeDecimal: '',
+        numberOfStories: '',
+        numberOfFlats: '',
       });
       
       setIsDialogOpen(false);
@@ -466,6 +478,9 @@ export function CustomerAdminCustomerManagement() {
       meterStatus: customerMeter?.meterStatus || 'Functional',
       sizeOfDia: customerMeter?.sizeOfDia || '',
       meterInstallationDate: customerMeter?.meterInstallationDate ? new Date(customerMeter.meterInstallationDate).toISOString().split('T')[0] : '',
+      landSizeDecimal: userData?.landSizeDecimal?.toString() || userData?.land_size_decimal?.toString() || '',
+      numberOfStories: userData?.numberOfStories?.toString() || userData?.number_of_stories?.toString() || '',
+      numberOfFlats: userData?.numberOfFlats?.toString() || userData?.number_of_flats?.toString() || '',
     });
     
     setIsEditDialogOpen(true);
@@ -541,6 +556,9 @@ export function CustomerAdminCustomerManagement() {
           waterStatus: editFormData.waterStatus,
           sewerStatus: editFormData.sewerStatus,
           areaId: parseInt(editFormData.areaId),
+          landSizeDecimal: editFormData.landSizeDecimal ? parseFloat(editFormData.landSizeDecimal) : undefined,
+          numberOfStories: editFormData.numberOfStories ? parseInt(editFormData.numberOfStories) : undefined,
+          numberOfFlats: editFormData.numberOfFlats ? parseInt(editFormData.numberOfFlats) : undefined,
           ...(meterData && { meter: meterData }),
         } as any, // Type assertion - backend API accepts these fields but types are outdated
       });

@@ -22,6 +22,9 @@ export interface CustomerMeterFormData {
   meterStatus: string;
   sizeOfDia: string;
   meterInstallationDate: string;
+  landSizeDecimal: string;
+  numberOfStories: string;
+  numberOfFlats: string;
 }
 
 interface CustomerMeterModalProps {
@@ -218,6 +221,54 @@ export function CustomerMeterModal({
               required
               className="bg-gray-50"
             />
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="landSizeDecimal" className="text-sm font-medium text-gray-700">
+                  Land Size (sq ft)
+                </Label>
+                <Input
+                  id="landSizeDecimal"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.landSizeDecimal}
+                  onChange={(e) => handleInputChange('landSizeDecimal', e.target.value)}
+                  placeholder="Enter land size"
+                  className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="numberOfStories" className="text-sm font-medium text-gray-700">
+                  Number of Stories
+                </Label>
+                <Input
+                  id="numberOfStories"
+                  type="number"
+                  min="0"
+                  value={formData.numberOfStories}
+                  onChange={(e) => handleInputChange('numberOfStories', e.target.value)}
+                  placeholder="Enter number of stories"
+                  className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="numberOfFlats" className="text-sm font-medium text-gray-700">
+                  Number of Flats
+                </Label>
+                <Input
+                  id="numberOfFlats"
+                  type="number"
+                  min="0"
+                  value={formData.numberOfFlats}
+                  onChange={(e) => handleInputChange('numberOfFlats', e.target.value)}
+                  placeholder="Enter number of flats"
+                  className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Meter Information Section - Conditionally Rendered */}
