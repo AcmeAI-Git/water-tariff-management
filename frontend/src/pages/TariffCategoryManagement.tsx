@@ -1,9 +1,8 @@
 import { Button } from '../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Badge } from '../components/ui/badge';
-import { Dropdown } from '../components/ui/Dropdown';
-import { Label } from '../components/ui/label';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Input } from '../components/ui/input';
+import { Plus, Edit, Trash2, Search } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { api } from '../services/api';
 import { useApiQuery, useApiMutation } from '../hooks/useApiQuery';
@@ -11,23 +10,24 @@ import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { toast } from 'sonner';
 import type { TariffCategory, CreateTariffCategoryDto, UpdateTariffCategoryDto } from '../types';
 import { TariffCategoryModal } from '../components/modals/TariffCategoryModal';
+import { StatusBadge } from '../components/zoneScoring/StatusBadge';
 
 export function TariffCategoryManagement() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<TariffCategory | null>(null);
-  const [selectedSettingsId, setSelectedSettingsId] = useState<number | undefined>(undefined);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  // Fetch all settings for filter dropdown
+  // Fetch all settings for modal dropdown
   const { data: allSettings = [] } = useApiQuery(
     ['tariff-category-settings'],
     () => api.tariffCategorySettings.getAll()
   );
 
-  // Fetch categories (filtered by settings if selected)
+  // Fetch all categories
   const { data: categories = [], isLoading } = useApiQuery(
-    ['tariff-category', selectedSettingsId ?? 'all'],
-    () => api.tariffCategory.getAll(selectedSettingsId),
+    ['tariff-category'],
+    () => api.tariffCategory.getAll(),
     { enabled: true }
   );
 
@@ -97,156 +97,145 @@ export function TariffCategoryManagement() {
     }
   };
 
-  // Filter categories by selected settings
+  // Filter categories by search query (name)
   const filteredCategories = useMemo(() => {
-    if (!selectedSettingsId) return categories;
-    return categories.filter(cat => cat.settingsId === selectedSettingsId);
-  }, [categories, selectedSettingsId]);
+    if (!searchQuery.trim()) return categories;
+    const query = searchQuery.toLowerCase();
+    return categories.filter(cat => 
+      cat.name.toLowerCase().includes(query)
+    );
+  }, [categories, searchQuery]);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-app flex items-center justify-center">
+      <div className="min-h-screen bg-[#f8f9fb] flex items-center justify-center">
         <LoadingSpinner />
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Tariff Categories</h1>
-          <p className="text-sm text-gray-600 mt-1">Manage tariff categories and their configurations</p>
+    <div className="min-h-screen bg-[#f8f9fb]">
+      <div className="px-8 py-6">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-[28px] font-semibold text-gray-900 mb-1">Tariff Categories</h1>
+          <p className="text-sm text-gray-500">Manage tariff categories and their configurations</p>
         </div>
-        <Button
-          onClick={() => setIsCreateModalOpen(true)}
-          className="bg-primary hover:bg-primary-600 text-white"
-        >
-          <Plus size={16} className="mr-2" />
-          Create Category
-        </Button>
-      </div>
 
-      {/* Settings Filter */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
-        <div className="flex items-center gap-4">
-          <Label className="text-sm font-medium text-gray-700 whitespace-nowrap">
-            Filter by Settings:
-          </Label>
-          <Dropdown
-            options={[
-              { value: '', label: 'All Settings' },
-              ...allSettings.map(settings => ({
-                value: settings.id.toString(),
-                label: `Settings #${settings.id} ${settings.isActive ? '(Active)' : ''}`,
-              })),
-            ]}
-            value={selectedSettingsId?.toString() || ''}
-            onChange={(value) => setSelectedSettingsId(value ? parseInt(value) : undefined)}
-            placeholder="Select settings"
-            className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
-          />
-          {selectedSettingsId && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setSelectedSettingsId(undefined)}
-            >
-              Clear Filter
-            </Button>
-          )}
+        {/* Create Button and Search */}
+        <div className="mb-6 flex items-center gap-4">
+          <Button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-11 px-6 flex items-center gap-2"
+          >
+            <Plus size={18} />
+            Create Category
+          </Button>
+          
+          {/* Search Bar */}
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <Input
+              type="text"
+              placeholder="Search by name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 bg-white border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
+            />
+          </div>
         </div>
-      </div>
 
-      {/* Categories Table */}
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>SL No</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Range</TableHead>
-              <TableHead>Base</TableHead>
-              <TableHead>Fixed Rate</TableHead>
-              <TableHead>Active</TableHead>
-              <TableHead>Settings ID</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredCategories.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={9} className="text-center py-8 text-gray-500">
-                  {selectedSettingsId 
-                    ? `No categories found for selected settings. Create a category to get started.`
-                    : 'No categories found. Create your first category to get started.'}
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredCategories.map((category) => (
-                <TableRow key={category.id}>
-                  <TableCell className="font-medium">{category.slNo}</TableCell>
-                  <TableCell>{category.name}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{category.category}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    {category.lowerRange !== undefined && category.upperRange !== undefined
-                      ? `${category.lowerRange} - ${category.upperRange} sq ft`
-                      : category.lowerRange !== undefined
-                      ? `${category.lowerRange}+ sq ft`
-                      : category.rangeDescription || 'N/A'}
-                  </TableCell>
-                  <TableCell>
-                    {category.isBaseCategory ? (
-                      <Badge variant="default" className="bg-green-600">Yes</Badge>
-                    ) : (
-                      <Badge variant="outline">No</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {category.isFixedRate ? (
-                      <Badge variant="default" className="bg-blue-600">Yes</Badge>
-                    ) : (
-                      <Badge variant="outline">No</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {category.isActive ? (
-                      <Badge variant="default" className="bg-green-600">Active</Badge>
-                    ) : (
-                      <Badge variant="outline">Inactive</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>{category.settingsId}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(category)}
-                      >
-                        <Edit size={14} className="mr-1" />
-                        Edit
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(category.id)}
-                        disabled={deleteMutation.isPending}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 size={14} className="mr-1" />
-                        Delete
-                      </Button>
-                    </div>
-                  </TableCell>
+        {/* Categories Table */}
+        {filteredCategories.length === 0 ? (
+          <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+            <p className="text-gray-500">
+              {searchQuery.trim()
+                ? `No categories found matching "${searchQuery}".`
+                : 'No categories found. Create your first category to get started.'}
+            </p>
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">All Categories</h3>
+            </div>
+            <Table>
+              <TableHeader>
+                <TableRow className="border-gray-200 bg-gray-50">
+                  <TableHead className="text-sm font-semibold text-gray-700">SL No</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">Name</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">Category</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">Range</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700 text-center">Base</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700 text-center">Fixed Rate</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700 text-center">Active</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">Settings ID</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700 text-center">Actions</TableHead>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredCategories.map((category) => (
+                  <TableRow key={category.id} className="border-gray-100">
+                    <TableCell className="text-sm font-medium text-gray-900">{category.slNo}</TableCell>
+                    <TableCell className="text-sm text-gray-900">{category.name}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{category.category}</Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-gray-600">
+                      {category.lowerRange !== undefined && category.upperRange !== undefined
+                        ? `${category.lowerRange} - ${category.upperRange} sq ft`
+                        : category.lowerRange !== undefined
+                        ? `${category.lowerRange}+ sq ft`
+                        : category.rangeDescription || 'N/A'}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {category.isBaseCategory ? (
+                        <Badge variant="default" className="bg-green-600">Yes</Badge>
+                      ) : (
+                        <Badge variant="outline">No</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {category.isFixedRate ? (
+                        <Badge variant="default" className="bg-blue-600">Yes</Badge>
+                      ) : (
+                        <Badge variant="outline">No</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <StatusBadge status={category.isActive ? 'active' : 'draft'} />
+                    </TableCell>
+                    <TableCell className="text-sm text-gray-600">{category.settingsId}</TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(category)}
+                          className="border-gray-300 text-gray-700 rounded-lg h-8 w-8 p-0 bg-white hover:bg-gray-50 inline-flex items-center justify-center"
+                          title="Edit"
+                        >
+                          <Edit size={14} />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(category.id)}
+                          disabled={deleteMutation.isPending}
+                          className="border-red-300 text-red-700 rounded-lg h-8 w-8 p-0 bg-white hover:bg-red-50 inline-flex items-center justify-center"
+                          title="Delete"
+                        >
+                          <Trash2 size={14} />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </div>
 
       {/* Create Modal */}

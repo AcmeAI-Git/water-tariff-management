@@ -634,12 +634,12 @@ export interface TariffCategorySettings {
   baseRate: number;
   currentTariff: number;
   currentTubewellTariff: number;
-  tubewellRatioStandard: number;
-  tubewellRatioCommercial: number;
-  aboveBaseIncreasePercent: number;
-  belowBaseDecreasePercent: number;
-  commercialIncreasePercent: number;
-  governmentIncreasePercent: number;
+  tubewellRatioStandard?: number;
+  tubewellRatioCommercial?: number;
+  aboveBaseIncreasePercent?: number;
+  belowBaseDecreasePercent?: number;
+  commercialIncreasePercent?: number;
+  governmentIncreasePercent?: number;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

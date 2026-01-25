@@ -68,24 +68,28 @@ export function GeneralAdminSidebar({ activePage, onNavigate }: GeneralAdminSide
 
             {/* Navigation */}
             <nav className="flex-1 px-4 py-6">
-                {menuItems.map((item) => {
+                {menuItems.map((item, index) => {
                     const Icon = item.icon;
                     const isActive = activePage === item.id;
                     return (
-                        <button
-                            key={item.id}
-                            onClick={() => handleNav(item.id)}
-                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-1 transition-all ${
-                                isActive
-                                    ? "bg-primary text-white"
-                                    : "text-gray-700 hover:bg-gray-50"
-                            }`}
-                        >
-                            <Icon size={20} strokeWidth={isActive ? 2.5 : 2} className="flex-shrink-0" />
-                            <span className="text-[0.9375rem] font-medium whitespace-nowrap text-left">
-                                {item.label}
-                            </span>
-                        </button>
+                        <div key={item.id}>
+                            <button
+                                onClick={() => handleNav(item.id)}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                                    isActive
+                                        ? "bg-primary text-white"
+                                        : "text-gray-700 hover:bg-gray-50"
+                                }`}
+                            >
+                                <Icon size={20} strokeWidth={isActive ? 2.5 : 2} className="flex-shrink-0" />
+                                <span className="text-[0.9375rem] font-medium whitespace-nowrap text-left">
+                                    {item.label}
+                                </span>
+                            </button>
+                            {index < menuItems.length - 1 && (
+                                <div className="border-b border-gray-400 mx-4"></div>
+                            )}
+                        </div>
                     );
                 })}
             </nav>
