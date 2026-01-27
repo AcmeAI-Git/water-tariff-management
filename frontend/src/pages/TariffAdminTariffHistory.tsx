@@ -8,32 +8,53 @@ import { Input } from '../components/ui/input';
 import { Dropdown } from '../components/ui/Dropdown';
 import { Button } from '../components/ui/button';
 import { Search, X } from 'lucide-react';
+import type { TariffPlan, ZoneScoringRuleSet, Admin } from '../types';
 
 export function TariffAdminTariffHistory() {
   const [ruleTypeFilter, setRuleTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  
   // Fetch all tariff plans
-  const { data: tariffPlans = [], isLoading } = useApiQuery(
+  const { data: tariffPlans = [], isLoading: tariffPlansLoading } = useApiQuery<TariffPlan[]>(
     ['tariff-plans'],
     () => api.tariffPlans.getAll()
   );
 
-  // Map tariff plans to history records
+  // Fetch all zone scoring rulesets
+  const { data: zoneScoringData = [], isLoading: zoneScoringLoading } = useApiQuery<ZoneScoringRuleSet[]>(
+    ['zone-scoring'],
+    () => api.zoneScoring.getAll()
+  );
+
+  // Fetch all admins to map createdBy IDs to names
+  const { data: admins = [], isLoading: adminsLoading } = useApiQuery<Admin[]>(
+    ['admins'],
+    () => api.admins.getAll()
+  );
+
+  // Map tariff plans and zone scoring to history records
   const historyRecords = useMemo(() => {
     const records: any[] = [];
     
+    // Add tariff plans
     tariffPlans.forEach((plan) => {
+      const creator = (admins as Admin[]).find((a) => a.id === plan.createdBy);
+      const createdBy = creator?.fullName || (plan.createdBy ? `Admin #${plan.createdBy}` : 'N/A');
+      const createdAt = plan.createdAt || '';
+      
       // Add plan-level record
       records.push({
         id: plan.id,
-        ruleType: 'Plan',
+        ruleType: 'Tariff Plan',
         details: plan.name,
         newValue: plan.description || 'N/A',
         effectiveFrom: plan.effectiveFrom,
         effectiveTo: plan.effectiveTo || null,
         status: plan.effectiveTo ? 'Expired' : 'Active',
         approvalStatus: (plan as any).approvalStatus?.name || 'Unknown',
+        createdBy,
+        createdAt,
       });
 
       // Add slab records
@@ -45,24 +66,50 @@ export function TariffAdminTariffHistory() {
           
           records.push({
             id: `${plan.id}-slab-${slab.id}`,
-            ruleType: 'Slab',
+            ruleType: 'Tariff Slab',
             details: range,
             newValue: `৳${slab.ratePerUnit.toFixed(2)}/m³`,
             effectiveFrom: plan.effectiveFrom,
             effectiveTo: plan.effectiveTo || null,
             status: plan.effectiveTo ? 'Expired' : 'Active',
             approvalStatus: (plan as any).approvalStatus?.name || 'Unknown',
+            createdBy,
+            createdAt,
           });
         });
       }
     });
 
+    // Add zone scoring rulesets
+    (zoneScoringData as ZoneScoringRuleSet[]).forEach((ruleset) => {
+      const rulesetWithCreator = ruleset as ZoneScoringRuleSet & { createdBy?: number; created_by?: number };
+      const creatorId = rulesetWithCreator.createdBy || rulesetWithCreator.created_by;
+      const creator = creatorId ? (admins as Admin[]).find((a) => a.id === creatorId) : null;
+      const createdBy = creator?.fullName || (creatorId ? `Admin #${creatorId}` : 'Tariff Admin');
+      const createdAt = ruleset.createdAt || '';
+      
+      records.push({
+        id: `zone-scoring-${ruleset.id}`,
+        ruleType: 'Zone Scoring',
+        details: ruleset.title,
+        newValue: `${ruleset.scoringParams?.length || 0} parameters`,
+        effectiveFrom: ruleset.effectiveFrom || createdAt,
+        effectiveTo: null,
+        status: ruleset.status === 'published' || ruleset.status === 'active' ? 'Active' : 
+                ruleset.status === 'rejected' ? 'Rejected' : 'Pending',
+        approvalStatus: ruleset.status || 'Pending',
+        createdBy,
+        createdAt,
+      });
+    });
+
     return records.sort((a, b) => {
-      const dateA = new Date(a.effectiveFrom).getTime();
-      const dateB = new Date(b.effectiveFrom).getTime();
+      // Sort by created date if available, otherwise by effective from
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : new Date(a.effectiveFrom).getTime();
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : new Date(b.effectiveFrom).getTime();
       return dateB - dateA; // Most recent first
     });
-  }, [tariffPlans]);
+  }, [tariffPlans, zoneScoringData, admins]);
 
   // Apply filters
   const filteredRecords = useMemo(() => {
@@ -115,7 +162,7 @@ export function TariffAdminTariffHistory() {
     }
   };
 
-  if (isLoading) {
+  if (tariffPlansLoading || zoneScoringLoading || adminsLoading) {
     return (
       <div className="min-h-screen bg-[#f8f9fb] flex items-center justify-center">
         <LoadingSpinner />
@@ -151,8 +198,9 @@ export function TariffAdminTariffHistory() {
             <Dropdown
               options={[
                 { value: 'all', label: 'All Rule Types' },
-                { value: 'Plan', label: 'Plan' },
-                { value: 'Slab', label: 'Slab' }
+                { value: 'Tariff Plan', label: 'Tariff Plan' },
+                { value: 'Tariff Slab', label: 'Tariff Slab' },
+                { value: 'Zone Scoring', label: 'Zone Scoring' }
               ]}
               value={ruleTypeFilter}
               onChange={setRuleTypeFilter}
@@ -199,13 +247,14 @@ export function TariffAdminTariffHistory() {
                 <TableHead className="text-sm font-semibold text-gray-700">Value</TableHead>
                 <TableHead className="text-sm font-semibold text-gray-700">Effective From</TableHead>
                 <TableHead className="text-sm font-semibold text-gray-700">Effective To</TableHead>
+                <TableHead className="text-sm font-semibold text-gray-700">Created By</TableHead>
                 <TableHead className="text-sm font-semibold text-gray-700">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredRecords.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-gray-500 py-8">
+                  <TableCell colSpan={7} className="text-center text-gray-500 py-8">
                     No tariff history found
                   </TableCell>
                 </TableRow>
@@ -216,11 +265,12 @@ export function TariffAdminTariffHistory() {
                     <TableCell className="text-sm text-gray-600">{record.details}</TableCell>
                     <TableCell className="text-sm text-gray-600">{record.newValue}</TableCell>
                     <TableCell className="text-sm text-gray-600">
-                      {new Date(record.effectiveFrom).toLocaleDateString('en-US')}
+                      {record.effectiveFrom ? new Date(record.effectiveFrom).toLocaleDateString('en-US') : '-'}
                     </TableCell>
                     <TableCell className="text-sm text-gray-600">
                       {record.effectiveTo ? new Date(record.effectiveTo).toLocaleDateString('en-US') : '-'}
                     </TableCell>
+                    <TableCell className="text-sm text-gray-600">{record.createdBy || 'N/A'}</TableCell>
                     <TableCell>
                       <Badge className={getStatusColor(record.status)}>
                         {record.status}

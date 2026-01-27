@@ -9,37 +9,89 @@ import { Input } from '../components/ui/input';
 import { Dropdown } from '../components/ui/Dropdown';
 import { Button } from '../components/ui/button';
 import { Search, X } from 'lucide-react';
+import type { User, Meter, Admin } from '../types';
 
 export function CustomerAdminSubmissionHistory() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // Fetch all customers (users) - since customers are created directly without approval
-  const { data: users = [], isLoading: usersLoading } = useApiQuery(
+  // Fetch all customers (users)
+  const { data: users = [], isLoading: usersLoading } = useApiQuery<User[]>(
     ['users'],
     () => api.users.getAll()
+  );
+
+  // Fetch all meters to get meter numbers
+  const { data: meters = [], isLoading: metersLoading } = useApiQuery<Meter[]>(
+    ['meters'],
+    () => api.meters.getAll()
+  );
+
+  // Fetch all admins to map createdBy IDs to names
+  const { data: admins = [], isLoading: adminsLoading } = useApiQuery<Admin[]>(
+    ['admins'],
+    () => api.admins.getAll()
   );
 
   // Map customers to submission history format
   const submissionHistory = useMemo(() => {
     return users.map((user) => {
+      const userData = user as any;
       const customer = mapUserToCustomer(user);
       
-      // Customers are created directly as 'active', so status is always Active
+      // Get customer ID - handle both id (number) and account (UUID)
+      const customerId = user.id || user.account || (userData.account || userData.id);
+      const customerIdStr = customerId 
+        ? (typeof customerId === 'string' ? customerId.substring(0, 8) : String(customerId))
+        : 'N/A';
+      
+      // Get meter number from meters table if not in user
+      let meterNo = customer.meterNo || user.meterNo || '';
+      if (!meterNo || meterNo === 'N/A') {
+        const userAccount = user.account || customerId;
+        const userMeter = (meters as Meter[]).find((m: Meter) => {
+          const meterAccount = (m as any).account || m.userAccount || (m as any).user_account;
+          return meterAccount && userAccount && String(meterAccount) === String(userAccount);
+        });
+        if (userMeter?.meterNo) {
+          meterNo = typeof userMeter.meterNo === 'number' ? userMeter.meterNo.toString() : String(userMeter.meterNo);
+        }
+      }
+      
+      // Get phone from user
+      const phone = user.phone || userData.phone || '';
+      
+      // Get created date - check multiple possible locations
+      const createdAt = user.createdAt || 
+                       userData.createdAt || 
+                       userData.created_at ||
+                       (user as any).createdAt ||
+                       (user as any).created_at;
+      
+      // Get createdBy admin
+      const createdById = userData.createdBy || userData.created_by;
+      const creator = createdById ? (admins as Admin[]).find((a) => a.id === createdById) : null;
+      
+      // Get status
       const status = user.status?.toLowerCase() === 'active' ? 'Active' : 
                      user.status?.toLowerCase() === 'inactive' ? 'Inactive' : 
-                     'Active';
+                     (userData.activeStatus?.toLowerCase() === 'active' ? 'Active' :
+                      userData.activeStatus?.toLowerCase() === 'inactive' ? 'Inactive' : 'Active');
       
       return {
-        id: user.id,
-        requestId: `CUST-${String(user.id).padStart(4, '0')}`,
-        name: customer.name || customer.fullName || 'Unknown',
-        fullName: customer.fullName || customer.name || 'Unknown',
-        meterNo: customer.meterNo || 'N/A',
-        phone: customer.phone || 'N/A',
-        address: customer.address || 'N/A',
-        submission: user.createdAt
-          ? new Date(user.createdAt).toLocaleString('en-US', {
+        id: customerId,
+        requestId: customerId 
+          ? (typeof customerId === 'string' 
+              ? `CUST-${customerId.substring(0, 8).toUpperCase()}` 
+              : `CUST-${String(customerId).padStart(4, '0')}`)
+          : 'N/A',
+        name: customer.name || customer.fullName || user.fullName || 'Unknown',
+        fullName: customer.fullName || customer.name || user.fullName || 'Unknown',
+        meterNo: meterNo || 'N/A',
+        phone: phone || 'N/A',
+        address: customer.address || user.address || 'N/A',
+        submission: createdAt
+          ? new Date(createdAt).toLocaleString('en-US', {
               year: 'numeric',
               month: 'short',
               day: 'numeric',
@@ -48,15 +100,19 @@ export function CustomerAdminSubmissionHistory() {
               second: '2-digit',
             })
           : 'N/A',
+        createdBy: creator?.fullName || (createdById ? `Admin #${createdById}` : 'N/A'),
         status,
       };
     }).sort((a, b) => {
-      // Sort by submission date (newest first)
+      // Sort by submission date (newest first), but handle 'N/A' dates
+      if (a.submission === 'N/A' && b.submission === 'N/A') return 0;
+      if (a.submission === 'N/A') return 1;
+      if (b.submission === 'N/A') return -1;
       const dateA = new Date(a.submission).getTime();
       const dateB = new Date(b.submission).getTime();
       return dateB - dateA;
     });
-  }, [users]);
+  }, [users, meters, admins]);
 
   // Apply filters
   const filteredSubmissions = useMemo(() => {
@@ -117,7 +173,7 @@ export function CustomerAdminSubmissionHistory() {
     }
   };
 
-  if (usersLoading) {
+  if (usersLoading || metersLoading || adminsLoading) {
     return (
       <div className="min-h-screen bg-[#f8f9fb] flex items-center justify-center">
         <LoadingSpinner />
@@ -211,25 +267,27 @@ export function CustomerAdminSubmissionHistory() {
                 <TableHead className="text-sm font-semibold text-gray-700">Phone</TableHead>
                 <TableHead className="text-sm font-semibold text-gray-700">Address</TableHead>
                 <TableHead className="text-sm font-semibold text-gray-700">Created Date</TableHead>
+                <TableHead className="text-sm font-semibold text-gray-700">Created By</TableHead>
                 <TableHead className="text-sm font-semibold text-gray-700">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredSubmissions.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-gray-500 py-8">
+                  <TableCell colSpan={8} className="text-center text-gray-500 py-8">
                     No customers found. Add customers from the Customer Management page.
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredSubmissions.map((submission) => (
-                  <TableRow key={submission.id} className="border-gray-100">
+                  <TableRow key={submission.id || submission.requestId} className="border-gray-100">
                     <TableCell className="text-sm text-gray-600 font-mono">{submission.requestId}</TableCell>
                     <TableCell className="text-sm text-gray-900 font-medium">{submission.name || submission.fullName}</TableCell>
                     <TableCell className="text-sm text-gray-600 font-mono">{submission.meterNo}</TableCell>
                     <TableCell className="text-sm text-gray-600">{submission.phone}</TableCell>
                     <TableCell className="text-sm text-gray-600">{submission.address}</TableCell>
                     <TableCell className="text-sm text-gray-600">{submission.submission}</TableCell>
+                    <TableCell className="text-sm text-gray-600">{submission.createdBy}</TableCell>
                     <TableCell>{getStatusBadge(submission.status)}</TableCell>
                   </TableRow>
                 ))
