@@ -324,11 +324,11 @@ export function SettingRow({
                 <Table>
                   <TableHeader>
                     <TableRow className="border-gray-200 bg-gray-50">
-                      <TableHead className="text-xs font-semibold text-gray-700">Name</TableHead>
-                      <TableHead className="text-xs font-semibold text-gray-700">Category</TableHead>
-                      <TableHead className="text-xs font-semibold text-gray-700">Base</TableHead>
-                      <TableHead className="text-xs font-semibold text-gray-700">Active</TableHead>
-                      <TableHead className="text-xs font-semibold text-gray-700 text-center">Actions</TableHead>
+                      <TableHead className="text-xs font-semibold text-gray-700 py-2">Name</TableHead>
+                      <TableHead className="text-xs font-semibold text-gray-700 py-2">Category</TableHead>
+                      <TableHead className="text-xs font-semibold text-gray-700 py-2">Base</TableHead>
+                      <TableHead className="text-xs font-semibold text-gray-700 py-2">Active</TableHead>
+                      <TableHead className="text-xs font-semibold text-gray-700 text-right py-2">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -346,8 +346,8 @@ export function SettingRow({
                         <TableCell className="text-xs">
                           <StatusBadge status={category.isActive ? 'active' : 'draft'} />
                         </TableCell>
-                        <TableCell className="text-center">
-                          <div className="flex items-center justify-center gap-1">
+                        <TableCell className="text-right align-middle">
+                          <div className="flex items-center justify-end gap-1">
                             <Button
                               variant="ghost"
                               size="sm"

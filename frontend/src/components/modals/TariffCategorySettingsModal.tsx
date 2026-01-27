@@ -3,7 +3,11 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { useState, useEffect } from 'react';
-import type { TariffCategorySettings, CreateTariffCategorySettingsDto, UpdateTariffCategorySettingsDto } from '../../types';
+import type { 
+  TariffCategorySettings, 
+  CreateTariffCategorySettingsDto, 
+  UpdateTariffCategorySettingsDto 
+} from '../../types';
 
 interface TariffCategorySettingsModalProps {
   isOpen: boolean;
@@ -37,31 +41,41 @@ export function TariffCategorySettingsModal({
 
   useEffect(() => {
     if (initialData && mode === 'edit') {
+      // Convert decimals to percentages for display
+      // Handle both decimal (<= 1) and percentage (> 1) formats from backend
+      const convertToPercentage = (value: number | undefined, defaultVal: number): string => {
+        if (value === undefined || value === null) return defaultVal.toString();
+        // If value > 1, assume it's already in percentage format
+        if (value > 1) return value.toString();
+        // Otherwise, convert from decimal to percentage
+        return (value * 100).toString();
+      };
+
       setFormData({
         productionCost: initialData.productionCost.toString(),
         baseRate: initialData.baseRate.toString(),
         currentTariff: initialData.currentTariff.toString(),
         currentTubewellTariff: initialData.currentTubewellTariff.toString(),
-        tubewellRatioStandard: initialData.tubewellRatioStandard?.toString() || '',
-        tubewellRatioCommercial: initialData.tubewellRatioCommercial?.toString() || '',
-        aboveBaseIncreasePercent: initialData.aboveBaseIncreasePercent?.toString() || '',
-        belowBaseDecreasePercent: initialData.belowBaseDecreasePercent?.toString() || '',
-        commercialIncreasePercent: initialData.commercialIncreasePercent?.toString() || '',
-        governmentIncreasePercent: initialData.governmentIncreasePercent?.toString() || '',
+        tubewellRatioStandard: convertToPercentage(initialData.tubewellRatioStandard, 40),
+        tubewellRatioCommercial: convertToPercentage(initialData.tubewellRatioCommercial, 60),
+        aboveBaseIncreasePercent: convertToPercentage(initialData.aboveBaseIncreasePercent, 10),
+        belowBaseDecreasePercent: convertToPercentage(initialData.belowBaseDecreasePercent, 5),
+        commercialIncreasePercent: convertToPercentage(initialData.commercialIncreasePercent, 100),
+        governmentIncreasePercent: convertToPercentage(initialData.governmentIncreasePercent, 0),
       });
     } else {
-      // Reset form for create mode
+      // Reset form for create mode with default values
       setFormData({
         productionCost: '',
         baseRate: '',
         currentTariff: '',
         currentTubewellTariff: '',
-        tubewellRatioStandard: '',
-        tubewellRatioCommercial: '',
-        aboveBaseIncreasePercent: '',
-        belowBaseDecreasePercent: '',
-        commercialIncreasePercent: '',
-        governmentIncreasePercent: '',
+        tubewellRatioStandard: '40',
+        tubewellRatioCommercial: '60',
+        aboveBaseIncreasePercent: '10',
+        belowBaseDecreasePercent: '5',
+        commercialIncreasePercent: '100',
+        governmentIncreasePercent: '0',
       });
     }
   }, [initialData, mode, isOpen]);
@@ -78,17 +92,18 @@ export function TariffCategorySettingsModal({
       return;
     }
 
+    // Convert percentages to decimals for backend (divide by 100)
     const submitData: CreateTariffCategorySettingsDto | UpdateTariffCategorySettingsDto = {
       productionCost: parseFloat(formData.productionCost),
       baseRate: parseFloat(formData.baseRate),
       currentTariff: parseFloat(formData.currentTariff),
       currentTubewellTariff: parseFloat(formData.currentTubewellTariff),
-      ...(formData.tubewellRatioStandard && { tubewellRatioStandard: parseFloat(formData.tubewellRatioStandard) }),
-      ...(formData.tubewellRatioCommercial && { tubewellRatioCommercial: parseFloat(formData.tubewellRatioCommercial) }),
-      ...(formData.aboveBaseIncreasePercent && { aboveBaseIncreasePercent: parseFloat(formData.aboveBaseIncreasePercent) }),
-      ...(formData.belowBaseDecreasePercent && { belowBaseDecreasePercent: parseFloat(formData.belowBaseDecreasePercent) }),
-      ...(formData.commercialIncreasePercent && { commercialIncreasePercent: parseFloat(formData.commercialIncreasePercent) }),
-      ...(formData.governmentIncreasePercent && { governmentIncreasePercent: parseFloat(formData.governmentIncreasePercent) }),
+      tubewellRatioStandard: parseFloat(formData.tubewellRatioStandard) / 100,
+      tubewellRatioCommercial: parseFloat(formData.tubewellRatioCommercial) / 100,
+      aboveBaseIncreasePercent: parseFloat(formData.aboveBaseIncreasePercent) / 100,
+      belowBaseDecreasePercent: parseFloat(formData.belowBaseDecreasePercent) / 100,
+      commercialIncreasePercent: parseFloat(formData.commercialIncreasePercent) / 100,
+      governmentIncreasePercent: parseFloat(formData.governmentIncreasePercent) / 100,
     };
 
     onSubmit(submitData);
@@ -99,28 +114,37 @@ export function TariffCategorySettingsModal({
     formData.baseRate.trim() !== '' &&
     formData.currentTariff.trim() !== '' &&
     formData.currentTubewellTariff.trim() !== '' &&
+    formData.tubewellRatioStandard.trim() !== '' &&
+    formData.tubewellRatioCommercial.trim() !== '' &&
+    formData.aboveBaseIncreasePercent.trim() !== '' &&
+    formData.belowBaseDecreasePercent.trim() !== '' &&
+    formData.commercialIncreasePercent.trim() !== '' &&
+    formData.governmentIncreasePercent.trim() !== '' &&
     !isNaN(parseFloat(formData.productionCost)) &&
     !isNaN(parseFloat(formData.baseRate)) &&
     !isNaN(parseFloat(formData.currentTariff)) &&
-    !isNaN(parseFloat(formData.currentTubewellTariff));
+    !isNaN(parseFloat(formData.currentTubewellTariff)) &&
+    !isNaN(parseFloat(formData.tubewellRatioStandard)) &&
+    !isNaN(parseFloat(formData.tubewellRatioCommercial)) &&
+    !isNaN(parseFloat(formData.aboveBaseIncreasePercent)) &&
+    !isNaN(parseFloat(formData.belowBaseDecreasePercent)) &&
+    !isNaN(parseFloat(formData.commercialIncreasePercent)) &&
+    !isNaN(parseFloat(formData.governmentIncreasePercent));
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white">
         <DialogHeader>
           <DialogTitle>
-            {mode === 'create' ? 'Create Tariff Category Settings' : 'Edit Tariff Category Settings'}
+            {mode === 'create' ? 'Create Settings Ruleset' : 'Edit Settings Ruleset'}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Required Fields */}
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-gray-700">Required Fields</h3>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="productionCost" className="text-sm font-medium text-gray-700">
+            <div className="grid grid-cols-2 gap-4 items-start">
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="productionCost" className="text-sm font-medium text-gray-700 min-h-[2.5rem] flex items-start">
                   Production Cost (BDT/1000L) *
                 </Label>
                 <Input
@@ -136,8 +160,8 @@ export function TariffCategorySettingsModal({
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="baseRate" className="text-sm font-medium text-gray-700">
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="baseRate" className="text-sm font-medium text-gray-700 min-h-[2.5rem] flex items-start">
                   Base Rate (BDT/1000L) *
                 </Label>
                 <Input
@@ -153,8 +177,8 @@ export function TariffCategorySettingsModal({
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="currentTariff" className="text-sm font-medium text-gray-700">
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="currentTariff" className="text-sm font-medium text-gray-700 min-h-[2.5rem] flex items-start">
                   Current Tariff (BDT/1000L) *
                 </Label>
                 <Input
@@ -170,8 +194,8 @@ export function TariffCategorySettingsModal({
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="currentTubewellTariff" className="text-sm font-medium text-gray-700">
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="currentTubewellTariff" className="text-sm font-medium text-gray-700 min-h-[2.5rem] flex items-start">
                   Current Tubewell Tariff (BDT/1000L) *
                 </Label>
                 <Input
@@ -189,14 +213,11 @@ export function TariffCategorySettingsModal({
             </div>
           </div>
 
-          {/* Optional Fields */}
           <div className="space-y-4 pt-4 border-t border-gray-200">
-            <h3 className="text-sm font-semibold text-gray-700">Optional Fields</h3>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="tubewellRatioStandard" className="text-sm font-medium text-gray-700">
-                  Tubewell Ratio Standard (%)
+            <div className="grid grid-cols-2 gap-4 items-start">
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="tubewellRatioStandard" className="text-sm font-medium text-gray-700 min-h-[2.5rem] flex items-start">
+                  Tubewell Ratio Standard (%) *
                 </Label>
                 <Input
                   id="tubewellRatioStandard"
@@ -208,12 +229,13 @@ export function TariffCategorySettingsModal({
                   onChange={(e) => handleInputChange('tubewellRatioStandard', e.target.value)}
                   placeholder="e.g., 40"
                   className="bg-gray-50 border-gray-300"
+                  required
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="tubewellRatioCommercial" className="text-sm font-medium text-gray-700">
-                  Tubewell Ratio Commercial (%)
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="tubewellRatioCommercial" className="text-sm font-medium text-gray-700 min-h-[2.5rem] flex items-start">
+                  Tubewell Ratio Commercial (%) *
                 </Label>
                 <Input
                   id="tubewellRatioCommercial"
@@ -225,12 +247,13 @@ export function TariffCategorySettingsModal({
                   onChange={(e) => handleInputChange('tubewellRatioCommercial', e.target.value)}
                   placeholder="e.g., 60"
                   className="bg-gray-50 border-gray-300"
+                  required
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="aboveBaseIncreasePercent" className="text-sm font-medium text-gray-700">
-                  Above Base Increase (%)
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="aboveBaseIncreasePercent" className="text-sm font-medium text-gray-700 min-h-[2.5rem] flex items-start">
+                  Above Base Increase (%) *
                 </Label>
                 <Input
                   id="aboveBaseIncreasePercent"
@@ -240,15 +263,16 @@ export function TariffCategorySettingsModal({
                   onChange={(e) => handleInputChange('aboveBaseIncreasePercent', e.target.value)}
                   placeholder="Enter increase percentage"
                   className="bg-gray-50 border-gray-300"
+                  required
                 />
-                <p className="text-xs text-gray-500">
-                  Percentage increase for Domestic categories above the base category (only applies to Domestic)
+                <p className="text-xs text-gray-500 mt-1">
+                  Percentage increase for Domestic categories above the base category
                 </p>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="belowBaseDecreasePercent" className="text-sm font-medium text-gray-700">
-                  Below Base Decrease (%)
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="belowBaseDecreasePercent" className="text-sm font-medium text-gray-700 min-h-[2.5rem] flex items-start">
+                  Below Base Decrease (%) *
                 </Label>
                 <Input
                   id="belowBaseDecreasePercent"
@@ -258,15 +282,16 @@ export function TariffCategorySettingsModal({
                   onChange={(e) => handleInputChange('belowBaseDecreasePercent', e.target.value)}
                   placeholder="Enter decrease percentage"
                   className="bg-gray-50 border-gray-300"
+                  required
                 />
-                <p className="text-xs text-gray-500">
-                  Percentage decrease for Domestic categories below the base category (only applies to Domestic)
+                <p className="text-xs text-gray-500 mt-1">
+                  Percentage decrease for Domestic categories below the base category
                 </p>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="commercialIncreasePercent" className="text-sm font-medium text-gray-700">
-                  Commercial Increase (%)
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="commercialIncreasePercent" className="text-sm font-medium text-gray-700 min-h-[2.5rem] flex items-start">
+                  Commercial Increase (%) *
                 </Label>
                 <Input
                   id="commercialIncreasePercent"
@@ -276,12 +301,13 @@ export function TariffCategorySettingsModal({
                   onChange={(e) => handleInputChange('commercialIncreasePercent', e.target.value)}
                   placeholder="e.g., 100"
                   className="bg-gray-50 border-gray-300"
+                  required
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="governmentIncreasePercent" className="text-sm font-medium text-gray-700">
-                  Government Increase (%)
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="governmentIncreasePercent" className="text-sm font-medium text-gray-700 min-h-[2.5rem] flex items-start">
+                  Government Increase (%) *
                 </Label>
                 <Input
                   id="governmentIncreasePercent"
@@ -291,6 +317,7 @@ export function TariffCategorySettingsModal({
                   onChange={(e) => handleInputChange('governmentIncreasePercent', e.target.value)}
                   placeholder="e.g., 0"
                   className="bg-gray-50 border-gray-300"
+                  required
                 />
               </div>
             </div>
@@ -302,13 +329,14 @@ export function TariffCategorySettingsModal({
               variant="outline"
               onClick={onClose}
               disabled={isSubmitting}
+              className="border-gray-300 text-gray-700 rounded-lg h-10 px-6 bg-white hover:bg-gray-50"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={!isFormValid || isSubmitting}
-              className="bg-primary hover:bg-primary-600 text-white"
+              className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-10 px-6 disabled:opacity-50"
             >
               {isSubmitting ? (mode === 'create' ? 'Creating...' : 'Saving...') : (mode === 'create' ? 'Create' : 'Save')}
             </Button>

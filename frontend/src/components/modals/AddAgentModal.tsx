@@ -10,7 +10,7 @@ interface Agent {
   email: string;
   password?: string;
   confirm?: string;
-  cityCorporation?: string;
+  wasa?: string;
   zone?: string;
   ward?: string;
   role: string;
@@ -24,25 +24,25 @@ interface AddAgentModalProps {
   agent?: Agent | null;
   roleFixed?: string; // For locking role to specific value (e.g., "Meter Admin")
   onDelete?: () => void; // Optional delete handler for edit mode
-  cityCorporationOptions?: Array<{ value: string; label: string }>; // City Corporation options from API
+  wasaOptions?: Array<{ value: string; label: string }>; // City Corporation options from API
   zoneOptions?: Array<{ value: string; label: string }>; // Zone options from API
   wardOptions?: Array<{ value: string; label: string }>; // Ward options from API
   roleOptions?: Array<{ value: string; label: string }>; // Role options from API
   modalTitle?: string; // Custom modal title (defaults to "Add New Agent" or "Edit Agent")
   submitButtonText?: string; // Custom submit button text (defaults to "Add Agent" or "Save Changes")
-  showCityCorporation?: boolean; // Show city corporation field (default false)
+  showWasa?: boolean; // Show city corporation field (default false)
   showZoneWard?: boolean; // Show zone/ward fields (default false)
   zoneWardAsNumbers?: boolean; // Use number inputs instead of dropdowns (default false)
 }
 
-export function AddAgentModal({ open, onClose, onSave, editMode = false, agent = null, roleFixed, onDelete, cityCorporationOptions = [], zoneOptions = [], wardOptions = [], roleOptions = [], modalTitle, submitButtonText, showCityCorporation = false, showZoneWard = false, zoneWardAsNumbers = false }: AddAgentModalProps) {
+export function AddAgentModal({ open, onClose, onSave, editMode = false, agent = null, roleFixed, onDelete, wasaOptions = [], zoneOptions = [], wardOptions = [], roleOptions = [], modalTitle, submitButtonText, showWasa = false, showZoneWard = false, zoneWardAsNumbers = false }: AddAgentModalProps) {
   const [form, setForm] = useState<Agent>({
     name: "",
     phone: "",
     email: "",
     password: "",
     confirm: "",
-    cityCorporation: "",
+    wasa: "",
     zone: "",
     ward: "",
     role: roleFixed || "Super Admin",
@@ -64,7 +64,7 @@ export function AddAgentModal({ open, onClose, onSave, editMode = false, agent =
         email: "",
         password: "",
         confirm: "",
-        cityCorporation: "",
+        wasa: "",
         zone: "",
         ward: "",
         role: roleFixed || "Super Admin",
@@ -208,21 +208,21 @@ export function AddAgentModal({ open, onClose, onSave, editMode = false, agent =
             </div>
 
             {/* Location Information Section */}
-            {(showCityCorporation || showZoneWard) && (
+            {(showWasa || showZoneWard) && (
               <div className="space-y-4">
                 <div className="pb-2 border-b border-gray-100">
                   <h3 className="text-sm font-semibold text-gray-800">Location Information</h3>
                 </div>
                 <div className="space-y-3">
-                  {showCityCorporation && (
+                  {showWasa && (
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-gray-700">
                         City Corporation
                       </label>
                       <Dropdown 
-                        options={cityCorporationOptions} 
-                        value={form.cityCorporation || ""} 
-                        onChange={v => handleChange("cityCorporation", v)} 
+                        options={wasaOptions} 
+                        value={form.wasa || ""} 
+                        onChange={v => handleChange("wasa", v)} 
                         placeholder="Select City Corporation" 
                         className="w-full" 
                       />

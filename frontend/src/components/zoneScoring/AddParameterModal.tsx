@@ -3,7 +3,7 @@ import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { useState, useMemo } from 'react';
-import type { Area, CreateScoringParamDto, ScoringParam, Zone, CityCorporation } from '../../types';
+import type { Area, CreateScoringParamDto, ScoringParam, Zone, Wasa } from '../../types';
 import { initializeScoringParam } from '../../utils/zoneScoringUtils';
 import { ScoringParameterFormFields } from './ScoringParameterFormFields';
 
@@ -14,7 +14,7 @@ interface AddParameterModalProps {
   setNewParam: (param: CreateScoringParamDto) => void;
   areas: Area[];
   zones?: Zone[];
-  cityCorporations?: CityCorporation[];
+  wasas?: Wasa[];
   onAdd: () => Promise<void>;
   isPending: boolean;
   calculatedParams?: ScoringParam[];
@@ -28,7 +28,7 @@ export function AddParameterModal({
   setNewParam,
   areas,
   zones = [],
-  cityCorporations = [],
+  wasas = [],
   onAdd,
   isPending,
   calculatedParams = [],
@@ -46,7 +46,7 @@ export function AddParameterModal({
       result = result.filter(area => {
         // Use nested zone object from area if available
         const zone = area.zone || zones.find(z => z.id === area.zoneId);
-        return zone?.cityCorporationId === parseInt(selectedCityCorpId);
+        return zone?.wasaId === parseInt(selectedCityCorpId);
       });
     }
 
@@ -65,7 +65,7 @@ export function AddParameterModal({
   // Get zones for selected city corporation
   const zonesForCityCorp = useMemo(() => {
     if (!selectedCityCorpId) return [];
-    return zones.filter(z => z.cityCorporationId === parseInt(selectedCityCorpId));
+    return zones.filter(z => z.wasaId === parseInt(selectedCityCorpId));
   }, [zones, selectedCityCorpId]);
 
   const handleClose = () => {
@@ -100,7 +100,7 @@ export function AddParameterModal({
         </DialogHeader>
         <div className="py-4 space-y-4">
           {/* City Corporation Filter */}
-          {cityCorporations.length > 0 && (
+          {wasas.length > 0 && (
             <div className="space-y-2 w-full">
               <Label className="text-sm font-medium text-gray-700">
                 City Corporation
@@ -111,7 +111,7 @@ export function AddParameterModal({
                 </SelectTrigger>
                 <SelectContent className="bg-white max-h-[300px] overflow-y-auto">
                   <SelectItem value="__all_city_corps__">All City Corporations</SelectItem>
-                  {cityCorporations.map((cc) => (
+                  {wasas.map((cc) => (
                     <SelectItem key={cc.id} value={cc.id.toString()} className="hover:bg-gray-100 cursor-pointer">
                       {cc.name} ({cc.code})
                     </SelectItem>
@@ -162,8 +162,8 @@ export function AddParameterModal({
                   filteredAreas.map((area) => {
                     // Use nested zone object if available
                     const zone = area.zone || zones.find(z => z.id === area.zoneId);
-                    const cityCorp = zone?.cityCorporationId 
-                      ? cityCorporations.find(cc => cc.id === zone.cityCorporationId)
+                    const cityCorp = zone?.wasaId 
+                      ? wasas.find(cc => cc.id === zone.wasaId)
                       : null;
                     const displayText = zone && cityCorp 
                       ? `${area.name} (${zone.name}, ${cityCorp.name})`

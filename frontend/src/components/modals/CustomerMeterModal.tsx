@@ -5,7 +5,7 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Dropdown } from '../ui/Dropdown';
 import { HierarchicalLocationSelector } from '../common/HierarchicalLocationSelector';
-import type { CityCorporation, Zone, Area } from '../../types';
+import type { Wasa, Zone, Area } from '../../types';
 
 export interface CustomerMeterFormData {
   name: string;
@@ -15,7 +15,7 @@ export interface CustomerMeterFormData {
   customerCategory: string;
   waterStatus: string;
   sewerStatus: string;
-  cityCorporationId: string;
+  wasaId: string;
   zoneId: string;
   areaId: string;
   meterNo: string;
@@ -35,7 +35,7 @@ interface CustomerMeterModalProps {
   onSubmit: () => void;
   onCancel: () => void;
   isSubmitting?: boolean;
-  cityCorporations: CityCorporation[];
+  wasas: Wasa[];
   zones: Zone[];
   areas: Area[];
   mode?: 'add' | 'edit';
@@ -49,7 +49,7 @@ export function CustomerMeterModal({
   onSubmit,
   onCancel,
   isSubmitting = false,
-  cityCorporations,
+  wasas,
   zones,
   areas,
   mode = 'add',
@@ -66,7 +66,7 @@ export function CustomerMeterModal({
     formData.customerCategory &&
     formData.waterStatus &&
     formData.sewerStatus &&
-    formData.cityCorporationId &&
+    formData.wasaId &&
     formData.zoneId &&
     formData.areaId &&
     (formData.waterStatus !== 'Metered' || (formData.meterNo && formData.sizeOfDia));
@@ -212,13 +212,13 @@ export function CustomerMeterModal({
             </div>
 
             <HierarchicalLocationSelector
-              cityCorporations={cityCorporations}
+              wasas={wasas}
               zones={zones}
               areas={areas}
-              cityCorporationId={formData.cityCorporationId}
+              wasaId={formData.wasaId}
               zoneId={formData.zoneId}
               areaId={formData.areaId}
-              onCityCorporationChange={(value) => handleInputChange('cityCorporationId', value)}
+              onWasaChange={(value) => handleInputChange('wasaId', value)}
               onZoneChange={(value) => handleInputChange('zoneId', value)}
               onAreaChange={(value) => handleInputChange('areaId', value)}
               required

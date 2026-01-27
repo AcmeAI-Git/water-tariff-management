@@ -11,7 +11,7 @@ import { PageHeader } from '../components/zoneScoring/PageHeader';
 import { ScoringParameterFormFields } from '../components/zoneScoring/ScoringParameterFormFields';
 import { initializeScoringParam, calculatePercentages, mapScoringParamsToDto } from '../utils/zoneScoringUtils';
 import { parseScoringParamsCSV, generateCSVTemplate } from '../utils/csvParser';
-import type { CreateZoneScoringRuleSetDto, CreateScoringParamDto, Area, ScoringParam, Zone, CityCorporation } from '../types';
+import type { CreateZoneScoringRuleSetDto, CreateScoringParamDto, Area, ScoringParam, Zone, Wasa } from '../types';
 
 export function ZoneScoringCreate() {
   const navigate = useNavigate();
@@ -40,11 +40,11 @@ export function ZoneScoringCreate() {
   const zones: Zone[] = (zonesData ?? []) as Zone[];
 
   // Fetch city corporations
-  const { data: cityCorporationsData } = useApiQuery<CityCorporation[]>(
+  const { data: wasasData } = useApiQuery<Wasa[]>(
     ['city-corporations'],
-    () => api.cityCorporations.getAll()
+    () => api.wasas.getAll()
   );
-  const cityCorporations: CityCorporation[] = (cityCorporationsData ?? []) as CityCorporation[];
+  const wasas: Wasa[] = (wasasData ?? []) as Wasa[];
 
   // State for hierarchical filtering
   const [filterCityCorpId, setFilterCityCorpId] = useState<string>('');
@@ -95,7 +95,7 @@ export function ZoneScoringCreate() {
       result = result.filter(area => {
         // Use nested zone object from area if available
         const zone = area.zone || zones.find(z => z.id === area.zoneId);
-        return zone?.cityCorporationId === parseInt(filterCityCorpId);
+        return zone?.wasaId === parseInt(filterCityCorpId);
       });
     }
 
@@ -114,7 +114,7 @@ export function ZoneScoringCreate() {
   // Get zones for selected city corporation
   const zonesForCityCorp = useMemo(() => {
     if (!filterCityCorpId) return [];
-    return zones.filter(z => z.cityCorporationId === parseInt(filterCityCorpId));
+    return zones.filter(z => z.wasaId === parseInt(filterCityCorpId));
   }, [zones, filterCityCorpId]);
 
   const handleAddParameter = () => {
@@ -326,8 +326,8 @@ export function ZoneScoringCreate() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f9fb]">
-      <div className="px-4 md:px-8 py-4 md:py-6">
+    <div className="min-h-screen bg-[#f8f9fb] overflow-x-hidden w-full">
+      <div className="px-4 md:px-8 py-4 md:py-6 w-full max-w-full">
         <PageHeader
           title="Create New Ruleset"
           description="Create a new zone scoring ruleset"
@@ -335,7 +335,7 @@ export function ZoneScoringCreate() {
         />
 
         {/* Form */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 max-w-4xl">
+        <div className="bg-white rounded-xl border border-gray-200 p-6 w-full">
           <div className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="title" className="text-sm font-medium text-gray-700">
@@ -545,7 +545,7 @@ export function ZoneScoringCreate() {
               
               <div className="space-y-4">
                 {/* City Corporation Filter */}
-                {cityCorporations.length > 0 && (
+                {wasas.length > 0 && (
                   <div>
                     <Label className="text-sm font-medium text-gray-700 mb-2 block">
                       City Corporation
@@ -564,7 +564,7 @@ export function ZoneScoringCreate() {
                       </SelectTrigger>
                       <SelectContent className="bg-white">
                         <SelectItem value="__all_city_corps__">All City Corporations</SelectItem>
-                        {cityCorporations.map((cc) => (
+                        {wasas.map((cc) => (
                           <SelectItem key={cc.id} value={cc.id.toString()}>
                             {cc.name} ({cc.code})
                           </SelectItem>
@@ -629,8 +629,8 @@ export function ZoneScoringCreate() {
                         filteredAreasForModal.map((area) => {
                           // Use nested zone object if available
                           const zone = area.zone || zones.find(z => z.id === area.zoneId);
-                          const cityCorp = zone?.cityCorporationId 
-                            ? cityCorporations.find(cc => cc.id === zone.cityCorporationId)
+                          const cityCorp = zone?.wasaId 
+                            ? wasas.find(cc => cc.id === zone.wasaId)
                             : null;
                           const displayText = zone && cityCorp 
                             ? `${area.name} (${zone.name}, ${cityCorp.name})`

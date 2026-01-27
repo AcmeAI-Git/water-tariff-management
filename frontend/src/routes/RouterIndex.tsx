@@ -16,10 +16,10 @@ import Layout from "../components/common/Layout";
 import { TariffAdminMyMetrics } from '../pages/TariffAdminMyMetrics';
 import { TariffAdminTariffHistory } from '../pages/TariffAdminTariffHistory';
 import { TariffConfiguration } from '../pages/TariffConfiguration';
+import { TariffConfigurationView } from '../pages/TariffConfigurationView';
 import { ZoneScoringList } from '../pages/ZoneScoringList';
 import { ZoneScoringCreate } from '../pages/ZoneScoringCreate';
 import { ZoneScoringView } from '../pages/ZoneScoringView';
-import { TariffCategoryView } from '../pages/TariffCategoryView';
 import { LocationManagement } from '../pages/LocationManagement';
 import { ApprovalQueue } from '../pages/ApprovalQueue';
 import { ApprovalHistory } from '../pages/ApprovalHistory';
@@ -161,6 +161,14 @@ const RouterIndex = () => {
           } 
         />
         <Route 
+          path="/tariff-admin/config/:id" 
+          element={
+            <ProtectedRoute allowedRoles={['tariff-admin']}>
+              <TariffConfigurationView />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
           path="/tariff-admin/history" 
           element={
             <ProtectedRoute allowedRoles={['tariff-admin']}>
@@ -205,14 +213,6 @@ const RouterIndex = () => {
           element={
             <ProtectedRoute allowedRoles={['tariff-admin']}>
               <ZoneScoringView />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/tariff-admin/tariff-categories/:settingsId" 
-          element={
-            <ProtectedRoute allowedRoles={['tariff-admin']}>
-              <TariffCategoryView />
             </ProtectedRoute>
           } 
         />

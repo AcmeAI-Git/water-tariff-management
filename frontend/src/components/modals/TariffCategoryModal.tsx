@@ -3,9 +3,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Dropdown } from '../ui/Dropdown';
-import { Checkbox } from '../ui/checkbox';
-import { useState, useEffect, useMemo } from 'react';
-import { Info } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { api } from '../../services/api';
 import { useApiQuery } from '../../hooks/useApiQuery';
 import type { TariffCategory, CreateTariffCategoryDto, UpdateTariffCategoryDto, TariffCategorySettings } from '../../types';
@@ -18,6 +16,7 @@ interface TariffCategoryModalProps {
   initialData?: TariffCategory;
   mode?: 'create' | 'edit';
   settings: TariffCategorySettings[];
+  defaultSettingsId?: number;
 }
 
 export function TariffCategoryModal({
@@ -28,6 +27,7 @@ export function TariffCategoryModal({
   initialData,
   mode = 'create',
   settings,
+  defaultSettingsId,
 }: TariffCategoryModalProps) {
   const [formData, setFormData] = useState({
     slNo: '',
@@ -37,7 +37,6 @@ export function TariffCategoryModal({
     upperRange: '',
     rangeDescription: '',
     settingsId: '',
-    isFixedRate: false,
   });
 
 
@@ -51,7 +50,6 @@ export function TariffCategoryModal({
         upperRange: initialData.upperRange?.toString() || '',
         rangeDescription: initialData.rangeDescription || '',
         settingsId: initialData.settingsId.toString(),
-        isFixedRate: initialData.isFixedRate,
       });
     } else {
       // Reset form for create mode
@@ -62,11 +60,10 @@ export function TariffCategoryModal({
         lowerRange: '',
         upperRange: '',
         rangeDescription: '',
-        settingsId: settings.length > 0 ? settings[0].id.toString() : '',
-        isFixedRate: false,
+        settingsId: defaultSettingsId ? defaultSettingsId.toString() : (settings.length > 0 ? settings[0].id.toString() : ''),
       });
     }
-  }, [initialData, mode, isOpen, settings]);
+  }, [initialData, mode, isOpen, settings, defaultSettingsId]);
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -85,7 +82,6 @@ export function TariffCategoryModal({
       category: formData.category,
       name: formData.name.trim(),
       settingsId: parseInt(formData.settingsId),
-      isFixedRate: formData.isFixedRate,
       ...(formData.lowerRange && { lowerRange: parseFloat(formData.lowerRange) }),
       ...(formData.upperRange && { upperRange: parseFloat(formData.upperRange) }),
       ...(formData.rangeDescription && { rangeDescription: formData.rangeDescription.trim() }),
@@ -113,9 +109,9 @@ export function TariffCategoryModal({
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Required Fields */}
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="slNo" className="text-sm font-medium text-gray-700">
+            <div className="grid grid-cols-2 gap-4 items-start">
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="slNo" className="text-sm font-medium text-gray-700 min-h-[2.5rem] flex items-start">
                   Serial Number *
                 </Label>
                 <Input
@@ -130,8 +126,8 @@ export function TariffCategoryModal({
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="category" className="text-sm font-medium text-gray-700">
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="category" className="text-sm font-medium text-gray-700 min-h-[2.5rem] flex items-start">
                   Category *
                 </Label>
                 <Dropdown
@@ -183,17 +179,11 @@ export function TariffCategoryModal({
 
           {/* Range Fields */}
           <div className="space-y-4 pt-4 border-t border-gray-200">
-            <div className="flex items-start gap-2">
-              <h3 className="text-sm font-semibold text-gray-700">Range Information (Optional)</h3>
-              <div className="flex items-center gap-1 text-xs text-gray-500 mt-0.5">
-                <Info size={14} />
-                <span>For tiered categories, use single threshold (e.g., lowerRange = 2500 for &quot;&gt; 2500 sq ft&quot;)</span>
-              </div>
-            </div>
+            <h3 className="text-sm font-semibold text-gray-700">Range Information (Optional)</h3>
             
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="lowerRange" className="text-sm font-medium text-gray-700">
+            <div className="grid grid-cols-2 gap-4 items-start">
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="lowerRange" className="text-sm font-medium text-gray-700 min-h-[2.5rem] flex items-start">
                   Lower Range (sq ft)
                 </Label>
                 <Input
@@ -203,18 +193,15 @@ export function TariffCategoryModal({
                   min="0"
                   value={formData.lowerRange}
                   onChange={(e) => handleInputChange('lowerRange', e.target.value)}
-                  placeholder={formData.category === 'Domestic' ? 'e.g., 2500 (for > 2500 sq ft)' : 'e.g., 100'}
+                  placeholder="e.g., 2500"
                   className="bg-gray-50 border-gray-300"
+                  disabled={!!formData.rangeDescription}
+                  readOnly={!!formData.rangeDescription}
                 />
-                {formData.category === 'Domestic' && (
-                  <p className="text-xs text-gray-500">
-                    For Domestic tiers: Use single value (e.g., 2500 for &quot;&gt; 2500 sq ft&quot; threshold)
-                  </p>
-                )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="upperRange" className="text-sm font-medium text-gray-700">
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="upperRange" className="text-sm font-medium text-gray-700 min-h-[2.5rem] flex items-start">
                   Upper Range (sq ft)
                 </Label>
                 <Input
@@ -224,14 +211,11 @@ export function TariffCategoryModal({
                   min="0"
                   value={formData.upperRange}
                   onChange={(e) => handleInputChange('upperRange', e.target.value)}
-                  placeholder={formData.category === 'Domestic' ? 'e.g., 1000 (for <= 1000 sq ft)' : 'e.g., 500'}
+                  placeholder="e.g., 1000"
                   className="bg-gray-50 border-gray-300"
+                  disabled={!!formData.rangeDescription}
+                  readOnly={!!formData.rangeDescription}
                 />
-                {formData.category === 'Domestic' && (
-                  <p className="text-xs text-gray-500">
-                    For base tier: Use same value as lowerRange (e.g., 1000 for &quot;&lt;= 1000 sq ft&quot;)
-                  </p>
-                )}
               </div>
             </div>
 
@@ -243,36 +227,13 @@ export function TariffCategoryModal({
                 id="rangeDescription"
                 value={formData.rangeDescription}
                 onChange={(e) => handleInputChange('rangeDescription', e.target.value)}
-                placeholder="e.g., Tin shed, or descriptive text"
+                placeholder="e.g., Tin shed"
                 className="bg-gray-50 border-gray-300"
               />
-              <p className="text-xs text-gray-500">
-                Optional description for categories without numeric ranges
-              </p>
             </div>
 
           </div>
 
-          {/* Flags */}
-          <div className="space-y-4 pt-4 border-t border-gray-200">
-            <h3 className="text-sm font-semibold text-gray-700">Category Flags</h3>
-            
-            <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="isFixedRate"
-                  checked={formData.isFixedRate}
-                  onCheckedChange={(checked) => handleInputChange('isFixedRate', checked === true)}
-                />
-                <Label htmlFor="isFixedRate" className="text-sm font-medium text-gray-700 cursor-pointer">
-                  Fixed Rate
-                </Label>
-              </div>
-              <p className="text-xs text-gray-600 ml-6">
-                Categories without area conditions are typically fixed rate categories.
-              </p>
-            </div>
-          </div>
 
           <DialogFooter>
             <Button

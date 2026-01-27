@@ -11,9 +11,9 @@ import type {
   Role,
   CreateRoleDto,
   UpdateRoleDto,
-  CityCorporation,
-  CreateCityCorporationDto,
-  UpdateCityCorporationDto,
+  Wasa,
+  CreateWasaDto,
+  UpdateWasaDto,
   Zone,
   CreateZoneDto,
   UpdateZoneDto,
@@ -150,37 +150,37 @@ export const rolesApi = {
   },
 };
 
-// ==================== CITY CORPORATIONS ====================
-export const cityCorporationsApi = {
-  getAll: (): Promise<CityCorporation[]> => {
-    return fetchService.get<CityCorporation[]>("/city-corporations");
+// ==================== WASAS ====================
+export const wasasApi = {
+  getAll: (): Promise<Wasa[]> => {
+    return fetchService.get<Wasa[]>("/wasa");
   },
 
-  getById: (id: number): Promise<CityCorporation> => {
-    return fetchService.get<CityCorporation>(`/city-corporations/${id}`);
+  getById: (id: number): Promise<Wasa> => {
+    return fetchService.get<Wasa>(`/wasa/${id}`);
   },
 
-  create: (data: CreateCityCorporationDto): Promise<CityCorporation> => {
-    return fetchService.post<CityCorporation>("/city-corporations", data);
+  create: (data: CreateWasaDto): Promise<Wasa> => {
+    return fetchService.post<Wasa>("/wasa", data);
   },
 
   update: (
     id: number,
-    data: UpdateCityCorporationDto
-  ): Promise<CityCorporation> => {
-    return fetchService.put<CityCorporation>(`/city-corporations/${id}`, data);
+    data: UpdateWasaDto
+  ): Promise<Wasa> => {
+    return fetchService.put<Wasa>(`/wasa/${id}`, data);
   },
 
   delete: (id: number): Promise<void> => {
-    return fetchService.delete<void>(`/city-corporations/${id}`);
+    return fetchService.delete<void>(`/wasa/${id}`);
   },
 };
 
 // ==================== ZONES ====================
 export const zonesApi = {
-  getAll: (cityCorporationId?: number): Promise<Zone[]> => {
-    const query = cityCorporationId
-      ? `?cityCorporationId=${cityCorporationId}`
+  getAll: (wasaId?: number): Promise<Zone[]> => {
+    const query = wasaId
+      ? `?wasaId=${wasaId}`
       : "";
     return fetchService.get<Zone[]>(`/zones${query}`);
   },
@@ -623,7 +623,7 @@ export const api = {
   admins: adminsApi,
   users: usersApi,
   roles: rolesApi,
-  cityCorporations: cityCorporationsApi,
+  wasas: wasasApi,
   zones: zonesApi,
   wards: wardsApi,
   tariffPlans: tariffPlansApi,

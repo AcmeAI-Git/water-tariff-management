@@ -207,7 +207,7 @@ export default function Layout({ children }: LayoutProps) {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 w-full md:ml-[260px] px-4 md:px-6 py-4 md:py-6">
+      <main className="flex-1 w-full md:ml-[260px] px-4 md:px-6 py-4 md:py-6 overflow-x-hidden min-w-0">
         {children ?? <Outlet />}
       </main>
     </div>

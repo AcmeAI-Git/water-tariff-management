@@ -24,7 +24,7 @@ interface Agent {
     email: string;
     password?: string;
     confirm?: string;
-    cityCorporation?: string;
+    wasa?: string;
     zone?: string;
     ward?: string;
     role: string;
@@ -36,8 +36,8 @@ interface EditingMeterReader extends DisplayAdmin {
 
 // Hardcoded location values for all meter readers
 const HARDCODED_LOCATION = {
-    cityCorporation: 'Dhaka South City Corporation',
-    cityCorporationId: 1, // DSCC
+    wasa: 'Dhaka South City Corporation',
+    wasaId: 1, // DSCC
     zone: 'Zone 1',
     zoneId: 1,
     ward: 'Ward 1',
@@ -307,7 +307,7 @@ export default function MeterReaderManagement() {
                                                 {admin.email}
                                             </TableCell>
                                             <TableCell className="text-sm text-gray-600">
-                                                {HARDCODED_LOCATION.cityCorporation}
+                                                {HARDCODED_LOCATION.wasa}
                                             </TableCell>
                                             <TableCell className="text-sm text-gray-600">
                                                 {HARDCODED_LOCATION.zone}

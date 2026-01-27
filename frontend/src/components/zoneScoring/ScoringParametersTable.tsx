@@ -1,19 +1,19 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Button } from '../ui/button';
 import { Edit, Trash2 } from 'lucide-react';
-import type { ScoringParam, Zone, CityCorporation, ZoneScore } from '../../types';
+import type { ScoringParam, Zone, Wasa, ZoneScore } from '../../types';
 
 interface ScoringParametersTableProps {
   calculatedParams: ScoringParam[];
   onEditParam: (param: ScoringParam) => void;
   onRemoveParam?: (paramId: number) => void;
   zones?: Zone[];
-  cityCorporations?: CityCorporation[];
+  wasas?: Wasa[];
   zoneScores?: ZoneScore[];
   ruleSetId?: number;
 }
 
-export function ScoringParametersTable({ calculatedParams, onEditParam, onRemoveParam, zones = [], cityCorporations = [], zoneScores = [], ruleSetId }: ScoringParametersTableProps) {
+export function ScoringParametersTable({ calculatedParams, onEditParam, onRemoveParam, zones = [], wasas = [], zoneScores = [], ruleSetId }: ScoringParametersTableProps) {
   // Helper function to format percentage display
   const formatPercentage = (percentage: string): string => {
     // If there's only one parameter, percentages are meaningless (would be 100%)
@@ -65,8 +65,8 @@ export function ScoringParametersTable({ calculatedParams, onEditParam, onRemove
           // Get zone and city corporation info
           // Use nested zone object from area if available, otherwise fallback to lookup
           const zone = param.area?.zone || (param.area?.zoneId ? zones.find(z => z.id === param.area.zoneId) : null);
-          const cityCorp = zone?.cityCorporationId 
-            ? (zone.cityCorporation || cityCorporations.find(cc => cc.id === zone.cityCorporationId))
+          const cityCorp = zone?.wasaId 
+            ? (zone.wasa || wasas.find(cc => cc.id === zone.wasaId))
             : null;
           
           // Alternate row background colors for better readability
