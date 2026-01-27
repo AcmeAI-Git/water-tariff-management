@@ -338,7 +338,7 @@ export interface Consumption {
   status?: string;
   createdAt?: string;
   approvalStatusId?: number;
-  approvalStatus?: ApprovalStatus;
+  approvalStatus?: ApprovalStatus | string; // Can be object or string depending on API response format
   approvedBy?: number | null;
   // Legacy fields for backward compatibility
   account?: string | number; // May be present in some API responses

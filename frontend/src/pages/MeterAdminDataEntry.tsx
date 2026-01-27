@@ -129,13 +129,14 @@ export function MeterAdminDataEntry() {
       });
 
       // Merge meter data into user object for display
+      // Note: User type doesn't have meterStatus, so we use 'as any' for display purposes
       const userWithMeter = {
         ...foundUser,
-        meterNo: userMeter?.meterNo || foundUser.meterNo || '',
+        meterNo: userMeter?.meterNo ? String(userMeter.meterNo) : (foundUser.meterNo || ''),
         meterStatus: userMeter?.meterStatus || '',
         sizeOfDia: userMeter?.sizeOfDia || '',
         meterInstallationDate: userMeter?.meterInstallationDate || '',
-      };
+      } as User & { meterStatus?: string; sizeOfDia?: string; meterInstallationDate?: string };
 
       setVerifiedUser(userWithMeter);
     } else {
@@ -589,7 +590,7 @@ export function MeterAdminDataEntry() {
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-gray-700">Meter Status</Label>
                     <Input
-                      value={verifiedUser.meterStatus || '-'}
+                      value={(verifiedUser as any).meterStatus || '-'}
                       disabled
                       className="bg-gray-100 border-gray-200 text-gray-500 rounded-lg cursor-not-allowed"
                     />

@@ -41,9 +41,10 @@ export function CustomerAdminSubmissionHistory() {
       
       // Get customer ID - handle both id (number) and account (UUID)
       const customerId = user.id || user.account || (userData.account || userData.id);
-      const customerIdStr = customerId 
-        ? (typeof customerId === 'string' ? customerId.substring(0, 8) : String(customerId))
-        : 'N/A';
+      // customerIdStr is unused but kept for potential future use
+      // const customerIdStr = customerId 
+      //   ? (typeof customerId === 'string' ? customerId.substring(0, 8) : String(customerId))
+      //   : 'N/A';
       
       // Get meter number from meters table if not in user
       let meterNo = customer.meterNo || user.meterNo || '';

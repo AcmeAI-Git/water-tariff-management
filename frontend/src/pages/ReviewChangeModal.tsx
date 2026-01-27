@@ -163,19 +163,19 @@ export function ReviewChangeModal({ request, onClose, onApprove, onReject, isLoa
                     {isValidObject(newData) && newData.customerName ? String(newData.customerName) : 'Unknown'}
                   </p>
                 </div>
-                {isValidObject(newData) && newData.meterNo && String(newData.meterNo) !== 'N/A' && (
+                {isValidObject(newData) && newData.meterNo && String(newData.meterNo) !== 'N/A' ? (
                   <div className="border-l border-blue-300 pl-4">
                     <p className="text-xs text-gray-600">Meter</p>
                     <p className="text-sm font-semibold text-gray-900">{String(newData.meterNo)}</p>
                   </div>
-                )}
+                ) : null}
               </div>
-              {isValidObject(newData) && newData.consumptionId && (
+              {isValidObject(newData) && newData.consumptionId ? (
                 <div className="text-right">
                   <p className="text-xs text-gray-600">Record ID</p>
                   <p className="text-sm font-medium text-gray-700">#{String(newData.consumptionId)}</p>
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
 
@@ -184,30 +184,30 @@ export function ReviewChangeModal({ request, onClose, onApprove, onReject, isLoa
             // New record - compact single column
             <div className="bg-green-50 rounded-lg p-3 border border-green-200">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {isValidObject(newData) && newData.billMonth && (
+                {isValidObject(newData) && newData.billMonth ? (
                   <div>
                     <p className="text-xs text-gray-600 mb-0.5">Bill Month</p>
                     <p className="text-sm font-semibold text-gray-900">{formatBillMonth(newData.billMonth)}</p>
                   </div>
-                )}
-                {isValidObject(newData) && newData.currentReading !== undefined && (
+                ) : null}
+                {isValidObject(newData) && newData.currentReading !== undefined ? (
                   <div>
                     <p className="text-xs text-gray-600 mb-0.5">Current</p>
                     <p className="text-sm font-semibold text-gray-900">{formatNumber(newData.currentReading)} m³</p>
                   </div>
-                )}
-                {isValidObject(newData) && newData.previousReading !== undefined && (
+                ) : null}
+                {isValidObject(newData) && newData.previousReading !== undefined ? (
                   <div>
                     <p className="text-xs text-gray-600 mb-0.5">Previous</p>
                     <p className="text-sm font-semibold text-gray-900">{formatNumber(newData.previousReading)} m³</p>
                   </div>
-                )}
-                {isValidObject(newData) && newData.consumption !== undefined && (
+                ) : null}
+                {isValidObject(newData) && newData.consumption !== undefined ? (
                   <div>
                     <p className="text-xs text-gray-600 mb-0.5">Consumption</p>
                     <p className="text-sm font-bold text-green-700">{formatNumber(newData.consumption)} m³</p>
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
           ) : (
@@ -216,75 +216,75 @@ export function ReviewChangeModal({ request, onClose, onApprove, onReject, isLoa
               <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                 <p className="text-xs font-semibold text-gray-700 mb-2">Old Reading</p>
                 <div className="space-y-1.5">
-                  {isValidObject(request.oldData) && request.oldData.billMonth && (
+                  {isValidObject(request.oldData) && request.oldData.billMonth ? (
                     <div className="flex justify-between text-xs">
                       <span className="text-gray-600">Month:</span>
                       <span className="font-medium text-gray-900">{formatBillMonth(request.oldData.billMonth)}</span>
                     </div>
-                  )}
-                  {isValidObject(request.oldData) && request.oldData.currentReading !== undefined && (
+                  ) : null}
+                  {isValidObject(request.oldData) && request.oldData.currentReading !== undefined ? (
                     <div className="flex justify-between text-xs">
                       <span className="text-gray-600">Current:</span>
                       <span className="font-medium text-gray-900">{formatNumber(request.oldData.currentReading)} m³</span>
                     </div>
-                  )}
-                  {isValidObject(request.oldData) && request.oldData.previousReading !== undefined && (
+                  ) : null}
+                  {isValidObject(request.oldData) && request.oldData.previousReading !== undefined ? (
                     <div className="flex justify-between text-xs">
                       <span className="text-gray-600">Previous:</span>
                       <span className="font-medium text-gray-900">{formatNumber(request.oldData.previousReading)} m³</span>
                     </div>
-                  )}
-                  {isValidObject(request.oldData) && request.oldData.consumption !== undefined && (
+                  ) : null}
+                  {isValidObject(request.oldData) && request.oldData.consumption !== undefined ? (
                     <div className="flex justify-between text-xs pt-1 border-t border-gray-200">
                       <span className="text-gray-600">Consumption:</span>
                       <span className="font-medium text-gray-900">{formatNumber(request.oldData.consumption)} m³</span>
                     </div>
-                  )}
+                  ) : null}
                 </div>
               </div>
               <div className="bg-green-50 rounded-lg p-3 border border-green-200">
                 <p className="text-xs font-semibold text-gray-700 mb-2">New Reading</p>
                 <div className="space-y-1.5">
-                  {isValidObject(newData) && newData.billMonth && (
+                  {isValidObject(newData) && newData.billMonth ? (
                     <div className="flex justify-between text-xs">
                       <span className="text-gray-600">Month:</span>
                       <span className="font-semibold text-green-700">{formatBillMonth(newData.billMonth)}</span>
                     </div>
-                  )}
-                  {isValidObject(newData) && newData.currentReading !== undefined && (
+                  ) : null}
+                  {isValidObject(newData) && newData.currentReading !== undefined ? (
                     <div className="flex justify-between text-xs">
                       <span className="text-gray-600">Current:</span>
                       <span className="font-semibold text-green-700">{formatNumber(newData.currentReading)} m³</span>
                     </div>
-                  )}
-                  {isValidObject(newData) && newData.previousReading !== undefined && (
+                  ) : null}
+                  {isValidObject(newData) && newData.previousReading !== undefined ? (
                     <div className="flex justify-between text-xs">
                       <span className="text-gray-600">Previous:</span>
                       <span className="font-semibold text-green-700">{formatNumber(newData.previousReading)} m³</span>
                     </div>
-                  )}
-                  {isValidObject(newData) && newData.consumption !== undefined && (
+                  ) : null}
+                  {isValidObject(newData) && newData.consumption !== undefined ? (
                     <div className="flex justify-between text-xs pt-1 border-t border-green-200">
                       <span className="text-gray-600">Consumption:</span>
                       <span className="font-bold text-green-700">{formatNumber(newData.consumption)} m³</span>
                     </div>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </div>
           )}
 
           {/* Submission Info - Inline */}
-          {(isValidObject(newData) && (newData.submittedBy || newData.createdAt)) && (
+          {isValidObject(newData) && (newData.submittedBy || newData.createdAt) ? (
             <div className="flex items-center justify-between text-xs text-gray-600 bg-gray-50 rounded-lg px-3 py-2 border border-gray-200">
-              {newData.submittedBy && (
+              {newData.submittedBy ? (
                 <span>Submitted by <span className="font-medium text-gray-900">{String(newData.submittedBy)}</span></span>
-              )}
-              {newData.createdAt && (
+              ) : null}
+              {newData.createdAt ? (
                 <span>on <span className="font-medium text-gray-900">{formatDate(newData.createdAt)}</span></span>
-              )}
+              ) : null}
             </div>
-          )}
+          ) : null}
         </div>
       );
     }

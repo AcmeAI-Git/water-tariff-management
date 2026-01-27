@@ -95,16 +95,17 @@ export function TariffCategoriesTab({ settingsId }: TariffCategoriesTabProps) {
   );
 
   // Set base category mutation - dedicated mutation without modal side effects
-  const setBaseMutation = useApiMutation(
-    ({ id, data }: { id: number; data: UpdateTariffCategoryDto }) =>
-      api.tariffCategory.update(id, data),
-    {
-      onError: (error) => {
-        toast.error(`Failed to update category: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      },
-      invalidateQueries: [['tariff-category'], ['tariff-category', settingsId]],
-    }
-  );
+  // Note: Currently unused but kept for potential future use
+  // const setBaseMutation = useApiMutation(
+  //   ({ id, data }: { id: number; data: UpdateTariffCategoryDto }) =>
+  //     api.tariffCategory.update(id, data),
+  //   {
+  //     onError: (error) => {
+  //       toast.error(`Failed to update category: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  //     },
+  //     invalidateQueries: [['tariff-category'], ['tariff-category', settingsId]],
+  //   }
+  // );
 
   // Set category as active mutation
   const setActiveMutation = useApiMutation(

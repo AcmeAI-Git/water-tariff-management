@@ -83,7 +83,7 @@ export function ApprovalQueue() {
     return (allUsers as User[]).filter((user: User) => {
       const userData = user as any;
       const status = userData.activeStatus || userData.status || user.status;
-      return status && String(status).toLowerCase() === 'inactive';
+      return status && typeof status === 'string' && status.toLowerCase() === 'inactive';
     });
   }, [allUsers]);
 
@@ -100,9 +100,10 @@ export function ApprovalQueue() {
       }
       
       // Handle object format
-      if (typeof approvalStatus === 'object') {
-        const statusName = approvalStatus.statusName || approvalStatus.name;
-        return statusName?.toLowerCase() === 'pending';
+      if (typeof approvalStatus === 'object' && approvalStatus !== null) {
+        const statusObj = approvalStatus as { statusName?: string; name?: string };
+        const statusName = statusObj.statusName || statusObj.name;
+        return statusName && typeof statusName === 'string' && statusName.toLowerCase() === 'pending';
       }
       
       return false;

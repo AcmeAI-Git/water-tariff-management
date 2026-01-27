@@ -8,7 +8,7 @@ import { Input } from '../components/ui/input';
 import { Dropdown } from '../components/ui/Dropdown';
 import { Button } from '../components/ui/button';
 import { Search, X } from 'lucide-react';
-import type { ZoneScoringRuleSet, Consumption, User, Admin, Meter } from '../types';
+import type { ZoneScoringRuleSet, Consumption, User, Meter } from '../types';
 
 interface ApprovalHistoryItem {
   id: string;
@@ -44,11 +44,11 @@ export function ApprovalHistory() {
     () => api.users.getAll()
   );
 
-  // Fetch all admins
-  const { data: admins = [] } = useApiQuery<Admin[]>(
-    ['admins'],
-    () => api.admins.getAll()
-  );
+  // Fetch all admins (currently unused but kept for potential future use)
+  // const { data: admins = [] } = useApiQuery<Admin[]>(
+  //   ['admins'],
+  //   () => api.admins.getAll()
+  // );
 
   // Fetch all meters
   const { data: allMeters = [] } = useApiQuery<Meter[]>(
@@ -80,17 +80,18 @@ export function ApprovalHistory() {
 
   // Filter customers that were approved/rejected by current admin
   // Note: Customer approval might be tracked differently - checking for status changes
-  const reviewedCustomers = useMemo(() => {
-    if (!adminId) return [];
-    // For now, we'll check if there's an approval mechanism for customers
-    // This might need to be adjusted based on actual backend implementation
-    return (allUsers as User[]).filter((user: User) => {
-      const userData = user as any;
-      // Check if user has been reviewed (has activeStatus changed from pending)
-      // This is a placeholder - actual implementation depends on backend
-      return false; // Disable for now until we know how customer approval is tracked
-    });
-  }, [allUsers, adminId]);
+  // Currently unused but kept for potential future use
+  // const reviewedCustomers = useMemo(() => {
+  //   if (!adminId) return [];
+  //   // For now, we'll check if there's an approval mechanism for customers
+  //   // This might need to be adjusted based on actual backend implementation
+  //   return (allUsers as User[]).filter((user: User) => {
+  //     const userData = user as any;
+  //     // Check if user has been reviewed (has activeStatus changed from pending)
+  //     // This is a placeholder - actual implementation depends on backend
+  //     return false; // Disable for now until we know how customer approval is tracked
+  //   });
+  // }, [allUsers, adminId]);
 
   // Filter to show only reviewed rulesets (approved, rejected, published, active)
   // Note: 'published' and 'active' are considered approved states
@@ -147,23 +148,12 @@ export function ApprovalHistory() {
       
       const displayTitle = `Consumption: ${customerName} (Meter: ${meterNo}) - ${consumption.billMonth}`;
       
-      // Use updatedAt as review date, fallback to createdAt
-      const reviewedAt = consumption.updatedAt 
-        ? new Date(consumption.updatedAt).getTime()
-        : consumption.createdAt 
+      // Use createdAt as review date (Consumption doesn't have updatedAt)
+      const reviewedAt = consumption.createdAt 
         ? new Date(consumption.createdAt).getTime()
         : 0;
       
-      const reviewedAtFormatted = consumption.updatedAt
-        ? new Date(consumption.updatedAt).toLocaleString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-          })
-        : consumption.createdAt
+      const reviewedAtFormatted = consumption.createdAt
         ? new Date(consumption.createdAt).toLocaleString('en-US', {
             year: 'numeric',
             month: 'short',
