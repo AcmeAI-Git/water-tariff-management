@@ -33,10 +33,10 @@ export function ApprovalQueue() {
   const adminId = useAdminId();
   const queryClient = useQueryClient();
 
-  // Fetch all consumptions and filter for pending ones
+  // Fetch pending consumptions (filtered by API)
   const { data: allConsumptions = [], isLoading: consumptionsLoading } = useApiQuery(
-    ['consumption'],
-    () => api.consumption.getAll()
+    ['consumption', 'pending'],
+    () => api.consumption.getAll({ approvalStatus: 'Pending' })
   );
 
   // Fetch all admins to map requestedBy IDs to names
@@ -83,13 +83,31 @@ export function ApprovalQueue() {
     return (allUsers as User[]).filter((user: User) => {
       const userData = user as any;
       const status = userData.activeStatus || userData.status || user.status;
-      return status && String(status).toLowerCase() === 'inactive';
+      return status && typeof status === 'string' && status.toLowerCase() === 'inactive';
     });
   }, [allUsers]);
 
   // Filter pending consumptions
   const pendingConsumptions = useMemo(() => {
-    return allConsumptions.filter((c: Consumption) => c.status?.toLowerCase() === 'pending');
+    return allConsumptions.filter((c: Consumption) => {
+      // Check approvalStatus in multiple formats (string or object)
+      const approvalStatus = c.approvalStatus;
+      if (!approvalStatus) return false;
+      
+      // Handle string format
+      if (typeof approvalStatus === 'string') {
+        return approvalStatus.toLowerCase() === 'pending';
+      }
+      
+      // Handle object format
+      if (typeof approvalStatus === 'object' && approvalStatus !== null) {
+        const statusObj = approvalStatus as { statusName?: string; name?: string };
+        const statusName = statusObj.statusName || statusObj.name;
+        return statusName && typeof statusName === 'string' && statusName.toLowerCase() === 'pending';
+      }
+      
+      return false;
+    });
   }, [allConsumptions]);
 
   // Combine all pending items into unified display format
@@ -99,9 +117,29 @@ export function ApprovalQueue() {
     // Add pending consumptions
     pendingConsumptions.forEach((consumption: Consumption) => {
       const creator = admins.find((a) => a.id === consumption.createdBy);
-      // Find user/customer for this consumption
-      const customer = (allUsers as User[]).find((u: User) => u.id === consumption.userId);
-      const customerName = customer?.fullName || customer?.name || `Customer #${consumption.userId}`;
+      // Find user/customer for this consumption (handle both userId and userAccount)
+      const customer = (allUsers as User[]).find((u: User) => {
+        if (consumption.userId) {
+          return u.id === consumption.userId;
+        }
+        if (consumption.userAccount) {
+          return u.account === consumption.userAccount || String(u.account) === String(consumption.userAccount);
+        }
+        return false;
+      });
+      const customerName = customer?.fullName || customer?.name || 
+        (consumption.userId ? `Customer #${consumption.userId}` : 
+         consumption.userAccount ? `Customer ${consumption.userAccount}` : 'Unknown Customer');
+      
+      // Find meter for customer
+      const customerMeter = (allMeters as Meter[]).find((m: Meter) => {
+        if (customer) {
+          const meterAccount = (m as any).account || m.userAccount || (m as any).user_account;
+          const customerAccount = customer.account || consumption.userAccount || consumption.account;
+          return meterAccount && customerAccount && String(meterAccount) === String(customerAccount);
+        }
+        return false;
+      });
       
       items.push({
         id: `CONSUMPTION-${consumption.id}`,
@@ -121,27 +159,38 @@ export function ApprovalQueue() {
         recordId: consumption.id,
         recordType: 'consumption',
         details: `${consumption.billMonth} - ${customerName}`,
-        affectedEntity: `${consumption.consumption || 0} m³`,
+        affectedEntity: `Consumption: ${consumption.consumption || 0} m³`,
         oldData: null,
-        newData: {
-          userId: consumption.userId,
+          newData: {
+          // Consumption record details
+          consumptionId: consumption.id,
           billMonth: consumption.billMonth,
           currentReading: consumption.currentReading,
           previousReading: consumption.previousReading,
           consumption: consumption.consumption,
+          createdAt: consumption.createdAt,
+          // Customer information
+          customerName: customerName,
+          meterNo: customerMeter?.meterNo || customer?.meterNo || 'N/A',
+          // Submission information
+          submittedBy: creator?.fullName || `Admin #${consumption.createdBy}`,
+          submittedById: consumption.createdBy,
         },
       });
     });
 
     // Add pending ZoneScoring rulesets
     pendingZoneScoringRulesets.forEach((ruleset: ZoneScoringRuleSet) => {
-      // ZoneScoringRuleSet doesn't have createdBy/requestedBy fields
       const areaCount = ruleset.scoringParams?.length || 0;
+      // Check if ruleset has createdBy field (may be in API response but not in type)
+      const rulesetWithCreator = ruleset as ZoneScoringRuleSet & { createdBy?: number; created_by?: number };
+      const creatorId = rulesetWithCreator.createdBy || rulesetWithCreator.created_by;
+      const creator = creatorId ? admins.find((a) => a.id === creatorId) : null;
       
       items.push({
         id: `ZONE-SCORING-${ruleset.id}`,
         module: 'ZoneScoring',
-        requestedBy: '-', // Not available for ZoneScoring
+        requestedBy: creator?.fullName || (creatorId ? `Admin #${creatorId}` : 'Tariff Admin'),
         request: ruleset.createdAt
           ? new Date(ruleset.createdAt).toLocaleString('en-US', {
               year: 'numeric',
@@ -156,7 +205,7 @@ export function ApprovalQueue() {
         recordId: ruleset.id,
         recordType: 'zone-scoring',
         details: ruleset.title,
-        affectedEntity: `${areaCount} area${areaCount !== 1 ? 's' : ''}`,
+        affectedEntity: `${areaCount} parameter${areaCount !== 1 ? 's' : ''}`,
         oldData: null,
         newData: {
           title: ruleset.title,
@@ -164,6 +213,7 @@ export function ApprovalQueue() {
           parametersCount: ruleset.scoringParams?.length || 0,
           status: ruleset.status,
           scoringParams: ruleset.scoringParams || [],
+          createdAt: ruleset.createdAt,
         },
       });
     });
@@ -203,13 +253,19 @@ export function ApprovalQueue() {
         : '';
       
       // Get createdAt from various possible locations
-      // Note: The backend API for /users doesn't return createdAt/updatedAt fields
-      // This is a backend limitation - zone scoring has timestamps, but users don't
-      let createdAt = userData.createdAt || userData.created_at || (user as any).createdAt || (user as any).created_at;
+      // Try multiple field names and nested locations
+      let createdAt = userData.createdAt || 
+                     userData.created_at || 
+                     (user as any).createdAt || 
+                     (user as any).created_at ||
+                     userData.dateCreated ||
+                     userData.date_created;
       
-      // If still not found, the backend doesn't provide this field for users
-      // We'll show "N/A" as the backend API doesn't include timestamp fields for users
-      // (Zone scoring has createdAt/updatedAt, but users endpoint doesn't return them)
+      // If still not found, use current date as fallback for pending requests
+      // (These are pending approval requests, so using current time is reasonable)
+      if (!createdAt) {
+        createdAt = new Date().toISOString();
+      }
       
       const customerName = customer.name || customer.fullName || 'Unknown Customer';
       const inspCodeStr = customer.inspCode ? `IC-${customer.inspCode}` : '-';
@@ -218,22 +274,20 @@ export function ApprovalQueue() {
         id: `CUSTOMER-${customerAccount}`,
         module: 'Customer',
         requestedBy: creator?.fullName || 'Customer Admin',
-        request: createdAt
-          ? new Date(createdAt).toLocaleString('en-US', {
+        request: new Date(createdAt).toLocaleString('en-US', {
               year: 'numeric',
               month: 'short',
               day: 'numeric',
               hour: '2-digit',
               minute: '2-digit',
               second: '2-digit',
-            })
-          : 'N/A',
+            }),
         status: 'Inactive',
         recordId: typeof customerAccount === 'string' ? 0 : customerAccount, // Use 0 for UUID, actual ID for number
         recordType: 'customer',
         account: typeof customerAccount === 'string' ? customerAccount : undefined,
         details: `${customerName} (${inspCodeStr})`,
-        affectedEntity: customer.customerCategory || '-',
+        affectedEntity: `Category: ${customer.customerCategory || 'N/A'}`,
         oldData: null,
         newData: {
           name: customer.name || customer.fullName,
@@ -683,8 +737,8 @@ export function ApprovalQueue() {
               <TableRow className="border-gray-200 bg-gray-50 hover:bg-gray-50">
                 <TableHead className="font-semibold text-gray-700">Module</TableHead>
                 <TableHead className="font-semibold text-gray-700">Details</TableHead>
-                <TableHead className="font-semibold text-gray-700">Category</TableHead>
                 <TableHead className="font-semibold text-gray-700">Requested By</TableHead>
+                <TableHead className="font-semibold text-gray-700">Date</TableHead>
                 <TableHead className="font-semibold text-gray-700 text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
@@ -700,8 +754,20 @@ export function ApprovalQueue() {
                   <TableRow key={request.id} className="border-gray-100">
                     <TableCell className="font-medium text-gray-900">{request.module}</TableCell>
                     <TableCell className="text-gray-700">{request.details || '-'}</TableCell>
-                    <TableCell className="text-gray-600 text-sm">{request.affectedEntity || '-'}</TableCell>
                     <TableCell className="text-gray-600 text-sm">{request.requestedBy}</TableCell>
+                    <TableCell className="text-gray-600 text-sm">
+                      {request.request && request.request !== 'N/A' ? (
+                        <span className="whitespace-nowrap">
+                          {new Date(request.request).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })}
+                        </span>
+                      ) : (
+                        '-'
+                      )}
+                    </TableCell>
                     <TableCell className="text-right">
                       <Button
                         onClick={() => handleReview(request)}
@@ -726,7 +792,6 @@ export function ApprovalQueue() {
       {/* Review Modal */}
       {selectedRequest && (
         <ReviewChangeModal
-          open={!!selectedRequest}
           request={{
             id: selectedRequest.id,
             module: selectedRequest.module,
@@ -735,16 +800,20 @@ export function ApprovalQueue() {
             oldData: selectedRequest.oldData,
             newData: selectedRequest.newData,
           }}
-          onOpenChange={(open) => !open && handleCloseModal()}
-          onApprove={() => {
-            // Capture request before closing modal
+          onClose={handleCloseModal}
+          onApprove={(requestId) => {
+            // Find the request by ID and approve it
             const requestToApprove = selectedRequest;
-            handleApprove(requestToApprove);
+            if (requestToApprove && requestToApprove.id === requestId) {
+              handleApprove(requestToApprove);
+            }
           }}
-          onReject={() => {
-            // Capture request before closing modal to prevent stale closure
+          onReject={(requestId) => {
+            // Find the request by ID and reject it
             const requestToReject = selectedRequest;
-            handleReject(requestToReject);
+            if (requestToReject && requestToReject.id === requestId) {
+              handleReject(requestToReject);
+            }
           }}
           isLoading={isLoadingRecordData}
         />

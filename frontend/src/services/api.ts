@@ -336,8 +336,13 @@ export const approvalRequestsApi = {
 
 // ==================== CONSUMPTION ====================
 export const consumptionApi = {
-  getAll: (): Promise<Consumption[]> => {
-    return fetchService.get<Consumption[]>("/consumption");
+  getAll: (options?: { account?: number; billMonth?: string; approvalStatus?: 'Pending' | 'Approved' | 'Rejected' }): Promise<Consumption[]> => {
+    const params: string[] = [];
+    if (options?.account) params.push(`account=${options.account}`);
+    if (options?.billMonth) params.push(`billMonth=${options.billMonth}`);
+    if (options?.approvalStatus) params.push(`approvalStatus=${options.approvalStatus}`);
+    const query = params.length > 0 ? `?${params.join('&')}` : '';
+    return fetchService.get<Consumption[]>(`/consumption${query}`);
   },
 
   getById: (id: number): Promise<Consumption> => {

@@ -27,6 +27,12 @@ export function MeterAdminSubmittedReadings() {
     () => api.users.getAll()
   );
 
+  // Fetch all meters to get meter numbers
+  const { data: meters = [], isLoading: metersLoading } = useApiQuery(
+    ['meters'],
+    () => api.meters.getAll()
+  );
+
   // Filter consumptions created by current meter admin
   const myConsumptions = useMemo(() => {
     if (!adminId) return [];
@@ -36,19 +42,52 @@ export function MeterAdminSubmittedReadings() {
   // Map consumptions to display format
   const submittedReadings = useMemo(() => {
     return myConsumptions.map((consumption) => {
-      // Find user by userId or account
-      const user = users.find((u) => 
-        u.id === consumption.userId || 
-        u.account === consumption.userId ||
-        (consumption as any).account === u.account ||
-        (consumption as any).account === u.id
-      );
+      // Find user by userAccount (UUID) or userId (number) - handle both for compatibility
+      const userAccount = (consumption as any).userAccount || (consumption as any).account;
+      const userId = consumption.userId;
+      
+      const user = users.find((u) => {
+        // Match by account UUID string
+        if (userAccount && u.account) {
+          return String(u.account) === String(userAccount);
+        }
+        // Match by numeric userId
+        if (userId && u.id) {
+          return u.id === userId || String(u.id) === String(userId);
+        }
+        return false;
+      });
+
+      // Find meter for user to get meter number
+      let meterNo = user?.meterNo || 'N/A';
+      if (meterNo === 'N/A' && user) {
+        const userAccountForMeter = user.account || userAccount;
+        const userMeter = (meters as any[]).find((m: any) => {
+          const meterAccount = m.account || m.userAccount || m.user_account;
+          return meterAccount && userAccountForMeter && String(meterAccount) === String(userAccountForMeter);
+        });
+        if (userMeter?.meterNo) {
+          meterNo = typeof userMeter.meterNo === 'number' ? userMeter.meterNo.toString() : String(userMeter.meterNo);
+        }
+      }
+
       const billMonthDate = new Date(consumption.billMonth);
       
-      // Get status from consumption directly (no approval status)
-      const status = (consumption as any).status || 
-                    (consumption as any).activeStatus || 
-                    'Active';
+      // Get approval status from consumption
+      const approvalStatus = consumption.approvalStatus;
+      let statusName = 'Pending';
+      
+      if (typeof approvalStatus === 'string') {
+        statusName = approvalStatus;
+      } else if (approvalStatus && typeof approvalStatus === 'object') {
+        statusName = approvalStatus.statusName || approvalStatus.name || 'Pending';
+      }
+      
+      // Map status to display format
+      const status = statusName === 'Approved' ? 'Approved' :
+                     statusName === 'Rejected' ? 'Rejected' :
+                     statusName === 'Pending' ? 'Pending' :
+                     'Pending';
       
       // Ensure currentReading is a number
       const currentReading = typeof consumption.currentReading === 'number' 
@@ -65,7 +104,7 @@ export function MeterAdminSubmittedReadings() {
         consumptionId: consumption.id,
         batchId: `READING-${consumption.id}`,
         householdName: user?.fullName || user?.name || 'Unknown',
-        meterNo: user?.meterNo || 'N/A',
+        meterNo: meterNo,
         reading: currentReading.toFixed(2),
         month: billMonthDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' }),
         submitted: submittedDate.toLocaleString('en-US', {
@@ -77,14 +116,14 @@ export function MeterAdminSubmittedReadings() {
           second: '2-digit',
         }),
         submittedTimestamp: submittedDate.getTime(),
-        status: status === 'Active' ? 'Active' : status === 'Inactive' ? 'Inactive' : 'Active',
+        status: status,
       };
     })
     .sort((a, b) => {
       // Sort by submission date descending (newest first)
       return b.submittedTimestamp - a.submittedTimestamp;
     });
-  }, [myConsumptions, users]);
+  }, [myConsumptions, users, meters]);
 
   // Get unique months for filter
   const uniqueMonths = useMemo(() => {
@@ -140,16 +179,22 @@ export function MeterAdminSubmittedReadings() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'Active':
+      case 'Approved':
         return (
           <Badge className="bg-green-50 text-green-700 border-green-200">
-            Active
+            Approved
           </Badge>
         );
-      case 'Inactive':
+      case 'Rejected':
         return (
           <Badge className="bg-red-50 text-red-700 border-red-200">
-            Inactive
+            Rejected
+          </Badge>
+        );
+      case 'Pending':
+        return (
+          <Badge className="bg-yellow-50 text-yellow-700 border-yellow-200">
+            Pending
           </Badge>
         );
       default:
@@ -161,7 +206,7 @@ export function MeterAdminSubmittedReadings() {
     }
   };
 
-  if (consumptionsLoading || usersLoading) {
+  if (consumptionsLoading || usersLoading || metersLoading) {
     return (
       <div className="min-h-screen bg-app flex items-center justify-center">
         <LoadingSpinner />
@@ -187,13 +232,18 @@ export function MeterAdminSubmittedReadings() {
               </div>
               <span className="text-gray-300">|</span>
               <div className="flex items-center gap-2">
-                <span className="text-gray-600">Active:</span>
-                <span className="font-semibold text-green-600">{filteredReadings.filter(r => r.status === 'Active').length}</span>
+                <span className="text-gray-600">Approved:</span>
+                <span className="font-semibold text-green-600">{filteredReadings.filter(r => r.status === 'Approved').length}</span>
               </div>
               <span className="text-gray-300">|</span>
               <div className="flex items-center gap-2">
-                <span className="text-gray-600">Inactive:</span>
-                <span className="font-semibold text-red-600">{filteredReadings.filter(r => r.status === 'Inactive').length}</span>
+                <span className="text-gray-600">Pending:</span>
+                <span className="font-semibold text-yellow-600">{filteredReadings.filter(r => r.status === 'Pending').length}</span>
+              </div>
+              <span className="text-gray-300">|</span>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-600">Rejected:</span>
+                <span className="font-semibold text-red-600">{filteredReadings.filter(r => r.status === 'Rejected').length}</span>
               </div>
             </div>
           </div>
@@ -218,8 +268,9 @@ export function MeterAdminSubmittedReadings() {
             <Dropdown
               options={[
                 { value: 'all', label: 'All Status' },
-                { value: 'Active', label: 'Active' },
-                { value: 'Inactive', label: 'Inactive' }
+                { value: 'Approved', label: 'Approved' },
+                { value: 'Pending', label: 'Pending' },
+                { value: 'Rejected', label: 'Rejected' }
               ]}
               value={statusFilter}
               onChange={setStatusFilter}

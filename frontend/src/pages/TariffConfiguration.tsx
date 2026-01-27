@@ -167,7 +167,7 @@ export function TariffConfiguration() {
                   <TableRow className="border-gray-200 bg-gray-50">
                     <TableHead className="text-sm font-semibold text-gray-700 text-center whitespace-nowrap">Settings ID</TableHead>
                     <TableHead className="text-sm font-semibold text-gray-700 text-center whitespace-nowrap">Categories</TableHead>
-                    <TableHead className="text-sm font-semibold text-gray-700 text-right whitespace-nowrap">Actions</TableHead>
+                    <TableHead className="text-sm font-semibold text-gray-700 text-center whitespace-nowrap">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -179,31 +179,27 @@ export function TariffConfiguration() {
                       <TableCell className="text-sm text-gray-600 text-center whitespace-nowrap">
                         {categoryCounts[setting.id] || 0}
                       </TableCell>
-                      <TableCell className="text-right whitespace-nowrap align-middle">
-                        <div className="flex items-center gap-2">
-                          {/* Status indicator or action button - takes available space */}
-                          <div className="flex-1 flex justify-end">
-                            {setting.isActive && (
-                              <span className="text-xs text-gray-700 bg-gray-100 rounded-md px-2.5 py-1 whitespace-nowrap inline-flex items-center h-8 font-medium">
-                                Active
-                              </span>
-                            )}
-                            {!setting.isActive && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleSetActive(setting.id)}
-                                disabled={setSettingsActiveMutation.isPending}
-                                className="border-green-300 text-green-700 rounded-lg h-8 px-3 bg-white hover:bg-green-50 inline-flex items-center justify-center gap-1.5 disabled:opacity-50 whitespace-nowrap"
-                                title="Set as Active"
-                              >
-                                <CheckCircle size={14} />
-                                Set as Active
-                              </Button>
-                            )}
-                          </div>
-                          
-                          {/* Edit button - fixed position */}
+                      <TableCell className="text-center align-middle">
+                        <div className="flex items-center justify-center gap-2">
+                          {setting.isActive && (
+                            <span className="text-xs text-gray-700 bg-gray-100 rounded-md px-2.5 py-1 whitespace-nowrap inline-flex items-center justify-center h-8 font-medium w-[135px]">
+                              Active
+                            </span>
+                          )}
+                          {!setting.isActive && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleSetActive(setting.id)}
+                              disabled={setSettingsActiveMutation.isPending}
+                              className="border-green-300 text-green-700 rounded-lg h-8 px-3 bg-white hover:bg-green-50 inline-flex items-center justify-center gap-1.5 disabled:opacity-50 whitespace-nowrap w-[135px]"
+                              title="Set as Active"
+                            >
+                              <CheckCircle size={14} />
+                              Set as Active
+                            </Button>
+                          )}
+                          {/* Edit button */}
                           <Button
                             variant="outline"
                             size="sm"
@@ -213,8 +209,7 @@ export function TariffConfiguration() {
                           >
                             <Edit size={14} />
                           </Button>
-                          
-                          {/* Delete button - fixed position */}
+                          {/* Delete button */}
                           <Button
                             variant="outline"
                             size="sm"

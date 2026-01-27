@@ -9,10 +9,10 @@ import { LoadingSpinner } from '../components/common/LoadingSpinner';
 export function MeterAdminPendingSubmissions() {
   const adminId = useAdminId();
 
-  // Fetch all consumption entries
+  // Fetch pending consumption entries (filtered by approvalStatus=Pending)
   const { data: consumptions = [], isLoading: consumptionsLoading } = useApiQuery(
-    ['consumption'],
-    () => api.consumption.getAll()
+    ['consumption', 'pending'],
+    () => api.consumption.getAll({ approvalStatus: 'Pending' })
   );
 
   // Fetch all users to map userId/account to user details
@@ -21,11 +21,19 @@ export function MeterAdminPendingSubmissions() {
     () => api.users.getAll()
   );
 
-  // Filter consumptions created by current meter admin
+  // Filter consumptions created by current meter admin and ensure they are pending
   const myConsumptions = useMemo(() => {
     if (!adminId) return [];
     return consumptions
-      .filter((consumption) => consumption.createdBy === adminId)
+      .filter((consumption) => {
+        // Filter by creator and ensure it's pending (API should already filter, but double-check)
+        const isCreatedByMe = consumption.createdBy === adminId;
+        const isPending = !consumption.approvalStatus || 
+                         (consumption.approvalStatus as any)?.statusName?.toLowerCase() === 'pending' ||
+                         (consumption.approvalStatus as any)?.name?.toLowerCase() === 'pending' ||
+                         (consumption as any).approvalStatus === 'Pending';
+        return isCreatedByMe && isPending;
+      })
       .sort((a, b) => {
         // Sort by creation date descending (newest first)
         const dateA = new Date(a.createdAt || 0).getTime();
@@ -51,24 +59,41 @@ export function MeterAdminPendingSubmissions() {
   // Map consumption to display format with user details
   const displayReadings = useMemo(() => {
     return myConsumptions.map((consumption) => {
-      // Find user by userId or account
-      const user = users.find((u) => 
-        u.id === consumption.userId || 
-        u.account === consumption.userId ||
-        (consumption as any).account === u.account ||
-        (consumption as any).account === u.id
-      );
+      // Find user by userAccount (UUID) or userId (number) - handle both for compatibility
+      const userAccount = (consumption as any).userAccount || (consumption as any).account;
+      const userId = consumption.userId;
+      
+      const user = users.find((u) => {
+        // Match by account UUID string
+        if (userAccount && u.account) {
+          return String(u.account) === String(userAccount);
+        }
+        // Match by numeric userId
+        if (userId && u.id) {
+          return u.id === userId || String(u.id) === String(userId);
+        }
+        return false;
+      });
+      
       const billMonthDate = new Date(consumption.billMonth);
       // Ensure currentReading is a number before calling toFixed
       const currentReading = typeof consumption.currentReading === 'number' 
         ? consumption.currentReading 
         : Number(consumption.currentReading) || 0;
+      
+      // Get approval status
+      const approvalStatus = consumption.approvalStatus 
+        ? ((consumption.approvalStatus as any)?.statusName || (consumption.approvalStatus as any)?.name || 'Pending')
+        : 'Pending';
+      
       return {
         id: consumption.id,
         householdName: user?.fullName || user?.name || 'Unknown',
         meterNo: user?.meterNo || 'N/A',
         reading: currentReading.toFixed(2),
         month: billMonthDate.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit' }),
+        status: approvalStatus,
+        createdAt: consumption.createdAt ? new Date(consumption.createdAt).toLocaleString('en-US') : 'N/A',
       };
     });
   }, [myConsumptions, users]);
@@ -86,14 +111,15 @@ export function MeterAdminPendingSubmissions() {
       <div className="px-4 md:px-8 py-4 md:py-6">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">My Readings</h1>
-          <p className="text-sm text-gray-500">View all meter readings you have created</p>
+          <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">Pending Submissions</h1>
+          <p className="text-sm text-gray-500">View all pending meter readings awaiting approval</p>
         </div>
 
         {/* Readings Table */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Your Meter Readings</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Pending Meter Readings</h3>
+            <span className="text-sm text-gray-500">{displayReadings.length} pending</span>
           </div>
           
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -104,14 +130,15 @@ export function MeterAdminPendingSubmissions() {
                   <TableHead className="text-sm font-semibold text-gray-700">Meter No</TableHead>
                   <TableHead className="text-sm font-semibold text-gray-700">Current Reading</TableHead>
                   <TableHead className="text-sm font-semibold text-gray-700">Bill Month</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">Status</TableHead>
                   <TableHead className="text-sm font-semibold text-gray-700 text-center">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {displayReadings.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-gray-500 py-8">
-                      No readings found. Add readings from the Meter Data Entry page.
+                    <TableCell colSpan={6} className="text-center text-gray-500 py-8">
+                      No pending readings found. Add readings from the Meter Data Entry page.
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -121,6 +148,11 @@ export function MeterAdminPendingSubmissions() {
                       <TableCell className="text-sm text-gray-600">{reading.meterNo}</TableCell>
                       <TableCell className="text-sm text-gray-600">{reading.reading} m³</TableCell>
                       <TableCell className="text-sm text-gray-600">{reading.month}</TableCell>
+                      <TableCell className="text-sm">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                          {reading.status}
+                        </span>
+                      </TableCell>
                       <TableCell className="text-center">
                         <Button 
                           onClick={() => removeReading(reading.id)}

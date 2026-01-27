@@ -2,13 +2,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Badge } from '../components/ui/badge';
 import { useMemo, useState } from 'react';
 import { api } from '../services/api';
-import { useApiQuery } from '../hooks/useApiQuery';
+import { useApiQuery, useAdminId } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { Input } from '../components/ui/input';
 import { Dropdown } from '../components/ui/Dropdown';
 import { Button } from '../components/ui/button';
 import { Search, X } from 'lucide-react';
-import type { ZoneScoringRuleSet } from '../types';
+import type { ZoneScoringRuleSet, Consumption, User, Meter } from '../types';
 
 interface ApprovalHistoryItem {
   id: string;
@@ -24,12 +24,74 @@ export function ApprovalHistory() {
   const [moduleFilter, setModuleFilter] = useState<string>('all');
   const [decisionFilter, setDecisionFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const adminId = useAdminId();
 
   // Fetch ZoneScoring rulesets
-  const { data: zoneScoringData = [], isLoading } = useApiQuery<ZoneScoringRuleSet[]>(
+  const { data: zoneScoringData = [], isLoading: zoneScoringLoading } = useApiQuery<ZoneScoringRuleSet[]>(
     ['zone-scoring'],
     () => api.zoneScoring.getAll()
   );
+
+  // Fetch all consumptions (approved/rejected)
+  const { data: allConsumptions = [], isLoading: consumptionsLoading } = useApiQuery<Consumption[]>(
+    ['consumption', 'all'],
+    () => api.consumption.getAll()
+  );
+
+  // Fetch all users/customers
+  const { data: allUsers = [], isLoading: usersLoading } = useApiQuery<User[]>(
+    ['users'],
+    () => api.users.getAll()
+  );
+
+  // Fetch all admins (currently unused but kept for potential future use)
+  // const { data: admins = [] } = useApiQuery<Admin[]>(
+  //   ['admins'],
+  //   () => api.admins.getAll()
+  // );
+
+  // Fetch all meters
+  const { data: allMeters = [] } = useApiQuery<Meter[]>(
+    ['meters'],
+    () => api.meters.getAll()
+  );
+
+  // Filter consumptions that were approved/rejected by current admin
+  const reviewedConsumptions = useMemo(() => {
+    if (!adminId) return [];
+    return allConsumptions.filter((c: Consumption) => {
+      // Must have approvedBy matching current admin
+      if (!c.approvedBy || c.approvedBy !== adminId) return false;
+      
+      // Must be approved or rejected (not pending)
+      const approvalStatus = c.approvalStatus;
+      if (!approvalStatus) return false;
+      
+      let statusName = '';
+      if (typeof approvalStatus === 'string') {
+        statusName = approvalStatus;
+      } else if (typeof approvalStatus === 'object') {
+        statusName = approvalStatus.statusName || approvalStatus.name || '';
+      }
+      
+      return statusName.toLowerCase() === 'approved' || statusName.toLowerCase() === 'rejected';
+    });
+  }, [allConsumptions, adminId]);
+
+  // Filter customers that were approved/rejected by current admin
+  // Note: Customer approval might be tracked differently - checking for status changes
+  // Currently unused but kept for potential future use
+  // const reviewedCustomers = useMemo(() => {
+  //   if (!adminId) return [];
+  //   // For now, we'll check if there's an approval mechanism for customers
+  //   // This might need to be adjusted based on actual backend implementation
+  //   return (allUsers as User[]).filter((user: User) => {
+  //     const userData = user as any;
+  //     // Check if user has been reviewed (has activeStatus changed from pending)
+  //     // This is a placeholder - actual implementation depends on backend
+  //     return false; // Disable for now until we know how customer approval is tracked
+  //   });
+  // }, [allUsers, adminId]);
 
   // Filter to show only reviewed rulesets (approved, rejected, published, active)
   // Note: 'published' and 'active' are considered approved states
@@ -40,10 +102,80 @@ export function ApprovalHistory() {
     });
   }, [zoneScoringData]);
 
-  // Map rulesets to display format
+  // Map all reviewed items to display format
   const displayRequests = useMemo(() => {
     const items: ApprovalHistoryItem[] = [];
 
+    // Add reviewed consumptions
+    reviewedConsumptions.forEach((consumption: Consumption) => {
+      const approvalStatus = consumption.approvalStatus;
+      let statusName = '';
+      if (typeof approvalStatus === 'string') {
+        statusName = approvalStatus;
+      } else if (typeof approvalStatus === 'object') {
+        statusName = approvalStatus.statusName || approvalStatus.name || '';
+      }
+      
+      const decision = statusName.toLowerCase() === 'approved' ? 'Approved' : 'Rejected';
+      
+      // Find customer for this consumption
+      const customer = (allUsers as User[]).find((u: User) => {
+        if (consumption.userId) {
+          return u.id === consumption.userId;
+        }
+        if (consumption.userAccount) {
+          return u.account === consumption.userAccount || String(u.account) === String(consumption.userAccount);
+        }
+        return false;
+      });
+
+      // Find meter number
+      let meterNo = 'N/A';
+      if (customer) {
+        const userAccount = customer.account || consumption.userAccount;
+        const userMeter = (allMeters as Meter[]).find((m: Meter) => {
+          const meterAccount = (m as any).account || m.userAccount || (m as any).user_account;
+          return meterAccount && userAccount && String(meterAccount) === String(userAccount);
+        });
+        if (userMeter?.meterNo) {
+          meterNo = typeof userMeter.meterNo === 'number' ? userMeter.meterNo.toString() : String(userMeter.meterNo);
+        }
+      }
+
+      const customerName = customer 
+        ? (customer.fullName || (customer as any).name || 'Unknown')
+        : 'Unknown Customer';
+      
+      const displayTitle = `Consumption: ${customerName} (Meter: ${meterNo}) - ${consumption.billMonth}`;
+      
+      // Use createdAt as review date (Consumption doesn't have updatedAt)
+      const reviewedAt = consumption.createdAt 
+        ? new Date(consumption.createdAt).getTime()
+        : 0;
+      
+      const reviewedAtFormatted = consumption.createdAt
+        ? new Date(consumption.createdAt).toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          })
+        : 'N/A';
+
+      items.push({
+        id: `CONSUMPTION-${consumption.id}`,
+        module: 'Consumption',
+        title: displayTitle,
+        decision,
+        reviewedAt,
+        reviewedAtFormatted,
+        recordId: consumption.id,
+      });
+    });
+
+    // Add reviewed zone scoring rulesets
     reviewedRulesets.forEach((ruleset: ZoneScoringRuleSet) => {
       const status = ruleset.status?.toLowerCase();
       // Map status to decision: published/active/approved = Approved, rejected = Rejected
@@ -70,7 +202,7 @@ export function ApprovalHistory() {
       const displayTitle = ruleset.title || `Ruleset #${ruleset.id}`;
 
       items.push({
-        id: `ZONE-SCORING-${ruleset.id}-${status}`, // Include status in ID to handle duplicates if needed
+        id: `ZONE-SCORING-${ruleset.id}-${status}`,
         module: 'ZoneScoring',
         title: displayTitle,
         decision,
@@ -82,7 +214,7 @@ export function ApprovalHistory() {
 
     // Sort by review date descending (newest first)
     return items.sort((a, b) => b.reviewedAt - a.reviewedAt);
-  }, [reviewedRulesets]);
+  }, [reviewedConsumptions, reviewedRulesets, allUsers, allMeters]);
 
   // Get unique modules for filter
   const uniqueModules = useMemo(() => {
@@ -134,7 +266,7 @@ export function ApprovalHistory() {
   const approved = filteredRequests.filter(item => item.decision === 'Approved').length;
   const rejected = filteredRequests.filter(item => item.decision === 'Rejected').length;
 
-  if (isLoading) {
+  if (zoneScoringLoading || consumptionsLoading || usersLoading) {
     return (
       <div className="min-h-screen bg-[#f8f9fb] flex items-center justify-center">
         <LoadingSpinner />
@@ -150,7 +282,7 @@ export function ApprovalHistory() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-[28px] font-semibold text-gray-900 mb-1">My Approval History</h1>
-              <p className="text-sm text-gray-500">A log of all ZoneScoring rulesets you have approved or rejected</p>
+              <p className="text-sm text-gray-500">A log of all items you have approved or rejected</p>
             </div>
             <div className="flex items-center gap-6 text-sm">
               <div className="flex items-center gap-2">

@@ -5,9 +5,6 @@ import { useApiQuery } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 
 export function MeterAdminMetrics() {
-  // Hardcoded location for all meter readers
-  const HARDCODED_WARD = 'Ward 1';
-
   // Fetch consumption entries
   const { data: consumptions = [], isLoading: consumptionsLoading } = useApiQuery(
     ['consumption'],
@@ -147,7 +144,6 @@ export function MeterAdminMetrics() {
             <div className="flex items-center justify-between px-6 py-4">
               <div>
                 <p className="text-sm font-medium text-gray-900">Total Households Covered</p>
-                <p className="text-xs text-gray-500 mt-0.5">In {HARDCODED_WARD}</p>
               </div>
               <p className="text-base font-semibold text-gray-900">{totalHouseholds}</p>
             </div>

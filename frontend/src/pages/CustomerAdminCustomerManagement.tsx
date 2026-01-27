@@ -1304,6 +1304,10 @@ export function CustomerAdminCustomerManagement() {
                   <TableHead className="text-sm font-semibold text-gray-700">Inspection Code</TableHead>
                   <TableHead className="text-sm font-semibold text-gray-700">Account Type</TableHead>
                   <TableHead className="text-sm font-semibold text-gray-700">Category</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">Meter Number</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">Meter Status</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">Phone</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">Email</TableHead>
                   <TableHead className="text-sm font-semibold text-gray-700">Status</TableHead>
                   <TableHead className="text-sm font-semibold text-gray-700">Water Status</TableHead>
                   <TableHead className="text-sm font-semibold text-gray-700">Sewer Status</TableHead>
@@ -1320,7 +1324,7 @@ export function CustomerAdminCustomerManagement() {
               <TableBody>
                 {filteredCustomers.length === 0 ? (
                   <TableRow key="empty-state">
-                    <TableCell colSpan={15} className="text-center py-8 text-gray-500">
+                    <TableCell colSpan={19} className="text-center py-8 text-gray-500">
                       No customers found matching your search criteria
                     </TableCell>
                   </TableRow>
@@ -1338,12 +1342,23 @@ export function CustomerAdminCustomerManagement() {
                       ? (zone.wasa || wasas.find(cc => cc.id === zone.wasaId))
                       : null;
                     
+                    // Find meter for this customer
+                    const userAccount = customer.id ? String(customer.id) : (customer as any).account;
+                    const customerMeter = meters.find((m: Meter) => {
+                      const meterAccount = m.account || m.userAccount;
+                      return String(meterAccount) === String(userAccount);
+                    });
+                    
                     return (
                       <TableRow key={uniqueKey} className="border-gray-100">
                         <TableCell className="text-sm font-medium text-gray-900">{customer.name || customer.fullName || '-'}</TableCell>
                         <TableCell className="text-sm text-gray-600">{customer.inspCode || '-'}</TableCell>
                         <TableCell className="text-sm text-gray-600">{customer.accountType || '-'}</TableCell>
                         <TableCell className="text-sm text-gray-600">{customer.customerCategory || '-'}</TableCell>
+                        <TableCell className="text-sm text-gray-600">{customerMeter?.meterNo ? String(customerMeter.meterNo) : (customer.meterNo ? String(customer.meterNo) : '-')}</TableCell>
+                        <TableCell className="text-sm text-gray-600">{customerMeter?.meterStatus || customer.meterStatus || '-'}</TableCell>
+                        <TableCell className="text-sm text-gray-600">{customer.phone || '-'}</TableCell>
+                        <TableCell className="text-sm text-gray-600">{customer.email || '-'}</TableCell>
                         <TableCell className="text-sm text-gray-600">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                             customer.status?.toLowerCase() === 'active' 

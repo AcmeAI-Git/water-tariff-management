@@ -69,7 +69,7 @@ export function getRouteForRole(roleName: string): string {
     'meter-admin': '/meter-reader/entry',
     'meter-reader': '/meter-reader/entry',
     'customer-admin': '/customer-admin/customers',
-    'tariff-admin': '/tariff-admin/zone-scoring',
+    'tariff-admin': '/tariff-admin/config',
     'approval-admin': '/approval-admin/queue',
     'general-info': '/general-admin/dashboard',
     'general-admin': '/general-admin/dashboard',
