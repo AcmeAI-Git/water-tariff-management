@@ -222,19 +222,19 @@ export default function MeterReaderManagement() {
 
     return (
         <div className="min-h-screen bg-app">
-            <div className="px-8 py-6">
+            <div className="px-4 md:px-8 py-4 md:py-6">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-8">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 md:mb-8">
                     <div>
-                        <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">
+                        <h1 className="text-xl md:text-[1.75rem] font-semibold text-gray-900 mb-1">
                             Meter Reader Management
                         </h1>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-xs md:text-sm text-gray-500">
                             Manage all meter readers who handle meter readings
                         </p>
                     </div>
                     <Button
-                        className="bg-primary hover:bg-primary-600 text-white px-6 rounded-lg shadow-sm"
+                        className="bg-primary hover:bg-primary-600 text-white px-4 md:px-6 rounded-lg shadow-sm text-sm md:text-base w-full sm:w-auto"
                         onClick={() => setShowModal(true)}
                     >
                         + Add Meter Reader
@@ -259,7 +259,7 @@ export default function MeterReaderManagement() {
                 </div>
 
                 {/* Table */}
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden overflow-x-auto">
                     <Table>
                         <TableHeader>
                             <TableRow className="border-gray-200 bg-gray-50">

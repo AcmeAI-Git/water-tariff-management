@@ -322,6 +322,9 @@ export function TariffCategorySettingsView() {
                       placeholder="Enter increase percentage"
                       className="bg-gray-50 border-gray-300"
                     />
+                    <p className="text-xs text-gray-500">
+                      Percentage increase for Domestic categories above the base category (only applies to Domestic)
+                    </p>
                   </div>
 
                   <div className="space-y-2">
@@ -337,6 +340,9 @@ export function TariffCategorySettingsView() {
                       placeholder="Enter decrease percentage"
                       className="bg-gray-50 border-gray-300"
                     />
+                    <p className="text-xs text-gray-500">
+                      Percentage decrease for Domestic categories below the base category (only applies to Domestic)
+                    </p>
                   </div>
 
                   <div className="space-y-2">

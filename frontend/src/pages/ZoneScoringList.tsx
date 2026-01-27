@@ -94,7 +94,7 @@ export function ZoneScoringList() {
 
   return (
     <div className="min-h-screen bg-[#f8f9fb]">
-      <div className="px-8 py-6">
+      <div className="px-4 md:px-8 py-4 md:py-6">
         <PageHeader
           title="Zone Scoring Rulesets"
           description="Manage zone scoring rulesets and their parameters"

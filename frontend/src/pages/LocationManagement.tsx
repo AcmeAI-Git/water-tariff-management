@@ -646,7 +646,7 @@ export function LocationManagement() {
 
   return (
     <div className="min-h-screen bg-[#f8f9fb]">
-      <div className="px-8 py-6">
+      <div className="px-4 md:px-8 py-4 md:py-6">
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Location Management</h1>

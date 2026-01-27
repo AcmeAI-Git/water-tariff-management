@@ -327,7 +327,7 @@ export function ZoneScoringCreate() {
 
   return (
     <div className="min-h-screen bg-[#f8f9fb]">
-      <div className="px-8 py-6">
+      <div className="px-4 md:px-8 py-4 md:py-6">
         <PageHeader
           title="Create New Ruleset"
           description="Create a new zone scoring ruleset"

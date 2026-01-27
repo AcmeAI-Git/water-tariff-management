@@ -125,7 +125,7 @@ export function TariffAdminTariffHistory() {
 
   return (
     <div className="min-h-screen bg-[#f8f9fb]">
-      <div className="px-8 py-6">
+      <div className="px-4 md:px-8 py-4 md:py-6">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-[28px] font-semibold text-gray-900 mb-1">Tariff History</h1>

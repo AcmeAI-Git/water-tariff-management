@@ -92,13 +92,13 @@ export default function CustomerDashboard() {
 
   return (
     <div className="min-h-screen bg-app">
-      <div className="px-8 py-6">
+      <div className="px-4 md:px-8 py-4 md:py-6">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-xl md:text-[1.75rem] font-semibold text-gray-900 mb-1">
             Welcome back, {customerUser?.fullName || 'Customer'}!
           </h1>
-          <p className="text-sm text-gray-500">Here's an overview of your water usage and bills</p>
+          <p className="text-xs md:text-sm text-gray-500">Here's an overview of your water usage and bills</p>
         </div>
 
         {/* Quick Stats */}
@@ -141,14 +141,14 @@ export default function CustomerDashboard() {
         </div>
 
         {/* Recent Usage History */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Recent Usage History</h2>
+        <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 mb-4 md:mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+            <h2 className="text-base md:text-lg font-semibold text-gray-900">Recent Usage History</h2>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate('/customer/analytics')}
-              className="text-primary hover:text-primary-600"
+              className="text-primary hover:text-primary-600 w-full sm:w-auto"
             >
               View All <ArrowRight size={16} className="ml-1" />
             </Button>
@@ -158,31 +158,31 @@ export default function CustomerDashboard() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Bill Month</TableHead>
-                    <TableHead>Current Reading</TableHead>
-                    <TableHead>Previous Reading</TableHead>
-                    <TableHead>Consumption (m³)</TableHead>
+                    <TableHead className="text-xs md:text-sm whitespace-nowrap">Bill Month</TableHead>
+                    <TableHead className="text-xs md:text-sm whitespace-nowrap hidden sm:table-cell">Current Reading</TableHead>
+                    <TableHead className="text-xs md:text-sm whitespace-nowrap hidden md:table-cell">Previous Reading</TableHead>
+                    <TableHead className="text-xs md:text-sm whitespace-nowrap">Consumption (m³)</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {recentConsumptions.map((consumption) => (
                     <TableRow key={consumption.id}>
-                      <TableCell>
+                      <TableCell className="text-xs md:text-sm whitespace-nowrap">
                         {consumption.billMonth
                           ? format(new Date(consumption.billMonth), 'MMM yyyy')
                           : 'N/A'}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-xs md:text-sm whitespace-nowrap hidden sm:table-cell">
                         {consumption.currentReading 
                           ? Number(consumption.currentReading).toFixed(2) 
                           : 'N/A'}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-xs md:text-sm whitespace-nowrap hidden md:table-cell">
                         {consumption.previousReading 
                           ? Number(consumption.previousReading).toFixed(2) 
                           : 'N/A'}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-xs md:text-sm whitespace-nowrap">
                         {consumption.consumption !== undefined && consumption.consumption !== null
                           ? Math.max(0, Number(consumption.consumption)).toFixed(2)
                           : 'N/A'}
@@ -198,14 +198,14 @@ export default function CustomerDashboard() {
         </div>
 
         {/* Recent Billing History */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Recent Billing History</h2>
+        <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+            <h2 className="text-base md:text-lg font-semibold text-gray-900">Recent Billing History</h2>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate('/customer/billing')}
-              className="text-primary hover:text-primary-600"
+              className="text-primary hover:text-primary-600 w-full sm:w-auto"
             >
               View All <ArrowRight size={16} className="ml-1" />
             </Button>
@@ -215,23 +215,23 @@ export default function CustomerDashboard() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Bill Month</TableHead>
-                    <TableHead>Total Bill</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead className="text-xs md:text-sm whitespace-nowrap">Bill Month</TableHead>
+                    <TableHead className="text-xs md:text-sm whitespace-nowrap">Total Bill</TableHead>
+                    <TableHead className="text-xs md:text-sm whitespace-nowrap">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {recentBills.map((bill) => (
                     <TableRow key={bill.id}>
-                      <TableCell>
+                      <TableCell className="text-xs md:text-sm whitespace-nowrap">
                         {bill.billMonth
                           ? format(new Date(bill.billMonth), 'MMM yyyy')
                           : 'N/A'}
                       </TableCell>
-                      <TableCell className="font-semibold">
+                      <TableCell className="text-xs md:text-sm font-semibold whitespace-nowrap">
                         ৳{bill.totalBill ? Number(bill.totalBill).toFixed(2) : '0.00'}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">
                         <span
                           className={`px-2 py-1 rounded-full text-xs font-medium ${
                             bill.status === 'Paid'
@@ -250,7 +250,7 @@ export default function CustomerDashboard() {
               </Table>
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-8">No billing history available</p>
+            <p className="text-gray-500 text-center py-6 md:py-8 text-sm">No billing history available</p>
           )}
         </div>
       </div>

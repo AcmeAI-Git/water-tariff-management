@@ -222,20 +222,20 @@ export function AgentManagement() {
 
     return (
         <div className="min-h-screen bg-app">
-            <div className="px-8 py-6">
+            <div className="px-4 md:px-8 py-4 md:py-6">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-8">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 md:mb-8">
                     <div>
-                        <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">
+                        <h1 className="text-xl md:text-[1.75rem] font-semibold text-gray-900 mb-1">
                             Agent Management
                         </h1>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-xs md:text-sm text-gray-500">
                             Manage other system administrators (Tariff, Customer,
                             Super Admins)
                         </p>
                     </div>
                     <Button
-                        className="bg-primary hover:bg-primary-600 text-white px-6 rounded-lg shadow-sm"
+                        className="bg-primary hover:bg-primary-600 text-white px-4 md:px-6 rounded-lg shadow-sm text-sm md:text-base w-full sm:w-auto"
                         onClick={() => setShowModal(true)}
                     >
                         + Add New Agent
@@ -260,20 +260,20 @@ export function AgentManagement() {
                 </div>
 
                 {/* Table */}
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden overflow-x-auto">
                     <Table>
                         <TableHeader>
                             <TableRow className="border-gray-200 bg-gray-50">
-                                <TableHead className="text-sm font-semibold text-gray-700">
+                                <TableHead className="text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">
                                     Full Name
                                 </TableHead>
-                                <TableHead className="text-sm font-semibold text-gray-700">
+                                <TableHead className="text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">
                                     Email
                                 </TableHead>
-                                <TableHead className="text-sm font-semibold text-gray-700">
+                                <TableHead className="text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">
                                     Role
                                 </TableHead>
-                                <TableHead className="text-sm font-semibold text-gray-700">
+                                <TableHead className="text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">
                                     Actions
                                 </TableHead>
                             </TableRow>
@@ -281,7 +281,7 @@ export function AgentManagement() {
                         <TableBody>
                             {filteredAdmins.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={4} className="text-center text-gray-500 py-8">
+                                    <TableCell colSpan={4} className="text-center text-gray-500 py-6 md:py-8 text-sm">
                                         No agents found
                                     </TableCell>
                                 </TableRow>
@@ -291,26 +291,26 @@ export function AgentManagement() {
                                         key={admin.id}
                                         className="border-gray-100"
                                     >
-                                        <TableCell className="text-sm text-gray-900 font-medium">
+                                        <TableCell className="text-xs md:text-sm text-gray-900 font-medium whitespace-nowrap">
                                             {admin.name}
                                         </TableCell>
-                                        <TableCell className="text-sm text-gray-600">
+                                        <TableCell className="text-xs md:text-sm text-gray-600 whitespace-nowrap">
                                             {admin.email}
                                         </TableCell>
-                                        <TableCell>
+                                        <TableCell className="whitespace-nowrap">
                                             <span
-                                                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(
+                                                className={`inline-flex items-center px-2 md:px-3 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(
                                                     admin.role
                                                 )}`}
                                             >
                                                 {admin.role}
                                             </span>
                                         </TableCell>
-                                        <TableCell>
+                                        <TableCell className="whitespace-nowrap">
                                             <Button
                                                 variant="outline"
                                                 size="sm"
-                                                className="border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                                                className="border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-xs md:text-sm"
                                                 onClick={() => handleEditClick(admin, index)}
                                             >
                                                 <Edit2

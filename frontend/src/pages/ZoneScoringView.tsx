@@ -633,7 +633,7 @@ export function ZoneScoringView() {
 
   return (
     <div className="min-h-screen bg-[#f8f9fb]">
-      <div className="px-8 py-6">
+      <div className="px-4 md:px-8 py-4 md:py-6">
         <PageHeader
           title={rulesetData.title}
           description={rulesetData.description || 'No description'}
@@ -747,7 +747,7 @@ export function ZoneScoringView() {
               )}
             </div>
             <ScrollNavigationControls tableScrollRef={tableScrollRef} calculatedParams={calculatedParams} />
-            <div ref={tableScrollRef} className="overflow-x-auto" id="zone-scoring-table-scroll">
+            <div ref={tableScrollRef} className="overflow-x-auto max-w-full" id="zone-scoring-table-scroll">
               <ScoringParametersTable 
                 calculatedParams={calculatedParams}
                 onEditParam={handleEditParam}

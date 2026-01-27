@@ -19,6 +19,7 @@ import { TariffConfiguration } from '../pages/TariffConfiguration';
 import { ZoneScoringList } from '../pages/ZoneScoringList';
 import { ZoneScoringCreate } from '../pages/ZoneScoringCreate';
 import { ZoneScoringView } from '../pages/ZoneScoringView';
+import { TariffCategoryView } from '../pages/TariffCategoryView';
 import { LocationManagement } from '../pages/LocationManagement';
 import { ApprovalQueue } from '../pages/ApprovalQueue';
 import { ApprovalHistory } from '../pages/ApprovalHistory';
@@ -204,6 +205,14 @@ const RouterIndex = () => {
           element={
             <ProtectedRoute allowedRoles={['tariff-admin']}>
               <ZoneScoringView />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/tariff-admin/tariff-categories/:settingsId" 
+          element={
+            <ProtectedRoute allowedRoles={['tariff-admin']}>
+              <TariffCategoryView />
             </ProtectedRoute>
           } 
         />

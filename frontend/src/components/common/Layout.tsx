@@ -1,17 +1,23 @@
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import type { ReactNode } from "react";
+import { useState } from "react";
+import { Menu, X } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { MeterReaderSidebar } from "./MeterReaderSidebar";
 import { CustomerAdminSidebar } from "./CustomerAdminSidebar";
 import { TariffAdminSidebar } from "./TariffAdminSidebar";
 import { ApprovalAdminSidebar } from "./ApprovalAdminSidebar";
 import { GeneralAdminSidebar } from "./GeneralAdminSidebar";
+import { Sheet, SheetContent } from "../ui/sheet";
+import { useIsMobile } from "../ui/use-mobile";
 
 export type LayoutProps = { children?: ReactNode };
 
 export default function Layout({ children }: LayoutProps) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const isMeterAdmin = pathname.startsWith("/meter-reader");
   const isCustomerAdmin = pathname.startsWith("/customer-admin");
@@ -155,24 +161,53 @@ export default function Layout({ children }: LayoutProps) {
     navigate(path);
   };
 
+  const renderSidebar = () => {
+    if (isMeterAdmin) {
+      return <MeterReaderSidebar activePage={"meter-reader-" + meterActive} onNavigate={handleMeterNavigate} />;
+    } else if (isCustomerAdmin) {
+      return <CustomerAdminSidebar activePage={customerActive ? `customer-admin-${customerActive}` : "customer-admin-customers"} onNavigate={handleCustomerNavigate} />;
+    } else if (isTariffAdmin) {
+      return <TariffAdminSidebar currentPage={tariffActive} onNavigate={handleTariffNavigate} onLogout={handleTariffLogout} />;
+    } else if (isApprovalAdmin) {
+      return <ApprovalAdminSidebar activePage={approvalActive} />;
+    } else if (isGeneralInfoAdmin) {
+      return <GeneralAdminSidebar activePage={generalInfoActive} />;
+    } else {
+      return <Sidebar activePage={superAdminActive} onNavigate={handleSuperAdminNavigate} />;
+    }
+  };
+
   return (
     <div className="min-h-screen flex">
-      <aside className="w-[260px] fixed inset-y-0 left-0 bg-white shadow z-20">
-        {isMeterAdmin ? (
-          <MeterReaderSidebar activePage={"meter-reader-" + meterActive} onNavigate={handleMeterNavigate} />
-        ) : isCustomerAdmin ? (
-          <CustomerAdminSidebar activePage={customerActive ? `customer-admin-${customerActive}` : "customer-admin-customers"} onNavigate={handleCustomerNavigate} />
-        ) : isTariffAdmin ? (
-          <TariffAdminSidebar currentPage={tariffActive} onNavigate={handleTariffNavigate} onLogout={handleTariffLogout} />
-        ) : isApprovalAdmin ? (
-          <ApprovalAdminSidebar activePage={approvalActive} />
-        ) : isGeneralInfoAdmin ? (
-          <GeneralAdminSidebar activePage={generalInfoActive} />
-        ) : (
-          <Sidebar activePage={superAdminActive} onNavigate={handleSuperAdminNavigate} />
-        )}
+      {/* Mobile Menu Button */}
+      {isMobile && (
+        <button
+          onClick={() => setMobileMenuOpen(true)}
+          className="fixed top-4 left-4 z-30 p-2 bg-white rounded-lg shadow-md border border-gray-200 md:hidden"
+          aria-label="Open menu"
+        >
+          <Menu size={24} className="text-gray-700" />
+        </button>
+      )}
+
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:block w-[260px] fixed inset-y-0 left-0 bg-white shadow z-20">
+        {renderSidebar()}
       </aside>
-      <main className="flex-1 ml-[260px] w-full px-4 py-6">
+
+      {/* Mobile Sidebar */}
+      {isMobile && (
+        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+          <SheetContent side="left" className="w-[280px] p-0">
+            <div className="h-full overflow-y-auto">
+              {renderSidebar()}
+            </div>
+          </SheetContent>
+        </Sheet>
+      )}
+
+      {/* Main Content */}
+      <main className="flex-1 w-full md:ml-[260px] px-4 md:px-6 py-4 md:py-6">
         {children ?? <Outlet />}
       </main>
     </div>

@@ -242,21 +242,21 @@ export function MeterAdminDataEntry() {
 
   return (
     <div className="min-h-screen bg-app">
-      <div className="px-8 py-6">
+      <div className="px-4 md:px-8 py-4 md:py-6">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">Meter Data Entry</h1>
-          <p className="text-sm text-gray-500">Your Assigned Ward: {HARDCODED_WARD}</p>
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-xl md:text-[1.75rem] font-semibold text-gray-900 mb-1">Meter Data Entry</h1>
+          <p className="text-xs md:text-sm text-gray-500">Your Assigned Ward: {HARDCODED_WARD}</p>
         </div>
 
         {/* Entry Section */}
-        <div className="bg-white p-6 rounded-xl border border-gray-200 mb-8">
-          <h3 className="text-lg font-semibold text-gray-900 mb-6">Customer Verification & Entry</h3>
+        <div className="bg-white p-4 md:p-6 rounded-xl border border-gray-200 mb-6 md:mb-8">
+          <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4 md:mb-6">Customer Verification & Entry</h3>
           
           {/* Search */}
-          <div className="mb-8">
-            <p className="text-sm font-semibold text-gray-700 mb-3">Search Customer</p>
-            <div className="flex gap-3">
+          <div className="mb-6 md:mb-8">
+            <p className="text-xs md:text-sm font-semibold text-gray-700 mb-3">Search Customer</p>
+            <div className="flex flex-col sm:flex-row gap-3">
               <div className="flex-1">
                 <Input
                   id="search"
