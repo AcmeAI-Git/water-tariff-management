@@ -67,13 +67,13 @@ export function SystemAuditLog() {
 
     return (
         <div className="min-h-screen bg-app">
-            <div className="px-8 py-6">
+            <div className="px-4 md:px-8 py-4 md:py-6">
                 {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">
+                <div className="mb-6 md:mb-8">
+                    <h1 className="text-xl md:text-[1.75rem] font-semibold text-gray-900 mb-1">
                         System Audit Log
                     </h1>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-xs md:text-sm text-gray-500">
                         Track all system activities and changes
                     </p>
                 </div>
@@ -96,38 +96,38 @@ export function SystemAuditLog() {
                 </div>
 
                 {/* Table */}
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden overflow-x-auto">
                     <Table>
                         <TableHeader>
                             <TableRow className="border-gray-200 bg-gray-50">
-                                <TableHead className="text-sm font-semibold text-gray-700">ID</TableHead>
-                                <TableHead className="text-sm font-semibold text-gray-700">Timestamp</TableHead>
-                                <TableHead className="text-sm font-semibold text-gray-700">User</TableHead>
-                                <TableHead className="text-sm font-semibold text-gray-700">Action</TableHead>
-                                <TableHead className="text-sm font-semibold text-gray-700">Module</TableHead>
-                                <TableHead className="text-sm font-semibold text-gray-700">Details</TableHead>
+                                <TableHead className="text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">ID</TableHead>
+                                <TableHead className="text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap hidden md:table-cell">Timestamp</TableHead>
+                                <TableHead className="text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">User</TableHead>
+                                <TableHead className="text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Action</TableHead>
+                                <TableHead className="text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap hidden lg:table-cell">Module</TableHead>
+                                <TableHead className="text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap hidden lg:table-cell">Details</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {filteredLogs.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="text-center text-gray-500 py-8">
+                                    <TableCell colSpan={6} className="text-center text-gray-500 py-6 md:py-8 text-sm">
                                         No audit logs found
                                     </TableCell>
                                 </TableRow>
                             ) : (
                                 filteredLogs.map((log) => (
                                     <TableRow key={log.id} className="border-gray-100">
-                                        <TableCell className="text-sm font-mono text-gray-600">{log.id}</TableCell>
-                                        <TableCell className="text-sm text-gray-600">{log.timestamp}</TableCell>
-                                        <TableCell className="text-sm text-gray-900 font-medium">{log.user}</TableCell>
-                                        <TableCell>
+                                        <TableCell className="text-xs md:text-sm font-mono text-gray-600 whitespace-nowrap">{log.id}</TableCell>
+                                        <TableCell className="text-xs md:text-sm text-gray-600 whitespace-nowrap hidden md:table-cell">{log.timestamp}</TableCell>
+                                        <TableCell className="text-xs md:text-sm text-gray-900 font-medium whitespace-nowrap">{log.user}</TableCell>
+                                        <TableCell className="whitespace-nowrap">
                                             <Badge className={getActionBadgeColor(log.action)}>
                                                 {log.action}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell className="text-sm text-gray-600">{log.module}</TableCell>
-                                        <TableCell className="text-sm text-gray-600">{log.details}</TableCell>
+                                        <TableCell className="text-xs md:text-sm text-gray-600 whitespace-nowrap hidden lg:table-cell">{log.module}</TableCell>
+                                        <TableCell className="text-xs md:text-sm text-gray-600 whitespace-nowrap hidden lg:table-cell">{log.details}</TableCell>
                                     </TableRow>
                                 ))
                             )}

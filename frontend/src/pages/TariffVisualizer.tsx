@@ -29,9 +29,9 @@ export default function TariffVisualizer() {
   );
 
   // Fetch city corporations
-  const { data: cityCorporations = [], isLoading: citiesLoading } = useApiQuery(
+  const { data: wasas = [], isLoading: citiesLoading } = useApiQuery(
     ['city-corporations'],
-    () => api.cityCorporations.getAll()
+    () => api.wasas.getAll()
   );
 
   // Fetch zones filtered by selected city
@@ -50,10 +50,10 @@ export default function TariffVisualizer() {
 
   // Set default city when cities load
   useMemo(() => {
-    if (cityCorporations.length > 0 && !selectedCityId) {
-      setSelectedCityId(cityCorporations[0].id);
+    if (wasas.length > 0 && !selectedCityId) {
+      setSelectedCityId(wasas[0].id);
     }
-  }, [cityCorporations, selectedCityId]);
+  }, [wasas, selectedCityId]);
 
   // Set default zone when zones load
   useMemo(() => {
@@ -95,8 +95,8 @@ export default function TariffVisualizer() {
 
   // Get selected city, zone, and ward objects
   // const selectedCity = useMemo(() => {
-  //   return cityCorporations.find(c => c.id === selectedCityId);
-  // }, [cityCorporations, selectedCityId]);
+  //   return wasas.find(c => c.id === selectedCityId);
+  // }, [wasas, selectedCityId]);
 
   // const selectedZone = useMemo(() => {
   //   return zones.find(z => z.id === selectedZoneId);
@@ -221,7 +221,7 @@ export default function TariffVisualizer() {
 
   return (
     <div className="min-h-screen bg-app">
-      <div className="px-8 py-6">
+      <div className="px-4 md:px-8 py-4 md:py-6">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">Tariff Visualizer</h1>
@@ -249,7 +249,7 @@ export default function TariffVisualizer() {
                 className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
               >
                 <option value="">Select City</option>
-                {cityCorporations.map((city) => (
+                {wasas.map((city) => (
                   <option key={city.id} value={city.id}>
                     {city.name}
                   </option>

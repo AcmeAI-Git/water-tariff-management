@@ -21,7 +21,7 @@ export function CustomerAdminCustomerManagement() {
   const [customerCategoryFilter, setCustomerCategoryFilter] = useState('all');
   const [waterStatusFilter, setWaterStatusFilter] = useState('all');
   const [sewerStatusFilter, setSewerStatusFilter] = useState('all');
-  const [cityCorporationFilter, setCityCorporationFilter] = useState('all');
+  const [wasaFilter, setWasaFilter] = useState('all');
   const [zoneFilter, setZoneFilter] = useState('all');
   const [areaFilter, setAreaFilter] = useState('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -49,7 +49,7 @@ export function CustomerAdminCustomerManagement() {
     customerCategory: 'Domestic',
     waterStatus: 'Metered',
     sewerStatus: 'Connected',
-    cityCorporationId: '',
+    wasaId: '',
     zoneId: '',
     areaId: '',
     meterNo: '',
@@ -69,7 +69,7 @@ export function CustomerAdminCustomerManagement() {
     customerCategory: 'Domestic',
     waterStatus: 'Metered',
     sewerStatus: 'Connected',
-    cityCorporationId: '',
+    wasaId: '',
     zoneId: '',
     areaId: '',
     meterNo: '',
@@ -99,9 +99,9 @@ export function CustomerAdminCustomerManagement() {
   );
 
   // Fetch city corporations
-  const { data: cityCorporations = [], isLoading: cityCorpsLoading } = useApiQuery(
+  const { data: wasas = [], isLoading: cityCorpsLoading } = useApiQuery(
     ['city-corporations'],
-    () => api.cityCorporations.getAll()
+    () => api.wasas.getAll()
   );
 
   // Fetch zones
@@ -160,12 +160,12 @@ export function CustomerAdminCustomerManagement() {
     }
 
     // City Corporation filter - derive from zone
-    if (cityCorporationFilter !== 'all') {
+    if (wasaFilter !== 'all') {
       filtered = filtered.filter((customer) => {
         const customerZoneId = customer.zoneId || (customer as any).zoneId;
         if (!customerZoneId) return false;
         const zone = zones.find(z => z.id === customerZoneId);
-        return zone?.cityCorporationId?.toString() === cityCorporationFilter;
+        return zone?.wasaId?.toString() === wasaFilter;
       });
     }
 
@@ -203,7 +203,7 @@ export function CustomerAdminCustomerManagement() {
     }
 
     return filtered;
-  }, [customers, searchQuery, statusFilter, accountTypeFilter, customerCategoryFilter, waterStatusFilter, sewerStatusFilter, cityCorporationFilter, zoneFilter, areaFilter, zones]);
+  }, [customers, searchQuery, statusFilter, accountTypeFilter, customerCategoryFilter, waterStatusFilter, sewerStatusFilter, wasaFilter, zoneFilter, areaFilter, zones]);
 
   // Get unique values for filter dropdowns
   const uniqueAccountTypes = useMemo(() => {
@@ -228,9 +228,9 @@ export function CustomerAdminCustomerManagement() {
 
   // Filter zones by selected city corporation
   const filteredZonesForFilter = useMemo(() => {
-    if (cityCorporationFilter === 'all') return zones;
-    return zones.filter((zone) => zone.cityCorporationId === parseInt(cityCorporationFilter));
-  }, [zones, cityCorporationFilter]);
+    if (wasaFilter === 'all') return zones;
+    return zones.filter((zone) => zone.wasaId === parseInt(wasaFilter));
+  }, [zones, wasaFilter]);
 
   // Filter areas by selected zone
   const filteredAreasForFilter = useMemo(() => {
@@ -328,7 +328,7 @@ export function CustomerAdminCustomerManagement() {
       toast.error('Please select a sewer status');
       return;
     }
-    if (!formData.cityCorporationId) {
+    if (!formData.wasaId) {
       toast.error('Please select a city corporation');
       return;
     }
@@ -389,7 +389,7 @@ export function CustomerAdminCustomerManagement() {
         address: formData.address.trim(),
         inspCode: inspCodeNum,
         accountType: formData.accountType,
-        customerCategory: formData.customerCategory,
+        customerCategories: [{ customerCategory: formData.customerCategory, ratio: 100 }], // Array of objects with category and ratio
         waterStatus: formData.waterStatus,
         sewerStatus: formData.sewerStatus,
         areaId: parseInt(formData.areaId),
@@ -411,7 +411,7 @@ export function CustomerAdminCustomerManagement() {
         customerCategory: 'Domestic',
         waterStatus: 'Metered',
         sewerStatus: 'Connected',
-        cityCorporationId: '',
+        wasaId: '',
         zoneId: '',
         areaId: '',
         meterNo: '',
@@ -468,10 +468,19 @@ export function CustomerAdminCustomerManagement() {
       address: customer.address || '',
       inspCode: customer.inspCode?.toString() || userData?.inspCode?.toString() || '',
       accountType: customer.accountType || userData?.accountType || 'General',
-      customerCategory: customer.customerCategory || userData?.customerCategory || 'Domestic',
+      // Handle both array (customerCategories) and single value (customerCategory) from backend
+      customerCategory: customer.customerCategory || 
+        (Array.isArray(userData?.customerCategories) && userData.customerCategories.length > 0
+          ? (typeof userData.customerCategories[0] === 'object' && userData.customerCategories[0]?.customerCategory
+              ? userData.customerCategories[0].customerCategory
+              : typeof userData.customerCategories[0] === 'string'
+              ? userData.customerCategories[0]
+              : userData?.customerCategory)
+          : userData?.customerCategory) || 
+        'Domestic',
       waterStatus: customer.waterStatus || userData?.waterStatus || 'Metered',
       sewerStatus: customer.sewerStatus || userData?.sewerStatus || 'Connected',
-      cityCorporationId: zone?.cityCorporationId?.toString() || '',
+      wasaId: zone?.wasaId?.toString() || '',
       zoneId: zone?.id?.toString() || customer.zoneId?.toString() || '',
       areaId: areaId?.toString() || '',
       meterNo: customerMeter?.meterNo?.toString() || '',
@@ -487,7 +496,7 @@ export function CustomerAdminCustomerManagement() {
   };
 
   const handleEditSubmit = async () => {
-    if (!selectedCustomer || !editFormData.cityCorporationId || !editFormData.zoneId || !editFormData.areaId) return;
+    if (!selectedCustomer || !editFormData.wasaId || !editFormData.zoneId || !editFormData.areaId) return;
 
     // Validate required fields
     if (!editFormData.name?.trim()) {
@@ -552,7 +561,7 @@ export function CustomerAdminCustomerManagement() {
           address: editFormData.address.trim(),
           inspCode: inspCodeNum,
           accountType: editFormData.accountType,
-          customerCategory: editFormData.customerCategory,
+          customerCategories: [{ customerCategory: editFormData.customerCategory, ratio: 100 }], // Array of objects with category and ratio
           waterStatus: editFormData.waterStatus,
           sewerStatus: editFormData.sewerStatus,
           areaId: parseInt(editFormData.areaId),
@@ -596,7 +605,7 @@ export function CustomerAdminCustomerManagement() {
 
     try {
       // Parse CSV
-      const result = await parseCustomerCSV(file, allAreas, zones, cityCorporations);
+      const result = await parseCustomerCSV(file, allAreas, zones, wasas);
 
       if (!result.success || result.data.length === 0) {
         const errorMsg = result.errors.length > 0
@@ -753,7 +762,7 @@ export function CustomerAdminCustomerManagement() {
   };
 
   const handleExportCSV = () => {
-    const csvContent = exportCustomersToCSV(customers, allAreas, zones, cityCorporations, meters);
+    const csvContent = exportCustomersToCSV(customers, allAreas, zones, wasas, meters);
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -821,10 +830,10 @@ export function CustomerAdminCustomerManagement() {
 
   return (
     <div className="min-h-screen bg-app">
-      <div className="px-8 py-6">
+      <div className="px-4 md:px-8 py-4 md:py-6">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-[1.75rem] font-semibold text-gray-900">Customer Management</h1>
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-xl md:text-[1.75rem] font-semibold text-gray-900">Customer Management</h1>
         </div>
 
         {/* Add Button and CSV Actions */}
@@ -885,7 +894,7 @@ export function CustomerAdminCustomerManagement() {
             onSubmit={handleSubmit}
             onCancel={() => setIsDialogOpen(false)}
             isSubmitting={createMutation.isPending}
-            cityCorporations={cityCorporations}
+            wasas={wasas}
             zones={zones}
             areas={allAreas}
             mode="add"
@@ -951,7 +960,7 @@ export function CustomerAdminCustomerManagement() {
 
             {/* Clear Filters Button */}
             {(statusFilter !== 'all' || accountTypeFilter !== 'all' || customerCategoryFilter !== 'all' || 
-              waterStatusFilter !== 'all' || sewerStatusFilter !== 'all' || cityCorporationFilter !== 'all' || 
+              waterStatusFilter !== 'all' || sewerStatusFilter !== 'all' || wasaFilter !== 'all' || 
               zoneFilter !== 'all' || areaFilter !== 'all' || searchQuery.trim() !== '') && (
               <Button
                 variant="outline"
@@ -961,7 +970,7 @@ export function CustomerAdminCustomerManagement() {
                   setCustomerCategoryFilter('all');
                   setWaterStatusFilter('all');
                   setSewerStatusFilter('all');
-                  setCityCorporationFilter('all');
+                  setWasaFilter('all');
                   setZoneFilter('all');
                   setAreaFilter('all');
                   setSearchQuery('');
@@ -1058,11 +1067,11 @@ export function CustomerAdminCustomerManagement() {
                   <Dropdown
                     options={[
                       { value: 'all', label: 'All City Corporations' },
-                      ...cityCorporations.map(cc => ({ value: cc.id.toString(), label: `${cc.name} (${cc.code})` }))
+                      ...wasas.map(cc => ({ value: cc.id.toString(), label: `${cc.name} (${cc.code})` }))
                     ]}
-                    value={cityCorporationFilter}
+                    value={wasaFilter}
                     onChange={(value) => {
-                      setCityCorporationFilter(value);
+                      setWasaFilter(value);
                       setZoneFilter('all'); // Reset zone when city corp changes
                       setAreaFilter('all'); // Reset area when city corp changes
                     }}
@@ -1083,8 +1092,8 @@ export function CustomerAdminCustomerManagement() {
                       setZoneFilter(value);
                       setAreaFilter('all'); // Reset area when zone changes
                     }}
-                    placeholder={cityCorporationFilter === 'all' ? 'Select City Corp First' : 'Zone'}
-                    disabled={cityCorporationFilter === 'all'}
+                    placeholder={wasaFilter === 'all' ? 'Select City Corp First' : 'Zone'}
+                    disabled={wasaFilter === 'all'}
                     className="bg-white border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500 w-full"
                   />
                 </div>
@@ -1116,7 +1125,7 @@ export function CustomerAdminCustomerManagement() {
           onSubmit={handleEditSubmit}
           onCancel={() => setIsEditDialogOpen(false)}
           isSubmitting={updateMutation.isPending}
-          cityCorporations={cityCorporations}
+          wasas={wasas}
           zones={zones}
           areas={allAreas}
           mode="edit"
@@ -1200,9 +1209,9 @@ export function CustomerAdminCustomerManagement() {
                                       <span className="font-medium">Account Type:</span> {customer.accountType}
                                     </p>
                                   )}
-                                  {customer.customerCategory && (
+                                  {customer.customerCategories && customer.customerCategories.length > 0 && (
                                     <p className="text-xs text-gray-600">
-                                      <span className="font-medium">Category:</span> {customer.customerCategory}
+                                      <span className="font-medium">Category:</span> {typeof customer.customerCategories[0] === 'object' ? customer.customerCategories[0].customerCategory : customer.customerCategories[0]}
                                     </p>
                                   )}
                                 </div>
@@ -1302,13 +1311,16 @@ export function CustomerAdminCustomerManagement() {
                   <TableHead className="text-sm font-semibold text-gray-700">Zone</TableHead>
                   <TableHead className="text-sm font-semibold text-gray-700">Area</TableHead>
                   <TableHead className="text-sm font-semibold text-gray-700">Address</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">Land Size (sq ft)</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">Stories</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700">Flats</TableHead>
                   <TableHead className="text-sm font-semibold text-gray-700 text-left">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredCustomers.length === 0 ? (
                   <TableRow key="empty-state">
-                    <TableCell colSpan={12} className="text-center py-8 text-gray-500">
+                    <TableCell colSpan={15} className="text-center py-8 text-gray-500">
                       No customers found matching your search criteria
                     </TableCell>
                   </TableRow>
@@ -1322,8 +1334,8 @@ export function CustomerAdminCustomerManagement() {
                     // Find location information - use nested zone object from area if available, otherwise fallback to lookup
                     const area = allAreas.find(a => a.id === customer.areaId);
                     const zone = area?.zone || (area?.zoneId ? zones.find(z => z.id === area.zoneId) : null) || (customer.zoneId ? zones.find(z => z.id === customer.zoneId) : null);
-                    const cityCorp = zone?.cityCorporationId 
-                      ? (zone.cityCorporation || cityCorporations.find(cc => cc.id === zone.cityCorporationId))
+                    const cityCorp = zone?.wasaId 
+                      ? (zone.wasa || wasas.find(cc => cc.id === zone.wasaId))
                       : null;
                     
                     return (
@@ -1349,6 +1361,9 @@ export function CustomerAdminCustomerManagement() {
                         <TableCell className="text-sm text-gray-600">{zone?.name || '-'}</TableCell>
                         <TableCell className="text-sm text-gray-600">{area?.name || '-'}</TableCell>
                         <TableCell className="text-sm text-gray-600 max-w-xs truncate" title={customer.address}>{customer.address || '-'}</TableCell>
+                        <TableCell className="text-sm text-gray-600">{customer.landSizeDecimal !== undefined && customer.landSizeDecimal !== null ? customer.landSizeDecimal.toLocaleString() : '-'}</TableCell>
+                        <TableCell className="text-sm text-gray-600">{customer.numberOfStories !== undefined && customer.numberOfStories !== null ? customer.numberOfStories : '-'}</TableCell>
+                        <TableCell className="text-sm text-gray-600">{customer.numberOfFlats !== undefined && customer.numberOfFlats !== null ? customer.numberOfFlats : '-'}</TableCell>
                         <TableCell className="text-center">
                           <div className="flex items-center justify-center gap-2">
                             <Button 

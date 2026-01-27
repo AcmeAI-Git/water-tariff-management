@@ -57,15 +57,15 @@ export default function CustomerFeedback() {
 
   return (
     <div className="min-h-screen bg-app">
-      <div className="px-8 py-6">
+      <div className="px-4 md:px-8 py-4 md:py-6">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">Complaints & Feedback</h1>
-          <p className="text-sm text-gray-500">Share your feedback or report an issue</p>
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-xl md:text-[1.75rem] font-semibold text-gray-900 mb-1">Complaints & Feedback</h1>
+          <p className="text-xs md:text-sm text-gray-500">Share your feedback or report an issue</p>
         </div>
 
         {/* Feedback Form */}
-        <div className="bg-white rounded-xl border border-gray-200 p-8 max-w-2xl">
+        <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-8 max-w-2xl">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-3 bg-primary/10 rounded-lg">
               <MessageSquare className="text-primary" size={24} />

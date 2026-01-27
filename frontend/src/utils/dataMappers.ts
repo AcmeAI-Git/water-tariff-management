@@ -31,6 +31,10 @@ export interface DisplayCustomer {
   meterInstallationDate?: string;
   phone?: string;
   email?: string;
+  // New user fields
+  landSizeDecimal?: number;
+  numberOfStories?: number;
+  numberOfFlats?: number;
 }
 
 export interface DisplayApprovalRequest {
@@ -101,7 +105,14 @@ export function mapUserToCustomer(user: User): DisplayCustomer {
     address: user.address || '',
     inspCode: userData.inspCode,
     accountType: userData.accountType,
-    customerCategory: userData.customerCategory,
+    // Handle both customerCategory (singular, legacy) and customerCategories (array of objects, new)
+    customerCategory: Array.isArray(userData.customerCategories) && userData.customerCategories.length > 0
+      ? (typeof userData.customerCategories[0] === 'object' && userData.customerCategories[0]?.customerCategory
+          ? userData.customerCategories[0].customerCategory
+          : typeof userData.customerCategories[0] === 'string'
+          ? userData.customerCategories[0]
+          : userData.customerCategory)
+      : userData.customerCategory,
     waterStatus: userData.waterStatus,
     sewerStatus: userData.sewerStatus,
     status: status,
@@ -115,6 +126,10 @@ export function mapUserToCustomer(user: User): DisplayCustomer {
     meterInstallationDate: meterInstallationDate,
     phone: user.phone || '',
     email: user.email,
+    // New user fields - handle both camelCase and snake_case from backend
+    landSizeDecimal: userData.landSizeDecimal ?? userData.land_size_decimal ?? user.landSizeDecimal,
+    numberOfStories: userData.numberOfStories ?? userData.number_of_stories ?? user.numberOfStories,
+    numberOfFlats: userData.numberOfFlats ?? userData.number_of_flats ?? user.numberOfFlats,
   };
 }
 

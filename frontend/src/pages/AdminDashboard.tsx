@@ -173,20 +173,20 @@ export default function AdminDashboard() {
 
     return (
         <div className="min-h-screen bg-app">
-            <div className="px-8 py-6">
+            <div className="px-4 md:px-8 py-4 md:py-6">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-8">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 md:mb-8">
                     <div>
-                        <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">
+                        <h1 className="text-xl md:text-[1.75rem] font-semibold text-gray-900 mb-1">
                             Welcome back, Admin
                         </h1>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-xs md:text-sm text-gray-500">
                             Here's what's happening with your water tariff
                             system today.
                         </p>
                     </div>
                     <div className="flex gap-3">
-                        <Button className="bg-primary hover:bg-primary-600 text-white px-6 rounded-lg shadow-sm">
+                        <Button className="bg-primary hover:bg-primary-600 text-white px-4 md:px-6 rounded-lg shadow-sm text-sm md:text-base">
                             + Generate Report
                         </Button>
                     </div>
@@ -197,90 +197,89 @@ export default function AdminDashboard() {
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.6 }}
-                    className="relative bg-gradient-to-r from-[#5B7EFF] via-[#4C6EF5] to-[#3D5FE6] p-12 mb-10 overflow-hidden"
-                    style={{
-                        clipPath: "polygon(0 0, 100% 0, 100% 85%, 0 100%)",
-                    }}
+                    className="relative bg-gradient-to-r from-[#5B7EFF] via-[#4C6EF5] to-[#3D5FE6] p-6 md:p-12 mb-6 md:mb-10 overflow-hidden rounded-xl md:rounded-none md:[clip-path:polygon(0_0,100%_0,100%_85%,0_100%)]"
                 >
                     {/* Decorative Background Elements */}
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
-                    <div className="absolute bottom-0 left-1/3 w-48 h-48 bg-white/10 rounded-full blur-2xl"></div>
+                    <div className="absolute top-0 right-0 w-32 md:w-64 h-32 md:h-64 bg-white/5 rounded-full blur-3xl"></div>
+                    <div className="absolute bottom-0 left-1/3 w-24 md:w-48 h-24 md:h-48 bg-white/10 rounded-full blur-2xl"></div>
 
-                    <div className="relative grid grid-cols-3 gap-20">
+                    <div className="relative grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-20">
                         {/* Total Consumers */}
                         <div className="relative min-w-0">
-                            <div className="mb-4">
-                                <span className="text-white/80 text-sm tracking-wide uppercase font-medium">
+                            <div className="mb-3 md:mb-4">
+                                <span className="text-white/80 text-xs md:text-sm tracking-wide uppercase font-medium">
                                     Total Consumers
                                 </span>
                             </div>
-                            <div className="mb-3">
+                            <div className="mb-2 md:mb-3">
                                 <div
-                                    className="text-6xl font-bold text-white tracking-tight"
+                                    className="text-4xl md:text-6xl font-bold text-white tracking-tight"
                                     style={{ fontFamily: "Inter, sans-serif" }}
                                 >
                                     {animatedConsumers.toLocaleString()}
                                 </div>
                             </div>
                             <div className="flex items-center gap-6">
-                                <span className="text-white/70 text-sm font-normal">
+                                <span className="text-white/70 text-xs md:text-sm font-normal">
                                     {totalConsumers} total registered
                                 </span>
                             </div>
 
                             {/* Vertical Divider */}
-                            <div className="absolute -right-10 top-0 bottom-0 w-px bg-white/20"></div>
+                            <div className="hidden md:block absolute -right-10 top-0 bottom-0 w-px bg-white/20"></div>
+                            <div className="md:hidden border-b border-white/20 my-4"></div>
                         </div>
 
                         {/* Total Revenue */}
                         <div className="relative min-w-0">
-                            <div className="mb-4">
-                                <span className="text-white/80 text-sm tracking-wide uppercase font-medium">
+                            <div className="mb-3 md:mb-4">
+                                <span className="text-white/80 text-xs md:text-sm tracking-wide uppercase font-medium">
                                     Total Revenue
                                 </span>
                             </div>
-                            <div className="mb-3">
+                            <div className="mb-2 md:mb-3">
                                 <div
-                                    className="text-6xl font-bold text-white tracking-tight"
+                                    className="text-4xl md:text-6xl font-bold text-white tracking-tight"
                                     style={{ fontFamily: "Inter, sans-serif" }}
                                 >
                                     ৳{animatedRevenue}M
                                 </div>
                             </div>
                             <div className="flex items-center gap-6">
-                                <span className="text-white/70 text-sm font-normal">
+                                <span className="text-white/70 text-xs md:text-sm font-normal">
                                     This month
                                 </span>
                             </div>
 
                             {/* Vertical Divider */}
-                            <div className="absolute -right-10 top-0 bottom-0 w-px bg-white/20"></div>
+                            <div className="hidden md:block absolute -right-10 top-0 bottom-0 w-px bg-white/20"></div>
+                            <div className="md:hidden border-b border-white/20 my-4"></div>
                         </div>
 
                         {/* Avg Consumption */}
                         <div className="relative min-w-0">
-                            <div className="mb-4">
-                                <span className="text-white/80 text-sm tracking-wide uppercase font-medium">
+                            <div className="mb-3 md:mb-4">
+                                <span className="text-white/80 text-xs md:text-sm tracking-wide uppercase font-medium">
                                     Avg Consumption
                                 </span>
                             </div>
-                            <div className="mb-3">
+                            <div className="mb-2 md:mb-3">
                                 <div>
                                     <span
-                                        className="text-6xl font-bold text-white tracking-tight"
+                                        className="text-4xl md:text-6xl font-bold text-white tracking-tight"
                                         style={{
                                             fontFamily: "Inter, sans-serif",
                                         }}
                                     >
                                         {animatedConsumption}
                                     </span>
-                                    <span className="text-3xl text-white/90 ml-2 font-normal">
+                                    <span className="text-2xl md:text-3xl text-white/90 ml-2 font-normal">
                                         m³
                                     </span>
                                 </div>
                             </div>
                             <div className="flex items-center gap-6">
-                                <span className="text-white/70 text-sm font-normal">
+                                <span className="text-white/70 text-xs md:text-sm font-normal">
                                     Per household
                                 </span>
                             </div>
@@ -289,19 +288,19 @@ export default function AdminDashboard() {
                 </motion.div>
 
                 {/* Charts Section */}
-                <div className="mb-10">
+                <div className="mb-6 md:mb-10">
                     {/* Monthly Revenue */}
                     <div>
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-xl font-semibold text-gray-900">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                            <h2 className="text-lg md:text-xl font-semibold text-gray-900">
                                 Monthly Revenue
                             </h2>
-                            <select className="text-sm text-gray-600 bg-white border border-gray-300 rounded-lg px-3 py-2 cursor-pointer focus:outline-none">
+                            <select className="text-sm text-gray-600 bg-white border border-gray-300 rounded-lg px-3 py-2 cursor-pointer focus:outline-none w-full sm:w-auto">
                                 <option>Monthly</option>
                                 <option>Yearly</option>
                             </select>
                         </div>
-                        <div className="bg-white p-6 rounded-xl border border-gray-200 h-[380px]">
+                        <div className="bg-white p-4 md:p-6 rounded-xl border border-gray-200 h-[300px] md:h-[380px]">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={revenueData}>
                                     <CartesianGrid
@@ -343,42 +342,42 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Divider */}
-                <div className="border-t border-gray-200 mb-10"></div>
+                <div className="border-t border-gray-200 mb-6 md:mb-10"></div>
 
                 {/* Pending Approvals Table */}
                 <div>
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-xl font-semibold text-gray-900">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                        <h2 className="text-lg md:text-xl font-semibold text-gray-900">
                             Pending Approvals ({pendingCount})
                         </h2>
                         <Button
                             variant="outline"
-                            className="border-gray-300 text-gray-700 rounded-lg bg-white"
+                            className="border-gray-300 text-gray-700 rounded-lg bg-white w-full sm:w-auto"
                         >
                             View All
                         </Button>
                     </div>
 
-                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden overflow-x-auto">
                         <Table>
                             <TableHeader>
                                 <TableRow className="border-gray-200 bg-gray-50">
-                                    <TableHead className="text-sm font-semibold text-gray-700">
+                                    <TableHead className="text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">
                                         Module
                                     </TableHead>
-                                    <TableHead className="text-sm font-semibold text-gray-700">
+                                    <TableHead className="text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">
                                         Type
                                     </TableHead>
-                                    <TableHead className="text-sm font-semibold text-gray-700">
+                                    <TableHead className="text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">
                                         Date
                                     </TableHead>
-                                    <TableHead className="text-sm font-semibold text-gray-700">
+                                    <TableHead className="text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap hidden sm:table-cell">
                                         Time
                                     </TableHead>
-                                    <TableHead className="text-sm font-semibold text-gray-700">
+                                    <TableHead className="text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap hidden md:table-cell">
                                         Entry Type
                                     </TableHead>
-                                    <TableHead className="text-sm font-semibold text-gray-700">
+                                    <TableHead className="text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">
                                         Status
                                     </TableHead>
                                 </TableRow>
@@ -396,24 +395,24 @@ export default function AdminDashboard() {
                                             key={index}
                                             className="border-gray-100"
                                         >
-                                            <TableCell className="text-sm text-gray-900">
+                                            <TableCell className="text-xs md:text-sm text-gray-900 whitespace-nowrap">
                                                 {item.consumer}
                                             </TableCell>
-                                            <TableCell className="text-sm text-gray-600">
+                                            <TableCell className="text-xs md:text-sm text-gray-600 whitespace-nowrap">
                                                 {item.type}
                                             </TableCell>
-                                            <TableCell className="text-sm text-gray-600">
+                                            <TableCell className="text-xs md:text-sm text-gray-600 whitespace-nowrap">
                                                 {item.date}
                                             </TableCell>
-                                            <TableCell className="text-sm text-gray-600">
+                                            <TableCell className="text-xs md:text-sm text-gray-600 whitespace-nowrap hidden sm:table-cell">
                                                 {item.time}
                                             </TableCell>
-                                            <TableCell className="text-sm text-gray-600">
+                                            <TableCell className="text-xs md:text-sm text-gray-600 whitespace-nowrap hidden md:table-cell">
                                                 {item.entry}
                                             </TableCell>
-                                            <TableCell>
+                                            <TableCell className="whitespace-nowrap">
                                                 <span
-                                                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                                                    className={`inline-flex items-center px-2 md:px-3 py-1 rounded-full text-xs font-medium ${
                                                         item.status === "Confirmed"
                                                             ? "bg-teal-50 text-teal-700"
                                                             : "bg-amber-50 text-amber-700"

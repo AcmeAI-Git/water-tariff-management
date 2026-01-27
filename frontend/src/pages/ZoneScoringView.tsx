@@ -8,7 +8,6 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import { ScoringParametersTable } from '../components/zoneScoring/ScoringParametersTable';
 import { EditParameterModal } from '../components/zoneScoring/EditParameterModal';
 import { AddParameterModal } from '../components/zoneScoring/AddParameterModal';
-import { ScrollNavigationControls } from '../components/zoneScoring/ScrollNavigationControls';
 import { PageHeader } from '../components/zoneScoring/PageHeader';
 import { EmptyState } from '../components/zoneScoring/EmptyState';
 import { StatusBadge } from '../components/zoneScoring/StatusBadge';
@@ -17,12 +16,11 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { calculatePercentages, initializeScoringParam, mapScoringParamsToDto } from '../utils/zoneScoringUtils';
 import { parseScoringParamsCSV, generateCSVTemplate } from '../utils/csvParser';
-import type { ZoneScoringRuleSet, ScoringParam, Area, CreateScoringParamDto, Zone, CityCorporation, ZoneScore } from '../types';
+import type { ZoneScoringRuleSet, ScoringParam, Area, CreateScoringParamDto, Zone, Wasa, ZoneScore } from '../types';
 
 export function ZoneScoringView() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const tableScrollRef = useRef<HTMLDivElement>(null);
   const adminId = useAdminId();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -67,12 +65,12 @@ export function ZoneScoringView() {
   );
   const zones: Zone[] = (zonesData ?? []) as Zone[];
 
-  // Fetch city corporations
-  const { data: cityCorporationsData } = useApiQuery<CityCorporation[]>(
-    ['city-corporations'],
-    () => api.cityCorporations.getAll()
+  // Fetch WASAs
+  const { data: wasasData } = useApiQuery<Wasa[]>(
+    ['wasas'],
+    () => api.wasas.getAll()
   );
-  const cityCorporations: CityCorporation[] = (cityCorporationsData ?? []) as CityCorporation[];
+  const wasas: Wasa[] = (wasasData ?? []) as Wasa[];
 
   // Fetch zone scores from API
   const { data: zoneScoresData } = useApiQuery<ZoneScore[]>(
@@ -632,8 +630,8 @@ export function ZoneScoringView() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8f9fb]">
-      <div className="px-8 py-6">
+    <div className="min-h-screen bg-[#f8f9fb] overflow-x-hidden w-full max-w-full">
+      <div className="px-4 md:px-8 py-4 md:py-6 w-full max-w-full">
         <PageHeader
           title={rulesetData.title}
           description={rulesetData.description || 'No description'}
@@ -661,13 +659,13 @@ export function ZoneScoringView() {
             onAction={() => setIsAddParamModalOpen(true)}
           />
         ) : (
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <div className="flex justify-between items-center mb-4">
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden w-full">
+            <div className="px-4 md:px-6 py-4 border-b border-gray-200">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                 <h3 className="text-lg font-semibold text-gray-900">
                   Zone Scoring Parameters ({calculatedParams.length} total)
                 </h3>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                   <Button
                     type="button"
                     variant="outline"
@@ -746,17 +744,21 @@ export function ZoneScoringView() {
                 </div>
               )}
             </div>
-            <ScrollNavigationControls tableScrollRef={tableScrollRef} calculatedParams={calculatedParams} />
-            <div ref={tableScrollRef} className="overflow-x-auto" id="zone-scoring-table-scroll">
-              <ScoringParametersTable 
-                calculatedParams={calculatedParams}
-                onEditParam={handleEditParam}
-                onRemoveParam={handleRemoveParameter}
-                zones={zones}
-                cityCorporations={cityCorporations}
-                zoneScores={zoneScores}
-                ruleSetId={rulesetData?.id}
-              />
+            <div 
+              className="overflow-x-auto w-full" 
+              id="zone-scoring-table-scroll"
+            >
+              <div className="px-4 md:px-6 inline-block min-w-[1600px]">
+                <ScoringParametersTable 
+                  calculatedParams={calculatedParams}
+                  onEditParam={handleEditParam}
+                  onRemoveParam={handleRemoveParameter}
+                  zones={zones}
+                  wasas={wasas}
+                  zoneScores={zoneScores}
+                  ruleSetId={rulesetData?.id}
+                />
+              </div>
             </div>
           </div>
         )}
@@ -788,7 +790,7 @@ export function ZoneScoringView() {
           setNewParam={setNewParam}
           areas={areas}
           zones={zones}
-          cityCorporations={cityCorporations}
+          wasas={wasas}
           onAdd={handleAddParameter}
           isPending={updateZoneScoringMutation.isPending}
           calculatedParams={calculatedParams}

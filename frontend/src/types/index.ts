@@ -80,7 +80,7 @@ export interface CreateUserDto {
   inspCode: number;
   areaId: number;
   accountType: string;
-  customerCategory: string;
+  customerCategories: Array<{ customerCategory: string; ratio: number }>; // Array of objects with customerCategory and ratio
   waterStatus: string;
   sewerStatus: string;
   landSizeDecimal?: number;
@@ -102,7 +102,7 @@ export interface UpdateUserDto {
   inspCode?: number;
   areaId?: number;
   accountType?: string;
-  customerCategory?: string;
+  customerCategories?: Array<{ customerCategory: string; ratio: number }>; // Array of objects with customerCategory and ratio
   waterStatus?: string;
   sewerStatus?: string;
   landSizeDecimal?: number;
@@ -134,8 +134,8 @@ export interface UpdateRoleDto {
   description?: string;
 }
 
-// City Corporation Types
-export interface CityCorporation {
+// WASA Types
+export interface Wasa {
   id: number;
   name: string;
   code: string;
@@ -143,13 +143,13 @@ export interface CityCorporation {
   createdAt?: string;
 }
 
-export interface CreateCityCorporationDto {
+export interface CreateWasaDto {
   name: string;
   code: string;
   address?: string;
 }
 
-export interface UpdateCityCorporationDto {
+export interface UpdateWasaDto {
   name?: string;
   code?: string;
   address?: string;
@@ -162,8 +162,8 @@ export interface Zone {
   name: string;
   cityName: string;
   tariffCategory: string;
-  cityCorporationId: number;
-  cityCorporation?: CityCorporation; // Optional relation
+  wasaId: number;
+  wasa?: Wasa; // Optional relation
   createdAt?: string;
 }
 
@@ -171,7 +171,7 @@ export interface CreateZoneDto {
   name: string;
   zoneNo: string;
   cityName: string;
-  cityCorporationId: number;
+  wasaId: number;
   // Note: tariffCategory is not in the DTO - backend rejects it
 }
 
@@ -180,7 +180,7 @@ export interface UpdateZoneDto {
   zoneNo?: string;
   cityName?: string;
   tariffCategory?: string;
-  cityCorporationId?: number;
+  wasaId?: number;
 }
 
 // Ward Types
@@ -592,7 +592,6 @@ export interface TariffCategory {
   upperRange?: number;
   rangeDescription?: string;
   isBaseCategory: boolean;
-  isFixedRate: boolean;
   isActive: boolean;
   settingsId: number;
   wasaTariff?: number;
@@ -609,7 +608,6 @@ export interface CreateTariffCategoryDto {
   upperRange?: number;
   rangeDescription?: string;
   isBaseCategory?: boolean;
-  isFixedRate?: boolean;
   isActive?: boolean;
   settingsId: number;
 }
@@ -622,7 +620,6 @@ export interface UpdateTariffCategoryDto {
   upperRange?: number;
   rangeDescription?: string;
   isBaseCategory?: boolean;
-  isFixedRate?: boolean;
   isActive?: boolean;
   settingsId?: number;
 }

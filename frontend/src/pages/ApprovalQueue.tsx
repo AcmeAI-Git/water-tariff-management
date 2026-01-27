@@ -654,7 +654,7 @@ export function ApprovalQueue() {
 
   return (
     <div className="min-h-screen bg-[#f8f9fb]">
-      <div className="px-8 py-6">
+      <div className="px-4 md:px-8 py-4 md:py-6">
         {/* Header with inline stats */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
@@ -726,6 +726,7 @@ export function ApprovalQueue() {
       {/* Review Modal */}
       {selectedRequest && (
         <ReviewChangeModal
+          open={!!selectedRequest}
           request={{
             id: selectedRequest.id,
             module: selectedRequest.module,
@@ -734,7 +735,7 @@ export function ApprovalQueue() {
             oldData: selectedRequest.oldData,
             newData: selectedRequest.newData,
           }}
-          onClose={handleCloseModal}
+          onOpenChange={(open) => !open && handleCloseModal()}
           onApprove={() => {
             // Capture request before closing modal
             const requestToApprove = selectedRequest;

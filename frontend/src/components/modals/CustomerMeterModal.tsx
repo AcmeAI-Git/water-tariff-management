@@ -1,11 +1,11 @@
-import { Dialog, DialogContent, DialogFooter } from '../ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogTitle, DialogDescription } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Dropdown } from '../ui/Dropdown';
 import { HierarchicalLocationSelector } from '../common/HierarchicalLocationSelector';
-import type { CityCorporation, Zone, Area } from '../../types';
+import type { Wasa, Zone, Area } from '../../types';
 
 export interface CustomerMeterFormData {
   name: string;
@@ -15,7 +15,7 @@ export interface CustomerMeterFormData {
   customerCategory: string;
   waterStatus: string;
   sewerStatus: string;
-  cityCorporationId: string;
+  wasaId: string;
   zoneId: string;
   areaId: string;
   meterNo: string;
@@ -35,7 +35,7 @@ interface CustomerMeterModalProps {
   onSubmit: () => void;
   onCancel: () => void;
   isSubmitting?: boolean;
-  cityCorporations: CityCorporation[];
+  wasas: Wasa[];
   zones: Zone[];
   areas: Area[];
   mode?: 'add' | 'edit';
@@ -49,7 +49,7 @@ export function CustomerMeterModal({
   onSubmit,
   onCancel,
   isSubmitting = false,
-  cityCorporations,
+  wasas,
   zones,
   areas,
   mode = 'add',
@@ -66,7 +66,7 @@ export function CustomerMeterModal({
     formData.customerCategory &&
     formData.waterStatus &&
     formData.sewerStatus &&
-    formData.cityCorporationId &&
+    formData.wasaId &&
     formData.zoneId &&
     formData.areaId &&
     (formData.waterStatus !== 'Metered' || (formData.meterNo && formData.sizeOfDia));
@@ -76,9 +76,12 @@ export function CustomerMeterModal({
       <DialogContent className="w-[95vw] sm:w-full max-w-[700px] max-h-[95vh] h-[90vh] sm:h-[85vh] bg-white flex flex-col overflow-hidden m-4 sm:m-0">
         {/* Header */}
         <div className="px-4 sm:px-6 pt-4 sm:pt-6 border-b border-gray-200 flex-shrink-0">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 pb-3">
+          <DialogTitle className="text-lg sm:text-xl font-semibold text-gray-900 pb-3">
             {mode === 'add' ? 'Add New Customer' : 'Edit Customer'}
-          </h2>
+          </DialogTitle>
+          <DialogDescription className="sr-only">
+            {mode === 'add' ? 'Fill in the form to add a new customer' : 'Update customer information'}
+          </DialogDescription>
         </div>
         
         {/* Scrollable Content */}
@@ -209,13 +212,13 @@ export function CustomerMeterModal({
             </div>
 
             <HierarchicalLocationSelector
-              cityCorporations={cityCorporations}
+              wasas={wasas}
               zones={zones}
               areas={areas}
-              cityCorporationId={formData.cityCorporationId}
+              wasaId={formData.wasaId}
               zoneId={formData.zoneId}
               areaId={formData.areaId}
-              onCityCorporationChange={(value) => handleInputChange('cityCorporationId', value)}
+              onWasaChange={(value) => handleInputChange('wasaId', value)}
               onZoneChange={(value) => handleInputChange('zoneId', value)}
               onAreaChange={(value) => handleInputChange('areaId', value)}
               required

@@ -14,26 +14,26 @@ import { DeleteConfirmationDialog } from '../components/zoneScoring/DeleteConfir
 import { HierarchicalLocationSelector } from '../components/common/HierarchicalLocationSelector';
 import type { 
   Area, CreateAreaDto, UpdateAreaDto,
-  CityCorporation, CreateCityCorporationDto, UpdateCityCorporationDto,
+  Wasa, CreateWasaDto, UpdateWasaDto,
   Zone, CreateZoneDto, UpdateZoneDto
 } from '../types';
 
 export function LocationManagement() {
-  const [activeTab, setActiveTab] = useState<'city-corporations' | 'zones' | 'areas'>('city-corporations');
+  const [activeTab, setActiveTab] = useState<'wasas' | 'zones' | 'areas'>('wasas');
   
-  // City Corporation states
-  const [isCityCorpCreateModalOpen, setIsCityCorpCreateModalOpen] = useState(false);
-  const [isCityCorpEditModalOpen, setIsCityCorpEditModalOpen] = useState(false);
-  const [isCityCorpDeleteDialogOpen, setIsCityCorpDeleteDialogOpen] = useState(false);
-  const [editingCityCorp, setEditingCityCorp] = useState<CityCorporation | null>(null);
-  const [cityCorpToDelete, setCityCorpToDelete] = useState<CityCorporation | null>(null);
-  const [createCityCorpName, setCreateCityCorpName] = useState('');
-  const [createCityCorpCode, setCreateCityCorpCode] = useState('');
-  const [createCityCorpAddress, setCreateCityCorpAddress] = useState('');
-  const [editCityCorpName, setEditCityCorpName] = useState('');
-  const [editCityCorpCode, setEditCityCorpCode] = useState('');
-  const [editCityCorpAddress, setEditCityCorpAddress] = useState('');
-  const [cityCorpSearchQuery, setCityCorpSearchQuery] = useState('');
+  // WASA states
+  const [isWasaCreateModalOpen, setIsWasaCreateModalOpen] = useState(false);
+  const [isWasaEditModalOpen, setIsWasaEditModalOpen] = useState(false);
+  const [isWasaDeleteDialogOpen, setIsWasaDeleteDialogOpen] = useState(false);
+  const [editingWasa, setEditingWasa] = useState<Wasa | null>(null);
+  const [wasaToDelete, setWasaToDelete] = useState<Wasa | null>(null);
+  const [createWasaName, setCreateWasaName] = useState('');
+  const [createWasaCode, setCreateWasaCode] = useState('');
+  const [createWasaAddress, setCreateWasaAddress] = useState('');
+  const [editWasaName, setEditWasaName] = useState('');
+  const [editWasaCode, setEditWasaCode] = useState('');
+  const [editWasaAddress, setEditWasaAddress] = useState('');
+  const [wasaSearchQuery, setWasaSearchQuery] = useState('');
 
   // Zone states - add filter states
   const [isZoneCreateModalOpen, setIsZoneCreateModalOpen] = useState(false);
@@ -44,13 +44,13 @@ export function LocationManagement() {
   const [createZoneNo, setCreateZoneNo] = useState('');
   const [createZoneName, setCreateZoneName] = useState('');
   const [createZoneCityName, setCreateZoneCityName] = useState('');
-  const [createZoneCityCorpId, setCreateZoneCityCorpId] = useState<string>('');
+  const [createZoneWasaId, setCreateZoneWasaId] = useState<string>('');
   const [editZoneNo, setEditZoneNo] = useState('');
   const [editZoneName, setEditZoneName] = useState('');
   const [editZoneCityName, setEditZoneCityName] = useState('');
-  const [editZoneCityCorpId, setEditZoneCityCorpId] = useState<string>('');
+  const [editZoneWasaId, setEditZoneWasaId] = useState<string>('');
   const [zoneSearchQuery, setZoneSearchQuery] = useState('');
-  const [zoneFilterCityCorpId, setZoneFilterCityCorpId] = useState<string>('');
+  const [zoneFilterWasaId, setZoneFilterWasaId] = useState<string>('');
 
   // Area states
   const [isAreaCreateModalOpen, setIsAreaCreateModalOpen] = useState(false);
@@ -60,26 +60,26 @@ export function LocationManagement() {
   const [areaToDelete, setAreaToDelete] = useState<Area | null>(null);
   const [createAreaName, setCreateAreaName] = useState('');
   const [createAreaZoneId, setCreateAreaZoneId] = useState<string>('');
-  const [createAreaCityCorpId, setCreateAreaCityCorpId] = useState<string>('');
+  const [createAreaWasaId, setCreateAreaWasaId] = useState<string>('');
   const [createAreaGeoJson, setCreateAreaGeoJson] = useState('');
   const [editAreaName, setEditAreaName] = useState('');
   const [editAreaZoneId, setEditAreaZoneId] = useState<string>('');
-  const [editAreaCityCorpId, setEditAreaCityCorpId] = useState<string>('');
+  const [editAreaWasaId, setEditAreaWasaId] = useState<string>('');
   const [editAreaGeoJson, setEditAreaGeoJson] = useState('');
   const [areaSearchQuery, setAreaSearchQuery] = useState('');
   const [geoJsonTypeFilter, setGeoJsonTypeFilter] = useState<string>('all');
-  const [areaFilterCityCorpId, setAreaFilterCityCorpId] = useState<string>('all');
+  const [areaFilterWasaId, setAreaFilterWasaId] = useState<string>('all');
   const [areaFilterZoneId, setAreaFilterZoneId] = useState<string>('all');
   
   // Ref to track if we're initializing edit form (to prevent zone reset)
   const isInitializingEdit = useRef(false);
 
   // Fetch data
-  const { data: cityCorpsData, isLoading: cityCorpsLoading } = useApiQuery<CityCorporation[]>(
-    ['city-corporations'],
-    () => api.cityCorporations.getAll()
+  const { data: wasasData, isLoading: wasasLoading } = useApiQuery<Wasa[]>(
+    ['wasas'],
+    () => api.wasas.getAll()
   );
-  const cityCorporations: CityCorporation[] = (cityCorpsData ?? []) as CityCorporation[];
+  const wasas: Wasa[] = (wasasData ?? []) as Wasa[];
 
   const { data: zonesData, isLoading: zonesLoading } = useApiQuery<Zone[]>(
     ['zones'],
@@ -94,51 +94,51 @@ export function LocationManagement() {
   const areas: Area[] = (areasData ?? []) as Area[];
 
   // Filtered data
-  const filteredCityCorps = useMemo(() => {
-    if (!cityCorpSearchQuery.trim()) return cityCorporations;
-    const query = cityCorpSearchQuery.toLowerCase();
-    return cityCorporations.filter(cc => 
-      cc.name.toLowerCase().includes(query) ||
-      cc.code.toLowerCase().includes(query) ||
-      cc.id.toString().includes(query)
+  const filteredWasas = useMemo(() => {
+    if (!wasaSearchQuery.trim()) return wasas;
+    const query = wasaSearchQuery.toLowerCase();
+    return wasas.filter(wasa => 
+      wasa.name.toLowerCase().includes(query) ||
+      wasa.code.toLowerCase().includes(query) ||
+      wasa.id.toString().includes(query)
     );
-  }, [cityCorporations, cityCorpSearchQuery]);
+  }, [wasas, wasaSearchQuery]);
 
   const filteredZones = useMemo(() => {
     let result = zones;
     
-    // Filter by city corporation
-    if (zoneFilterCityCorpId && zoneFilterCityCorpId !== 'all') {
-      result = result.filter(zone => zone.cityCorporationId === parseInt(zoneFilterCityCorpId));
+    // Filter by WASA
+    if (zoneFilterWasaId && zoneFilterWasaId !== 'all') {
+      result = result.filter(zone => zone.wasaId === parseInt(zoneFilterWasaId));
     }
     
     // Filter by search query
     if (zoneSearchQuery.trim()) {
       const query = zoneSearchQuery.toLowerCase();
       result = result.filter(zone => {
-        const cityCorp = cityCorporations.find(cc => cc.id === zone.cityCorporationId);
+        const wasa = wasas.find(w => w.id === zone.wasaId);
         return (
           zone.name.toLowerCase().includes(query) ||
           zone.zoneNo.toLowerCase().includes(query) ||
           zone.cityName.toLowerCase().includes(query) ||
           zone.id.toString().includes(query) ||
-          cityCorp?.name.toLowerCase().includes(query)
+          wasa?.name.toLowerCase().includes(query)
         );
       });
     }
     
     return result;
-  }, [zones, zoneSearchQuery, zoneFilterCityCorpId, cityCorporations]);
+  }, [zones, zoneSearchQuery, zoneFilterWasaId, wasas]);
 
   const filteredAreas = useMemo(() => {
     let result = areas;
     
-    // Filter by city corporation
-    if (areaFilterCityCorpId && areaFilterCityCorpId !== 'all') {
+    // Filter by WASA
+    if (areaFilterWasaId && areaFilterWasaId !== 'all') {
       result = result.filter(area => {
         // Use nested zone object from area if available, otherwise fallback to lookup
         const zone = area.zone || zones.find(z => z.id === area.zoneId);
-        return zone?.cityCorporationId === parseInt(areaFilterCityCorpId);
+        return zone?.wasaId === parseInt(areaFilterWasaId);
       });
     }
     
@@ -166,38 +166,38 @@ export function LocationManagement() {
     }
 
     return result;
-  }, [areas, areaSearchQuery, geoJsonTypeFilter, areaFilterCityCorpId, areaFilterZoneId, zones]);
+  }, [areas, areaSearchQuery, geoJsonTypeFilter, areaFilterWasaId, areaFilterZoneId, zones]);
 
   const uniqueGeoJsonTypes = useMemo(() => {
     const types = new Set(areas.map(area => area.geojson.type));
     return Array.from(types).sort();
   }, [areas]);
 
-  // City Corporation mutations
-  const createCityCorpMutation = useApiMutation(
-    (data: CreateCityCorporationDto) => api.cityCorporations.create(data),
+  // WASA mutations
+  const createWasaMutation = useApiMutation(
+    (data: CreateWasaDto) => api.wasas.create(data),
     {
-      successMessage: 'City Corporation created successfully',
-      errorMessage: 'Failed to create city corporation',
-      invalidateQueries: [['city-corporations']],
+      successMessage: 'WASA created successfully',
+      errorMessage: 'Failed to create WASA',
+      invalidateQueries: [['wasas']],
     }
   );
 
-  const updateCityCorpMutation = useApiMutation(
-    (data: { id: number; dto: UpdateCityCorporationDto }) => api.cityCorporations.update(data.id, data.dto),
+  const updateWasaMutation = useApiMutation(
+    (data: { id: number; dto: UpdateWasaDto }) => api.wasas.update(data.id, data.dto),
     {
-      successMessage: 'City Corporation updated successfully',
-      errorMessage: 'Failed to update city corporation',
-      invalidateQueries: [['city-corporations']],
+      successMessage: 'WASA updated successfully',
+      errorMessage: 'Failed to update WASA',
+      invalidateQueries: [['wasas']],
     }
   );
 
-  const deleteCityCorpMutation = useApiMutation(
-    (id: number) => api.cityCorporations.delete(id),
+  const deleteWasaMutation = useApiMutation(
+    (id: number) => api.wasas.delete(id),
     {
-      successMessage: 'City Corporation deleted successfully',
-      errorMessage: 'Failed to delete city corporation',
-      invalidateQueries: [['city-corporations']],
+      successMessage: 'WASA deleted successfully',
+      errorMessage: 'Failed to delete WASA',
+      invalidateQueries: [['wasas']],
     }
   );
 
@@ -257,74 +257,74 @@ export function LocationManagement() {
     }
   );
 
-  // City Corporation handlers
-  const handleCreateCityCorp = async () => {
-    if (!createCityCorpName.trim() || !createCityCorpCode.trim()) {
+  // WASA handlers
+  const handleCreateWasa = async () => {
+    if (!createWasaName.trim() || !createWasaCode.trim()) {
       alert('Please enter name and code');
       return;
     }
 
-    await createCityCorpMutation.mutateAsync({
-      name: createCityCorpName.trim(),
-      code: createCityCorpCode.trim(),
-      address: createCityCorpAddress.trim() || undefined,
+    await createWasaMutation.mutateAsync({
+      name: createWasaName.trim(),
+      code: createWasaCode.trim(),
+      address: createWasaAddress.trim() || undefined,
     });
 
-    setCreateCityCorpName('');
-    setCreateCityCorpCode('');
-    setCreateCityCorpAddress('');
-    setIsCityCorpCreateModalOpen(false);
+    setCreateWasaName('');
+    setCreateWasaCode('');
+    setCreateWasaAddress('');
+    setIsWasaCreateModalOpen(false);
   };
 
-  const handleEditCityCorp = (cityCorp: CityCorporation) => {
-    setEditingCityCorp(cityCorp);
-    setEditCityCorpName(cityCorp.name);
-    setEditCityCorpCode(cityCorp.code);
-    setEditCityCorpAddress(cityCorp.address || '');
-    setIsCityCorpEditModalOpen(true);
+  const handleEditWasa = (wasa: Wasa) => {
+    setEditingWasa(wasa);
+    setEditWasaName(wasa.name);
+    setEditWasaCode(wasa.code);
+    setEditWasaAddress(wasa.address || '');
+    setIsWasaEditModalOpen(true);
   };
 
-  const handleUpdateCityCorp = async () => {
-    if (!editingCityCorp) return;
-    if (!editCityCorpName.trim() || !editCityCorpCode.trim()) {
+  const handleUpdateWasa = async () => {
+    if (!editingWasa) return;
+    if (!editWasaName.trim() || !editWasaCode.trim()) {
       alert('Please enter name and code');
       return;
     }
 
-    await updateCityCorpMutation.mutateAsync({
-      id: editingCityCorp.id,
+    await updateWasaMutation.mutateAsync({
+      id: editingWasa.id,
       dto: {
-        name: editCityCorpName.trim(),
-        code: editCityCorpCode.trim(),
-        address: editCityCorpAddress.trim() || undefined,
+        name: editWasaName.trim(),
+        code: editWasaCode.trim(),
+        address: editWasaAddress.trim() || undefined,
       },
     });
 
-    setIsCityCorpEditModalOpen(false);
-    setEditingCityCorp(null);
-    setEditCityCorpName('');
-    setEditCityCorpCode('');
-    setEditCityCorpAddress('');
+    setIsWasaEditModalOpen(false);
+    setEditingWasa(null);
+    setEditWasaName('');
+    setEditWasaCode('');
+    setEditWasaAddress('');
   };
 
-  const handleDeleteCityCorp = (cityCorp: CityCorporation) => {
-    setCityCorpToDelete(cityCorp);
-    setIsCityCorpDeleteDialogOpen(true);
+  const handleDeleteWasa = (wasa: Wasa) => {
+    setWasaToDelete(wasa);
+    setIsWasaDeleteDialogOpen(true);
   };
 
-  const confirmDeleteCityCorp = async () => {
-    if (cityCorpToDelete) {
+  const confirmDeleteWasa = async () => {
+    if (wasaToDelete) {
       try {
-        await deleteCityCorpMutation.mutateAsync(cityCorpToDelete.id);
-        setCityCorpToDelete(null);
-        setIsCityCorpDeleteDialogOpen(false);
+        await deleteWasaMutation.mutateAsync(wasaToDelete.id);
+        setWasaToDelete(null);
+        setIsWasaDeleteDialogOpen(false);
       } catch (error: any) {
-        console.error('City corporation deletion error:', error);
+        console.error('WASA deletion error:', error);
         // Error toast is already shown by mutation hook
         if (error?.response?.status === 404) {
-          alert('City Corporation not found. It may have already been deleted.');
+          alert('WASA not found. It may have already been deleted.');
         } else if (error?.response?.status === 409) {
-          alert('Cannot delete city corporation. It may be in use by zones or other entities.');
+          alert('Cannot delete WASA. It may be in use by zones or other entities.');
         }
       }
     }
@@ -362,8 +362,8 @@ export function LocationManagement() {
       alert('City Name must be 100 characters or less');
       return;
     }
-    if (!createZoneCityCorpId) {
-      alert('Please select a City Corporation');
+    if (!createZoneWasaId) {
+      alert('Please select a WASA');
       return;
     }
 
@@ -372,14 +372,14 @@ export function LocationManagement() {
         zoneNo: createZoneNo.trim(),
         name: createZoneName.trim(),
         cityName: createZoneCityName.trim(),
-        cityCorporationId: parseInt(createZoneCityCorpId),
+        wasaId: parseInt(createZoneWasaId),
         // Note: tariffCategory is not included as backend DTO doesn't accept it
       });
 
       setCreateZoneNo('');
       setCreateZoneName('');
       setCreateZoneCityName('');
-      setCreateZoneCityCorpId('');
+      setCreateZoneWasaId('');
       setIsZoneCreateModalOpen(false);
     } catch (error: any) {
       // Error is already handled by mutation hook, but log for debugging
@@ -398,13 +398,13 @@ export function LocationManagement() {
     setEditZoneNo(zone.zoneNo);
     setEditZoneName(zone.name);
     setEditZoneCityName(zone.cityName);
-    setEditZoneCityCorpId(zone.cityCorporationId.toString());
+    setEditZoneWasaId(zone.wasaId.toString());
     setIsZoneEditModalOpen(true);
   };
 
   const handleUpdateZone = async () => {
     if (!editingZone) return;
-    if (!editZoneNo.trim() || !editZoneName.trim() || !editZoneCityName.trim() || !editZoneCityCorpId) {
+    if (!editZoneNo.trim() || !editZoneName.trim() || !editZoneCityName.trim() || !editZoneWasaId) {
       alert('Please fill in all required fields');
       return;
     }
@@ -415,7 +415,7 @@ export function LocationManagement() {
         zoneNo: editZoneNo.trim(),
         name: editZoneName.trim(),
         cityName: editZoneCityName.trim(),
-        cityCorporationId: parseInt(editZoneCityCorpId),
+        wasaId: parseInt(editZoneWasaId),
       },
     });
 
@@ -424,7 +424,7 @@ export function LocationManagement() {
     setEditZoneNo('');
     setEditZoneName('');
     setEditZoneCityName('');
-    setEditZoneCityCorpId('');
+    setEditZoneWasaId('');
   };
 
   const handleDeleteZone = (zone: Zone) => {
@@ -488,8 +488,8 @@ export function LocationManagement() {
       return;
     }
 
-    if (!createAreaCityCorpId) {
-      alert('Please select a City Corporation first');
+    if (!createAreaWasaId) {
+      alert('Please select a WASA first');
       return;
     }
 
@@ -531,16 +531,16 @@ export function LocationManagement() {
       return;
     }
     
-    // Set city corporation first (this is required for zone dropdown to be enabled)
-    const cityCorpId = zone.cityCorporationId.toString();
+    // Set WASA first (this is required for zone dropdown to be enabled)
+    const wasaId = zone.wasaId.toString();
     // Use zone.id from nested object (this is the actual zone ID, not zoneNo)
     const zoneId = zone.id.toString();
     
     // Mark that we're initializing to prevent zone reset
     isInitializingEdit.current = true;
     
-    // Set both values - city corp first, then zone
-    setEditAreaCityCorpId(cityCorpId);
+    // Set both values - WASA first, then zone
+    setEditAreaWasaId(wasaId);
     // Set zone after city corp is set (using setTimeout to ensure state update order)
     setTimeout(() => {
       setEditAreaZoneId(zoneId);
@@ -559,8 +559,8 @@ export function LocationManagement() {
       return;
     }
 
-    if (!editAreaCityCorpId) {
-      alert('Please select a City Corporation first');
+    if (!editAreaWasaId) {
+      alert('Please select a WASA first');
       return;
     }
 
@@ -592,7 +592,7 @@ export function LocationManagement() {
     setEditingArea(null);
     setEditAreaName('');
     setEditAreaZoneId('');
-    setEditAreaCityCorpId('');
+    setEditAreaWasaId('');
     setEditAreaGeoJson('');
   };
 
@@ -636,7 +636,7 @@ export function LocationManagement() {
     }, null, 2);
   };
 
-  if (cityCorpsLoading || zonesLoading || areasLoading) {
+  if (wasasLoading || zonesLoading || areasLoading) {
     return (
       <div className="min-h-screen bg-[#f8f9fb] flex items-center justify-center">
         <LoadingSpinner />
@@ -646,7 +646,7 @@ export function LocationManagement() {
 
   return (
     <div className="min-h-screen bg-[#f8f9fb]">
-      <div className="px-8 py-6">
+      <div className="px-4 md:px-8 py-4 md:py-6">
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Location Management</h1>
@@ -657,14 +657,14 @@ export function LocationManagement() {
         <div className="mb-8 border-b border-gray-200">
           <div className="flex gap-6">
             <button
-              onClick={() => setActiveTab('city-corporations')}
+              onClick={() => setActiveTab('wasas')}
               className={`pb-3 text-[15px] font-medium border-b-2 transition-colors ${
-                activeTab === 'city-corporations'
+                activeTab === 'wasas'
                   ? 'border-[#4C6EF5] text-[#4C6EF5]'
                   : 'border-transparent text-gray-600 hover:text-gray-900'
               }`}
             >
-              City Corporations
+              WASAs
             </button>
             <button
               onClick={() => setActiveTab('zones')}
@@ -689,16 +689,16 @@ export function LocationManagement() {
           </div>
         </div>
 
-        {/* City Corporations Tab */}
-        {activeTab === 'city-corporations' && (
+        {/* WASAs Tab */}
+        {activeTab === 'wasas' && (
           <>
             <div className="mb-6 flex items-center justify-between gap-4">
               <Button 
-                onClick={() => setIsCityCorpCreateModalOpen(true)}
+                onClick={() => setIsWasaCreateModalOpen(true)}
                 className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-11 px-6 flex items-center gap-2"
               >
                 <Plus size={18} />
-                Add New City Corporation
+                Add New WASA
               </Button>
 
               <div className="flex items-center gap-3 flex-1 justify-end">
@@ -707,24 +707,24 @@ export function LocationManagement() {
                   <Input
                     type="text"
                     placeholder="Search by name, code, or ID..."
-                    value={cityCorpSearchQuery}
-                    onChange={(e) => setCityCorpSearchQuery(e.target.value)}
+                    value={wasaSearchQuery}
+                    onChange={(e) => setWasaSearchQuery(e.target.value)}
                     className="pl-10 bg-white border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                   />
                 </div>
               </div>
             </div>
 
-            {filteredCityCorps.length === 0 ? (
+            {filteredWasas.length === 0 ? (
               <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-                <p className="text-gray-500 text-lg mb-4">No city corporations found</p>
-                <p className="text-gray-400 text-sm">Create your first city corporation to get started</p>
+                <p className="text-gray-500 text-lg mb-4">No WASAs found</p>
+                <p className="text-gray-400 text-sm">Create your first WASA to get started</p>
               </div>
             ) : (
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-200">
                   <h3 className="text-lg font-semibold text-gray-900">
-                    All City Corporations ({filteredCityCorps.length})
+                    All WASAs ({filteredWasas.length})
                   </h3>
                 </div>
                 <Table>
@@ -738,18 +738,18 @@ export function LocationManagement() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredCityCorps.map((cityCorp) => (
-                      <TableRow key={cityCorp.id} className="border-gray-100">
-                        <TableCell className="text-sm text-gray-600">{cityCorp.id}</TableCell>
-                        <TableCell className="text-sm font-medium text-gray-900">{cityCorp.name}</TableCell>
-                        <TableCell className="text-sm text-gray-600">{cityCorp.code}</TableCell>
-                        <TableCell className="text-sm text-gray-600">{cityCorp.address || '-'}</TableCell>
+                    {filteredWasas.map((wasa) => (
+                      <TableRow key={wasa.id} className="border-gray-100">
+                        <TableCell className="text-sm text-gray-600">{wasa.id}</TableCell>
+                        <TableCell className="text-sm font-medium text-gray-900">{wasa.name}</TableCell>
+                        <TableCell className="text-sm text-gray-600">{wasa.code}</TableCell>
+                        <TableCell className="text-sm text-gray-600">{wasa.address || '-'}</TableCell>
                         <TableCell className="text-center">
                           <div className="flex items-center justify-center gap-2">
                             <Button 
                               variant="outline" 
                               size="sm"
-                              onClick={() => handleEditCityCorp(cityCorp)}
+                              onClick={() => handleEditWasa(wasa)}
                               className="border-gray-300 text-gray-700 rounded-lg h-8 w-8 p-0 bg-white hover:bg-gray-50 inline-flex items-center justify-center"
                               title="Edit"
                             >
@@ -758,7 +758,7 @@ export function LocationManagement() {
                             <Button 
                               variant="outline" 
                               size="sm"
-                              onClick={() => handleDeleteCityCorp(cityCorp)}
+                              onClick={() => handleDeleteWasa(wasa)}
                               className="border-red-300 text-red-700 rounded-lg h-8 w-8 p-0 bg-white hover:bg-red-50 inline-flex items-center justify-center"
                               title="Delete"
                             >
@@ -774,7 +774,7 @@ export function LocationManagement() {
             )}
 
             {/* Create City Corporation Modal */}
-            <Dialog open={isCityCorpCreateModalOpen} onOpenChange={setIsCityCorpCreateModalOpen}>
+            <Dialog open={isWasaCreateModalOpen} onOpenChange={setIsWasaCreateModalOpen}>
               <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-2xl">
                 <DialogHeader>
                   <DialogTitle className="text-xl font-semibold text-gray-900">Add New City Corporation</DialogTitle>
@@ -790,8 +790,8 @@ export function LocationManagement() {
                     <Input
                       id="create-city-corp-name"
                       placeholder="e.g., Dhaka North City Corporation"
-                      value={createCityCorpName}
-                      onChange={(e) => setCreateCityCorpName(e.target.value)}
+                      value={createWasaName}
+                      onChange={(e) => setCreateWasaName(e.target.value)}
                       className="border-gray-300 rounded-lg h-11"
                     />
                   </div>
@@ -802,8 +802,8 @@ export function LocationManagement() {
                     <Input
                       id="create-city-corp-code"
                       placeholder="e.g., DNCC"
-                      value={createCityCorpCode}
-                      onChange={(e) => setCreateCityCorpCode(e.target.value)}
+                      value={createWasaCode}
+                      onChange={(e) => setCreateWasaCode(e.target.value)}
                       className="border-gray-300 rounded-lg h-11"
                     />
                   </div>
@@ -814,8 +814,8 @@ export function LocationManagement() {
                     <Input
                       id="create-city-corp-address"
                       placeholder="Optional address"
-                      value={createCityCorpAddress}
-                      onChange={(e) => setCreateCityCorpAddress(e.target.value)}
+                      value={createWasaAddress}
+                      onChange={(e) => setCreateWasaAddress(e.target.value)}
                       className="border-gray-300 rounded-lg h-11"
                     />
                   </div>
@@ -824,28 +824,28 @@ export function LocationManagement() {
                   <Button
                     variant="outline"
                     onClick={() => {
-                      setIsCityCorpCreateModalOpen(false);
-                      setCreateCityCorpName('');
-                      setCreateCityCorpCode('');
-                      setCreateCityCorpAddress('');
+                      setIsWasaCreateModalOpen(false);
+                      setCreateWasaName('');
+                      setCreateWasaCode('');
+                      setCreateWasaAddress('');
                     }}
                     className="border-gray-300 text-gray-700 rounded-lg h-10 px-6 bg-white hover:bg-gray-50"
                   >
                     Cancel
                   </Button>
                   <Button
-                    onClick={handleCreateCityCorp}
-                    disabled={createCityCorpMutation.isPending}
+                    onClick={handleCreateWasa}
+                    disabled={createWasaMutation.isPending}
                     className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-10 px-6 disabled:opacity-50"
                   >
-                    {createCityCorpMutation.isPending ? 'Creating...' : 'Create'}
+                    {createWasaMutation.isPending ? 'Creating...' : 'Create'}
                   </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
 
             {/* Edit City Corporation Modal */}
-            <Dialog open={isCityCorpEditModalOpen} onOpenChange={setIsCityCorpEditModalOpen}>
+            <Dialog open={isWasaEditModalOpen} onOpenChange={setIsWasaEditModalOpen}>
               <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-2xl">
                 <DialogHeader>
                   <DialogTitle className="text-xl font-semibold text-gray-900">Edit City Corporation</DialogTitle>
@@ -860,8 +860,8 @@ export function LocationManagement() {
                     </Label>
                     <Input
                       id="edit-city-corp-name"
-                      value={editCityCorpName}
-                      onChange={(e) => setEditCityCorpName(e.target.value)}
+                      value={editWasaName}
+                      onChange={(e) => setEditWasaName(e.target.value)}
                       className="border-gray-300 rounded-lg h-11"
                     />
                   </div>
@@ -871,8 +871,8 @@ export function LocationManagement() {
                     </Label>
                     <Input
                       id="edit-city-corp-code"
-                      value={editCityCorpCode}
-                      onChange={(e) => setEditCityCorpCode(e.target.value)}
+                      value={editWasaCode}
+                      onChange={(e) => setEditWasaCode(e.target.value)}
                       className="border-gray-300 rounded-lg h-11"
                     />
                   </div>
@@ -882,8 +882,8 @@ export function LocationManagement() {
                     </Label>
                     <Input
                       id="edit-city-corp-address"
-                      value={editCityCorpAddress}
-                      onChange={(e) => setEditCityCorpAddress(e.target.value)}
+                      value={editWasaAddress}
+                      onChange={(e) => setEditWasaAddress(e.target.value)}
                       className="border-gray-300 rounded-lg h-11"
                     />
                   </div>
@@ -892,38 +892,38 @@ export function LocationManagement() {
                   <Button
                     variant="outline"
                     onClick={() => {
-                      setIsCityCorpEditModalOpen(false);
-                      setEditingCityCorp(null);
-                      setEditCityCorpName('');
-                      setEditCityCorpCode('');
-                      setEditCityCorpAddress('');
+                      setIsWasaEditModalOpen(false);
+                      setEditingWasa(null);
+                      setEditWasaName('');
+                      setEditWasaCode('');
+                      setEditWasaAddress('');
                     }}
                     className="border-gray-300 text-gray-700 rounded-lg h-10 px-6 bg-white hover:bg-gray-50"
                   >
                     Cancel
                   </Button>
                   <Button
-                    onClick={handleUpdateCityCorp}
-                    disabled={updateCityCorpMutation.isPending}
+                    onClick={handleUpdateWasa}
+                    disabled={updateWasaMutation.isPending}
                     className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-10 px-6 disabled:opacity-50"
                   >
-                    {updateCityCorpMutation.isPending ? 'Updating...' : 'Update'}
+                    {updateWasaMutation.isPending ? 'Updating...' : 'Update'}
                   </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
 
             <DeleteConfirmationDialog
-              isOpen={isCityCorpDeleteDialogOpen}
+              isOpen={isWasaDeleteDialogOpen}
               onClose={() => {
-                setIsCityCorpDeleteDialogOpen(false);
-                setCityCorpToDelete(null);
+                setIsWasaDeleteDialogOpen(false);
+                setWasaToDelete(null);
               }}
-              onConfirm={confirmDeleteCityCorp}
+              onConfirm={confirmDeleteWasa}
               title="Delete City Corporation"
               description="Are you sure you want to delete the city corporation"
-              itemName={cityCorpToDelete?.name}
-              isPending={deleteCityCorpMutation.isPending}
+              itemName={wasaToDelete?.name}
+              isPending={deleteWasaMutation.isPending}
             />
           </>
         )}
@@ -943,9 +943,9 @@ export function LocationManagement() {
               <div className="flex items-center gap-3 flex-1 justify-end">
                 <div className="w-48">
                   <Select 
-                    value={zoneFilterCityCorpId} 
+                    value={zoneFilterWasaId} 
                     onValueChange={(value) => {
-                      setZoneFilterCityCorpId(value);
+                      setZoneFilterWasaId(value);
                     }}
                   >
                     <SelectTrigger className="w-full border-gray-300 rounded-lg h-11 bg-white min-w-0 [&>*:first-child]:truncate [&>*:first-child]:min-w-0">
@@ -953,7 +953,7 @@ export function LocationManagement() {
                     </SelectTrigger>
                     <SelectContent className="bg-white border border-gray-200">
                       <SelectItem value="all">All City Corporations</SelectItem>
-                      {cityCorporations.map(cc => (
+                      {wasas.map(cc => (
                         <SelectItem key={cc.id} value={cc.id.toString()}>
                           {cc.name} ({cc.code})
                         </SelectItem>
@@ -999,14 +999,14 @@ export function LocationManagement() {
                   </TableHeader>
                   <TableBody>
                     {filteredZones.map((zone) => {
-                      const cityCorp = cityCorporations.find(cc => cc.id === zone.cityCorporationId);
+                      const wasa = wasas.find(w => w.id === zone.wasaId);
                       return (
                         <TableRow key={zone.id} className="border-gray-100">
                           <TableCell className="text-sm text-gray-600">{zone.id}</TableCell>
                           <TableCell className="text-sm text-gray-600">{zone.zoneNo}</TableCell>
                           <TableCell className="text-sm font-medium text-gray-900">{zone.name}</TableCell>
                           <TableCell className="text-sm text-gray-600">{zone.cityName}</TableCell>
-                          <TableCell className="text-sm text-gray-600">{cityCorp?.name || '-'}</TableCell>
+                          <TableCell className="text-sm text-gray-600">{wasa?.name || '-'}</TableCell>
                           <TableCell className="text-center">
                             <div className="flex items-center justify-center gap-2">
                               <Button 
@@ -1103,15 +1103,15 @@ export function LocationManagement() {
                     <Label htmlFor="create-zone-city-corp" className="text-sm font-medium text-gray-700">
                       City Corporation <span className="text-red-500">*</span>
                     </Label>
-                    <Select value={createZoneCityCorpId} onValueChange={setCreateZoneCityCorpId}>
+                    <Select value={createZoneWasaId} onValueChange={setCreateZoneWasaId}>
                       <SelectTrigger className="w-full border-gray-300 rounded-lg h-11 bg-white">
                         <SelectValue placeholder="Select city corporation" />
                       </SelectTrigger>
                       <SelectContent className="bg-white border border-gray-200">
-                        {cityCorporations.length === 0 ? (
+                        {wasas.length === 0 ? (
                           <div className="px-2 py-1.5 text-sm text-gray-500">No city corporations available</div>
                         ) : (
-                          cityCorporations.map(cc => (
+                          wasas.map(cc => (
                             <SelectItem key={cc.id} value={cc.id.toString()}>
                               {cc.name} ({cc.code})
                             </SelectItem>
@@ -1129,7 +1129,7 @@ export function LocationManagement() {
                       setCreateZoneNo('');
                       setCreateZoneName('');
                       setCreateZoneCityName('');
-                      setCreateZoneCityCorpId('');
+                      setCreateZoneWasaId('');
                     }}
                     className="border-gray-300 text-gray-700 rounded-lg h-10 px-6 bg-white hover:bg-gray-50"
                   >
@@ -1203,15 +1203,15 @@ export function LocationManagement() {
                     <Label htmlFor="edit-zone-city-corp" className="text-sm font-medium text-gray-700">
                       City Corporation <span className="text-red-500">*</span>
                     </Label>
-                    <Select value={editZoneCityCorpId} onValueChange={setEditZoneCityCorpId}>
+                    <Select value={editZoneWasaId} onValueChange={setEditZoneWasaId}>
                       <SelectTrigger className="w-full border-gray-300 rounded-lg h-11 bg-white">
                         <SelectValue placeholder="Select city corporation" />
                       </SelectTrigger>
                       <SelectContent className="bg-white border border-gray-200">
-                        {cityCorporations.length === 0 ? (
+                        {wasas.length === 0 ? (
                           <div className="px-2 py-1.5 text-sm text-gray-500">No city corporations available</div>
                         ) : (
-                          cityCorporations.map(cc => (
+                          wasas.map(cc => (
                             <SelectItem key={cc.id} value={cc.id.toString()}>
                               {cc.name} ({cc.code})
                             </SelectItem>
@@ -1230,7 +1230,7 @@ export function LocationManagement() {
                       setEditZoneNo('');
                       setEditZoneName('');
                       setEditZoneCityName('');
-                      setEditZoneCityCorpId('');
+                      setEditZoneWasaId('');
                     }}
                     className="border-gray-300 text-gray-700 rounded-lg h-10 px-6 bg-white hover:bg-gray-50"
                   >
@@ -1277,9 +1277,9 @@ export function LocationManagement() {
               <div className="flex items-center gap-3 flex-1 justify-end">
                 <div className="w-48">
                   <Select 
-                    value={areaFilterCityCorpId} 
+                    value={areaFilterWasaId} 
                     onValueChange={(value) => {
-                      setAreaFilterCityCorpId(value);
+                      setAreaFilterWasaId(value);
                       setAreaFilterZoneId('all'); // Reset zone filter when city corp changes
                     }}
                   >
@@ -1288,7 +1288,7 @@ export function LocationManagement() {
                     </SelectTrigger>
                     <SelectContent className="bg-white border border-gray-200">
                       <SelectItem value="all">All City Corporations</SelectItem>
-                      {cityCorporations.map(cc => (
+                      {wasas.map(cc => (
                         <SelectItem key={cc.id} value={cc.id.toString()}>
                           {cc.name} ({cc.code})
                         </SelectItem>
@@ -1300,13 +1300,13 @@ export function LocationManagement() {
                   <Select 
                     value={areaFilterZoneId} 
                     onValueChange={setAreaFilterZoneId}
-                    disabled={!areaFilterCityCorpId || areaFilterCityCorpId === 'all'}
+                    disabled={!areaFilterWasaId || areaFilterWasaId === 'all'}
                   >
                     <SelectTrigger className="w-full border-gray-300 rounded-lg h-11 bg-white disabled:opacity-50 disabled:cursor-not-allowed min-w-0 [&>*:first-child]:truncate [&>*:first-child]:min-w-0">
-                      <SelectValue placeholder={areaFilterCityCorpId ? "Filter by Zone" : "Select City Corp first"} />
+                      <SelectValue placeholder={areaFilterWasaId ? "Filter by Zone" : "Select City Corp first"} />
                     </SelectTrigger>
                     <SelectContent className="bg-white border border-gray-200">
-                      {!areaFilterCityCorpId || areaFilterCityCorpId === 'all' ? (
+                      {!areaFilterWasaId || areaFilterWasaId === 'all' ? (
                         <SelectItem value="__placeholder__" disabled className="text-gray-500 cursor-not-allowed">
                           Select city corporation first
                         </SelectItem>
@@ -1317,7 +1317,7 @@ export function LocationManagement() {
                           .filter(area => {
                             // Use nested zone object if available, otherwise fallback to lookup
                             const zone = area.zone || zones.find(z => z.id === area.zoneId);
-                            return zone?.cityCorporationId === parseInt(areaFilterCityCorpId);
+                            return zone?.wasaId === parseInt(areaFilterWasaId);
                           })
                           .map(area => {
                             // Use nested zone object if available, otherwise fallback to lookup
@@ -1411,15 +1411,15 @@ export function LocationManagement() {
                     {filteredAreas.map((area) => {
                       // Use nested zone object from area if available, otherwise fallback to lookup
                       const zone = area.zone || zones.find(z => z.id === area.zoneId);
-                      const cityCorp = zone?.cityCorporationId 
-                        ? cityCorporations.find(cc => cc.id === zone.cityCorporationId) 
+                      const wasa = zone?.wasaId 
+                        ? wasas.find(cc => cc.id === zone.wasaId) 
                         : null;
                       return (
                         <TableRow key={area.id} className="border-gray-100">
                           <TableCell className="text-sm text-gray-600">{area.id}</TableCell>
                           <TableCell className="text-sm font-medium text-gray-900">{area.name}</TableCell>
                           <TableCell className="text-sm text-gray-600">{zone?.name || '-'}</TableCell>
-                          <TableCell className="text-sm text-gray-600">{cityCorp?.name || '-'}</TableCell>
+                          <TableCell className="text-sm text-gray-600">{wasa?.name || '-'}</TableCell>
                           <TableCell className="text-sm text-gray-600">{area.geojson.type}</TableCell>
                           <TableCell className="text-center">
                             <div className="flex items-center justify-center gap-2">
@@ -1474,14 +1474,14 @@ export function LocationManagement() {
                     />
                   </div>
                   <HierarchicalLocationSelector
-                    cityCorporations={cityCorporations}
+                    wasas={wasas}
                     zones={zones}
                     areas={[]}
-                    cityCorporationId={createAreaCityCorpId}
+                    wasaId={createAreaWasaId}
                     zoneId={createAreaZoneId}
                     areaId=""
-                    onCityCorporationChange={(value) => {
-                      setCreateAreaCityCorpId(value);
+                    onWasaChange={(value) => {
+                      setCreateAreaWasaId(value);
                       setCreateAreaZoneId(''); // Reset zone when city corp changes
                     }}
                     onZoneChange={setCreateAreaZoneId}
@@ -1532,7 +1532,7 @@ export function LocationManagement() {
                       setIsAreaCreateModalOpen(false);
                       setCreateAreaName('');
                       setCreateAreaZoneId('');
-                      setCreateAreaCityCorpId('');
+                      setCreateAreaWasaId('');
                       setCreateAreaGeoJson('');
                     }}
                     className="border-gray-300 text-gray-700 rounded-lg h-10 px-6 bg-white hover:bg-gray-50"
@@ -1573,16 +1573,16 @@ export function LocationManagement() {
                     />
                   </div>
                   <HierarchicalLocationSelector
-                    cityCorporations={cityCorporations}
+                    wasas={wasas}
                     zones={zones}
                     areas={[]}
-                    cityCorporationId={editAreaCityCorpId}
+                    wasaId={editAreaWasaId}
                     zoneId={editAreaZoneId}
                     areaId=""
-                    onCityCorporationChange={(value) => {
-                      setEditAreaCityCorpId(value);
+                    onWasaChange={(value) => {
+                      setEditAreaWasaId(value);
                       // Only reset zone if city corp is actually changing (not during initialization)
-                      if (!isInitializingEdit.current && value !== editAreaCityCorpId) {
+                      if (!isInitializingEdit.current && value !== editAreaWasaId) {
                         setEditAreaZoneId(''); // Reset zone when city corp changes
                       }
                     }}
@@ -1624,7 +1624,7 @@ export function LocationManagement() {
                       setEditingArea(null);
                       setEditAreaName('');
                       setEditAreaZoneId('');
-                      setEditAreaCityCorpId('');
+                      setEditAreaWasaId('');
                       setEditAreaGeoJson('');
                     }}
                     className="border-gray-300 text-gray-700 rounded-lg h-10 px-6 bg-white hover:bg-gray-50"

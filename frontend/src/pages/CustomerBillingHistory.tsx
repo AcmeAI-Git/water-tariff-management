@@ -90,17 +90,17 @@ export default function CustomerBillingHistory() {
 
   return (
     <div className="min-h-screen bg-app">
-      <div className="px-8 py-6">
+      <div className="px-4 md:px-8 py-4 md:py-6">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">Billing History</h1>
-          <p className="text-sm text-gray-500">View and manage your water bills</p>
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-xl md:text-[1.75rem] font-semibold text-gray-900 mb-1">Billing History</h1>
+          <p className="text-xs md:text-sm text-gray-500">View and manage your water bills</p>
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1 max-w-md">
+        <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 mb-4 md:mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+            <div className="relative flex-1 w-full sm:max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
               <Input
                 type="text"
@@ -110,7 +110,7 @@ export default function CustomerBillingHistory() {
                 className="pl-10 bg-gray-50 border-gray-300 rounded-lg h-11"
               />
             </div>
-            <div className="w-48">
+            <div className="w-full sm:w-48">
               <Dropdown
                 options={[
                   { value: 'all', label: 'All Status' },
@@ -128,34 +128,34 @@ export default function CustomerBillingHistory() {
         </div>
 
         {/* Bills Table */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden overflow-x-auto">
           {filteredBills.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Bill Month</TableHead>
-                  <TableHead>Consumption (m³)</TableHead>
-                  <TableHead>Total Bill</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead className="text-xs md:text-sm whitespace-nowrap">Bill Month</TableHead>
+                  <TableHead className="text-xs md:text-sm whitespace-nowrap hidden sm:table-cell">Consumption (m³)</TableHead>
+                  <TableHead className="text-xs md:text-sm whitespace-nowrap">Total Bill</TableHead>
+                  <TableHead className="text-xs md:text-sm whitespace-nowrap">Status</TableHead>
+                  <TableHead className="text-xs md:text-sm whitespace-nowrap">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredBills.map((bill) => (
                   <TableRow key={bill.id}>
-                    <TableCell className="font-medium">
+                    <TableCell className="text-xs md:text-sm font-medium whitespace-nowrap">
                       {bill.billMonth
                         ? format(new Date(bill.billMonth), 'MMM yyyy')
                         : 'N/A'}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-xs md:text-sm whitespace-nowrap hidden sm:table-cell">
                       {/* Get consumption from related consumption record if available */}
                       {bill.consumptionId ? 'N/A' : 'N/A'}
                     </TableCell>
-                    <TableCell className="font-semibold text-gray-900">
+                    <TableCell className="text-xs md:text-sm font-semibold text-gray-900 whitespace-nowrap">
                       ৳{bill.totalBill ? Number(bill.totalBill).toFixed(2) : '0.00'}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="whitespace-nowrap">
                       <span
                         className={`px-2 py-1 rounded-full text-xs font-medium ${
                           bill.status === 'Paid'
@@ -168,13 +168,13 @@ export default function CustomerBillingHistory() {
                         {bill.status || 'Unpaid'}
                       </span>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="whitespace-nowrap">
                       {bill.status !== 'Paid' && (
                         <Button
                           size="sm"
                           onClick={() => handleMarkAsPaid(bill.id)}
                           disabled={markPaidMutation.isPending}
-                          className="bg-green-600 hover:bg-green-700 text-white"
+                          className="bg-green-600 hover:bg-green-700 text-white text-xs md:text-sm"
                         >
                           <CheckCircle2 size={16} className="mr-1" />
                           Mark as Paid
@@ -186,8 +186,8 @@ export default function CustomerBillingHistory() {
               </TableBody>
             </Table>
           ) : (
-            <div className="p-12 text-center">
-              <p className="text-gray-500">No bills found</p>
+            <div className="p-8 md:p-12 text-center">
+              <p className="text-sm text-gray-500">No bills found</p>
             </div>
           )}
         </div>

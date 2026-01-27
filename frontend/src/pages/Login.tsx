@@ -156,13 +156,13 @@ export default function Login() {
     <div className="min-h-screen bg-app flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Title */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-semibold text-gray-900 mb-2">Water Tariff</h1>
-          <p className="text-base text-gray-600">Management System</p>
+        <div className="text-center mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-semibold text-gray-900 mb-2">Water Tariff</h1>
+          <p className="text-sm md:text-base text-gray-600">Management System</p>
         </div>
 
         {/* Login Form */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-8">
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 md:p-8">
           <div className="mb-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-1">Welcome back</h2>
             <p className="text-sm text-gray-600">Please enter your credentials to continue</p>
@@ -227,13 +227,13 @@ export default function Login() {
           </form>
 
           <div className="mt-6 pt-6 border-t border-gray-200">
-            <p className="text-sm text-gray-600 mb-3 text-center">Quick Demo Access:</p>
-            <div className="grid grid-cols-2 gap-3">
+            <p className="text-xs md:text-sm text-gray-600 mb-3 text-center">Quick Demo Access:</p>
+            <div className="grid grid-cols-2 gap-2 md:gap-3">
               <Button 
                 onClick={() => handleDemo('admin')}
                 variant="outline"
                 disabled={loading || demoLoading !== null}
-                className="border-gray-300 text-gray-700 rounded-lg h-10 text-sm hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                className="border-gray-300 text-gray-700 rounded-lg h-9 md:h-10 text-xs md:text-sm hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {demoLoading === 'admin' ? 'Logging in...' : 'Super Admin'}
               </Button>
@@ -241,7 +241,7 @@ export default function Login() {
                 onClick={() => handleDemo('meter-admin')}
                 variant="outline"
                 disabled={loading || demoLoading !== null}
-                className="border-gray-300 text-gray-700 rounded-lg h-10 text-sm hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                className="border-gray-300 text-gray-700 rounded-lg h-9 md:h-10 text-xs md:text-sm hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {demoLoading === 'meter-admin' ? 'Logging in...' : 'Meter Reader'}
               </Button>
@@ -249,7 +249,7 @@ export default function Login() {
                 onClick={() => handleDemo('customer-admin')}
                 variant="outline"
                 disabled={loading || demoLoading !== null}
-                className="border-gray-300 text-gray-700 rounded-lg h-10 text-sm hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                className="border-gray-300 text-gray-700 rounded-lg h-9 md:h-10 text-xs md:text-sm hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {demoLoading === 'customer-admin' ? 'Logging in...' : 'Customer Admin'}
               </Button>
@@ -257,7 +257,7 @@ export default function Login() {
                 onClick={() => handleDemo('tariff-admin')}
                 variant="outline"
                 disabled={loading || demoLoading !== null}
-                className="border-gray-300 text-gray-700 rounded-lg h-10 text-sm hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                className="border-gray-300 text-gray-700 rounded-lg h-9 md:h-10 text-xs md:text-sm hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {demoLoading === 'tariff-admin' ? 'Logging in...' : 'Tariff Admin'}
               </Button>
@@ -265,7 +265,7 @@ export default function Login() {
                 onClick={() => handleDemo('approval-admin')}
                 variant="outline"
                 disabled={loading || demoLoading !== null}
-                className="border-gray-300 text-gray-700 rounded-lg h-10 text-sm hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                className="border-gray-300 text-gray-700 rounded-lg h-9 md:h-10 text-xs md:text-sm hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {demoLoading === 'approval-admin' ? 'Logging in...' : 'Approval Admin'}
               </Button>
@@ -273,7 +273,7 @@ export default function Login() {
                 onClick={() => handleDemo('general-info')}
                 variant="outline"
                 disabled={loading || demoLoading !== null}
-                className="border-gray-300 text-gray-700 rounded-lg h-10 text-sm hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                className="border-gray-300 text-gray-700 rounded-lg h-9 md:h-10 text-xs md:text-sm hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {demoLoading === 'general-info' ? 'Logging in...' : 'General Admin'}
               </Button>
@@ -281,7 +281,7 @@ export default function Login() {
                 onClick={() => handleDemo('customer')}
                 variant="outline"
                 disabled={loading || demoLoading !== null}
-                className="border-gray-300 text-gray-700 rounded-lg h-10 text-sm hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed col-span-2"
+                className="border-gray-300 text-gray-700 rounded-lg h-9 md:h-10 text-xs md:text-sm hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed col-span-2"
               >
                 {demoLoading === 'customer' ? 'Logging in...' : 'Customer Portal'}
               </Button>

@@ -3,7 +3,6 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Dropdown } from '../ui/Dropdown';
-import { Checkbox } from '../ui/checkbox';
 import { useState, useEffect } from 'react';
 import type { TariffCategory, CreateTariffCategoryDto, UpdateTariffCategoryDto, TariffCategorySettings } from '../../types';
 
@@ -15,6 +14,7 @@ interface TariffCategoryModalProps {
   initialData?: TariffCategory;
   mode?: 'create' | 'edit';
   settings: TariffCategorySettings[];
+  defaultSettingsId?: number;
 }
 
 export function TariffCategoryModal({
@@ -25,6 +25,7 @@ export function TariffCategoryModal({
   initialData,
   mode = 'create',
   settings,
+  defaultSettingsId,
 }: TariffCategoryModalProps) {
   const [formData, setFormData] = useState({
     slNo: '',
@@ -34,10 +35,8 @@ export function TariffCategoryModal({
     upperRange: '',
     rangeDescription: '',
     settingsId: '',
-    isBaseCategory: false,
-    isFixedRate: false,
-    isActive: true,
   });
+
 
   useEffect(() => {
     if (initialData && mode === 'edit') {
@@ -49,9 +48,6 @@ export function TariffCategoryModal({
         upperRange: initialData.upperRange?.toString() || '',
         rangeDescription: initialData.rangeDescription || '',
         settingsId: initialData.settingsId.toString(),
-        isBaseCategory: initialData.isBaseCategory,
-        isFixedRate: initialData.isFixedRate,
-        isActive: initialData.isActive,
       });
     } else {
       // Reset form for create mode
@@ -62,13 +58,10 @@ export function TariffCategoryModal({
         lowerRange: '',
         upperRange: '',
         rangeDescription: '',
-        settingsId: settings.length > 0 ? settings[0].id.toString() : '',
-        isBaseCategory: false,
-        isFixedRate: false,
-        isActive: true,
+        settingsId: defaultSettingsId ? defaultSettingsId.toString() : (settings.length > 0 ? settings[0].id.toString() : ''),
       });
     }
-  }, [initialData, mode, isOpen, settings]);
+  }, [initialData, mode, isOpen, settings, defaultSettingsId]);
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -87,9 +80,6 @@ export function TariffCategoryModal({
       category: formData.category,
       name: formData.name.trim(),
       settingsId: parseInt(formData.settingsId),
-      isBaseCategory: formData.isBaseCategory,
-      isFixedRate: formData.isFixedRate,
-      isActive: formData.isActive,
       ...(formData.lowerRange && { lowerRange: parseFloat(formData.lowerRange) }),
       ...(formData.upperRange && { upperRange: parseFloat(formData.upperRange) }),
       ...(formData.rangeDescription && { rangeDescription: formData.rangeDescription.trim() }),
@@ -117,9 +107,9 @@ export function TariffCategoryModal({
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Required Fields */}
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="slNo" className="text-sm font-medium text-gray-700">
+            <div className="grid grid-cols-2 gap-4 items-start">
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="slNo" className="text-sm font-medium text-gray-700 min-h-[2.5rem] flex items-start">
                   Serial Number *
                 </Label>
                 <Input
@@ -134,8 +124,8 @@ export function TariffCategoryModal({
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="category" className="text-sm font-medium text-gray-700">
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="category" className="text-sm font-medium text-gray-700 min-h-[2.5rem] flex items-start">
                   Category *
                 </Label>
                 <Dropdown
@@ -189,9 +179,9 @@ export function TariffCategoryModal({
           <div className="space-y-4 pt-4 border-t border-gray-200">
             <h3 className="text-sm font-semibold text-gray-700">Range Information (Optional)</h3>
             
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="lowerRange" className="text-sm font-medium text-gray-700">
+            <div className="grid grid-cols-2 gap-4 items-start">
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="lowerRange" className="text-sm font-medium text-gray-700 min-h-[2.5rem] flex items-start">
                   Lower Range (sq ft)
                 </Label>
                 <Input
@@ -201,13 +191,15 @@ export function TariffCategoryModal({
                   min="0"
                   value={formData.lowerRange}
                   onChange={(e) => handleInputChange('lowerRange', e.target.value)}
-                  placeholder="Enter lower range"
+                  placeholder="e.g., 2500"
                   className="bg-gray-50 border-gray-300"
+                  disabled={!!formData.rangeDescription}
+                  readOnly={!!formData.rangeDescription}
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="upperRange" className="text-sm font-medium text-gray-700">
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="upperRange" className="text-sm font-medium text-gray-700 min-h-[2.5rem] flex items-start">
                   Upper Range (sq ft)
                 </Label>
                 <Input
@@ -217,8 +209,10 @@ export function TariffCategoryModal({
                   min="0"
                   value={formData.upperRange}
                   onChange={(e) => handleInputChange('upperRange', e.target.value)}
-                  placeholder="Enter upper range"
+                  placeholder="e.g., 1000"
                   className="bg-gray-50 border-gray-300"
+                  disabled={!!formData.rangeDescription}
+                  readOnly={!!formData.rangeDescription}
                 />
               </div>
             </div>
@@ -235,47 +229,9 @@ export function TariffCategoryModal({
                 className="bg-gray-50 border-gray-300"
               />
             </div>
+
           </div>
 
-          {/* Flags */}
-          <div className="space-y-4 pt-4 border-t border-gray-200">
-            <h3 className="text-sm font-semibold text-gray-700">Category Flags</h3>
-            
-            <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="isBaseCategory"
-                  checked={formData.isBaseCategory}
-                  onCheckedChange={(checked) => handleInputChange('isBaseCategory', checked === true)}
-                />
-                <Label htmlFor="isBaseCategory" className="text-sm font-medium text-gray-700 cursor-pointer">
-                  Base Category
-                </Label>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="isFixedRate"
-                  checked={formData.isFixedRate}
-                  onCheckedChange={(checked) => handleInputChange('isFixedRate', checked === true)}
-                />
-                <Label htmlFor="isFixedRate" className="text-sm font-medium text-gray-700 cursor-pointer">
-                  Fixed Rate
-                </Label>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="isActive"
-                  checked={formData.isActive}
-                  onCheckedChange={(checked) => handleInputChange('isActive', checked === true)}
-                />
-                <Label htmlFor="isActive" className="text-sm font-medium text-gray-700 cursor-pointer">
-                  Active
-                </Label>
-              </div>
-            </div>
-          </div>
 
           <DialogFooter>
             <Button

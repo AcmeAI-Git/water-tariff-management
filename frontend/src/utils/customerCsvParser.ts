@@ -1,4 +1,4 @@
-import type { CreateUserDto, CreateUserMeterDto, Area, Zone, CityCorporation } from '../types';
+import type { CreateUserDto, CreateUserMeterDto, Area, Zone, Wasa } from '../types';
 
 export interface CustomerCSVParseResult {
   success: boolean;
@@ -18,7 +18,7 @@ export async function parseCustomerCSV(
   file: File,
   areas: Area[],
   _zones: Zone[],
-  _cityCorporations: CityCorporation[]
+  _wasas: Wasa[]
 ): Promise<CustomerCSVParseResult> {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -285,7 +285,7 @@ export async function parseCustomerCSV(
         inspCode,
         areaId,
         accountType,
-        customerCategory,
+        customerCategories: [{ customerCategory: customerCategory, ratio: 100 }], // Array of objects with category and ratio
         waterStatus,
         sewerStatus,
         landSizeDecimal,
@@ -368,7 +368,7 @@ export function exportCustomersToCSV(
   customers: any[], 
   areas: Area[], 
   _zones: Zone[], 
-  _cityCorporations: CityCorporation[],
+  _wasas: Wasa[],
   meters?: any[]
 ): string {
   const headers = [
