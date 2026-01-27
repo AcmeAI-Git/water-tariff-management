@@ -328,7 +328,8 @@ export interface ReviewApprovalRequestDto {
 // Consumption Types
 export interface Consumption {
   id: number;
-  userId: number;
+  userId?: number; // Optional - may not be present if userAccount is used
+  userAccount?: string; // User account UUID string (from API response)
   createdBy: number;
   billMonth: string;
   currentReading: number;
@@ -339,10 +340,12 @@ export interface Consumption {
   approvalStatusId?: number;
   approvalStatus?: ApprovalStatus;
   approvedBy?: number | null;
+  // Legacy fields for backward compatibility
+  account?: string | number; // May be present in some API responses
 }
 
 export interface CreateConsumptionDto {
-  account: number; // Numeric ID (workaround: backend validation expects number but users have UUID strings)
+  userAccount: string; // User account UUID string (matches API specification)
   createdBy: number;
   billMonth: string;
   currentReading: number;
