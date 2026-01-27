@@ -3,6 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Input } from '../ui/input';
 import { Plus, Edit, Trash2, Search, Star, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useState, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { api } from '../../services/api';
 import { useApiQuery, useApiMutation } from '../../hooks/useApiQuery';
 import { LoadingSpinner } from '../common/LoadingSpinner';
@@ -15,11 +16,13 @@ interface TariffCategoriesTabProps {
 }
 
 export function TariffCategoriesTab({ settingsId }: TariffCategoriesTabProps) {
+  const queryClient = useQueryClient();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<TariffCategory | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategoryType, setFilterCategoryType] = useState<string>('all');
+  const [settingBaseCategoryId, setSettingBaseCategoryId] = useState<number | null>(null);
 
   // Fetch settings to pass to modal (commented out as not currently used)
   // const { data: settingsData } = useApiQuery(
@@ -91,8 +94,17 @@ export function TariffCategoriesTab({ settingsId }: TariffCategoriesTabProps) {
     }
   );
 
-  // Set base category mutation - using updateMutation for consistency
-  // We'll handle the base category logic in handleSetBase
+  // Set base category mutation - dedicated mutation without modal side effects
+  const setBaseMutation = useApiMutation(
+    ({ id, data }: { id: number; data: UpdateTariffCategoryDto }) =>
+      api.tariffCategory.update(id, data),
+    {
+      onError: (error) => {
+        toast.error(`Failed to update category: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      },
+      invalidateQueries: [['tariff-category'], ['tariff-category', settingsId]],
+    }
+  );
 
   // Set category as active mutation
   const setActiveMutation = useApiMutation(
@@ -140,34 +152,26 @@ export function TariffCategoriesTab({ settingsId }: TariffCategoriesTabProps) {
       return;
     }
 
+    setSettingBaseCategoryId(category.id);
+
     try {
-      // First, unset all other base categories of the same type and settings
-      const sameTypeCategories = categories.filter(
-        cat => 
-          cat.category === 'Domestic' &&
-          cat.settingsId === category.settingsId &&
-          cat.id !== category.id &&
-          cat.isBaseCategory
-      );
-
-      // Unset other base categories sequentially
-      for (const cat of sameTypeCategories) {
-        await updateMutation.mutateAsync({ 
-          id: cat.id, 
-          data: { isBaseCategory: false } 
-        });
-      }
-
-      // Set this category as base
-      await updateMutation.mutateAsync({ 
-        id: category.id, 
-        data: { isBaseCategory: true } 
-      });
+      // Simply set this category as base
+      // The backend should handle unsetting other base categories automatically
+      // If the backend prevents unsetting base categories directly, it likely
+      // handles the logic when setting a new one as base
+      await api.tariffCategory.update(category.id, { isBaseCategory: true });
+      
+      // Manually invalidate queries after update
+      queryClient.invalidateQueries({ queryKey: ['tariff-category'] });
+      queryClient.invalidateQueries({ queryKey: ['tariff-category', settingsId] });
       
       toast.success('Base category set successfully');
     } catch (error) {
       console.error('Error setting base category:', error);
-      toast.error(`Failed to set base category: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Failed to set base category: ${errorMessage}`);
+    } finally {
+      setSettingBaseCategoryId(null);
     }
   };
 
@@ -367,7 +371,7 @@ export function TariffCategoriesTab({ settingsId }: TariffCategoriesTabProps) {
                               <div className="flex items-center justify-center gap-2">
                                 {/* Active/Base indicators - before Edit button */}
                                 {category.isActive && (
-                                  <span className="text-xs text-gray-700 bg-gray-100 rounded-md px-2.5 py-1 whitespace-nowrap inline-flex items-center h-8 font-medium">
+                                  <span className="text-xs text-gray-700 bg-gray-100 rounded-md px-2.5 py-1 whitespace-nowrap inline-flex items-center justify-center h-8 font-medium w-[135px]">
                                     Active
                                   </span>
                                 )}
@@ -388,7 +392,7 @@ export function TariffCategoriesTab({ settingsId }: TariffCategoriesTabProps) {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => handleSetBase(category)}
-                                    disabled={updateMutation.isPending}
+                                    disabled={settingBaseCategoryId !== null}
                                     className="border-blue-300 text-blue-700 rounded-lg h-8 px-2 bg-white hover:bg-blue-50 inline-flex items-center justify-center text-xs disabled:opacity-50 w-[72px]"
                                     title="Set as base category (only for Domestic)"
                                   >
@@ -403,7 +407,7 @@ export function TariffCategoriesTab({ settingsId }: TariffCategoriesTabProps) {
                                     size="sm"
                                     onClick={() => handleSetActive(category)}
                                     disabled={setActiveMutation.isPending}
-                                    className="border-green-300 text-green-700 rounded-lg h-8 px-3 bg-white hover:bg-green-50 inline-flex items-center justify-center gap-1.5 disabled:opacity-50 whitespace-nowrap"
+                                    className="border-green-300 text-green-700 rounded-lg h-8 px-3 bg-white hover:bg-green-50 inline-flex items-center justify-center gap-1.5 disabled:opacity-50 whitespace-nowrap w-[135px]"
                                     title="Set as Active"
                                   >
                                     <CheckCircle size={14} />

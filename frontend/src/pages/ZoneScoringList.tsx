@@ -171,7 +171,7 @@ export function ZoneScoringList() {
                     <TableHead className="text-sm font-semibold text-gray-700 whitespace-nowrap">Title</TableHead>
                     <TableHead className="text-sm font-semibold text-gray-700 whitespace-nowrap">Description</TableHead>
                     <TableHead className="text-sm font-semibold text-gray-700 text-center whitespace-nowrap">Parameters</TableHead>
-                    <TableHead className="text-sm font-semibold text-gray-700 text-right whitespace-nowrap">Actions</TableHead>
+                    <TableHead className="text-sm font-semibold text-gray-700 text-center whitespace-nowrap">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -189,47 +189,43 @@ export function ZoneScoringList() {
                         <TableCell className="text-sm text-gray-600 text-center whitespace-nowrap">
                           {ruleset.scoringParams?.length || 0}
                         </TableCell>
-                        <TableCell className="text-right whitespace-nowrap align-middle">
-                          <div className="flex items-center gap-2">
-                            {/* Status indicator or action button - takes available space */}
-                            <div className="flex-1 flex justify-end">
-                              {(ruleset.status === 'active' || ruleset.status === 'published') && (
-                                <span className="text-xs text-gray-700 bg-gray-100 rounded-md px-2.5 py-1 whitespace-nowrap inline-flex items-center h-8 font-medium">
-                                  Active
-                                </span>
-                              )}
-                              {ruleset.status === 'pending' && (
-                                <span className="text-xs text-amber-700 bg-amber-100 rounded-md px-2.5 py-1 whitespace-nowrap inline-flex items-center h-8 font-medium">
-                                  Awaiting Approval
-                                </span>
-                              )}
-                              {(ruleset.status === 'draft' || ruleset.status === 'rejected') && (
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => handleSendForApproval(ruleset)}
-                                  disabled={sendForApprovalMutation.isPending}
-                                  className="border-blue-300 text-blue-700 rounded-lg h-8 px-3 bg-white hover:bg-blue-50 inline-flex items-center justify-center gap-1.5 disabled:opacity-50 whitespace-nowrap"
-                                >
-                                  <Send size={14} />
-                                  Send for Approval
-                                </Button>
-                              )}
-                              {ruleset.status === 'approved' && (
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => handleSetActive(ruleset)}
-                                  disabled={setActiveMutation.isPending}
-                                  className="border-green-300 text-green-700 rounded-lg h-8 px-3 bg-white hover:bg-green-50 inline-flex items-center justify-center gap-1.5 disabled:opacity-50 whitespace-nowrap"
-                                >
-                                  <CheckCircle size={14} />
-                                  Set as Active
-                                </Button>
-                              )}
-                            </div>
-                            
-                            {/* Edit button - fixed position */}
+                        <TableCell className="text-center align-middle">
+                          <div className="flex items-center justify-center gap-2">
+                            {(ruleset.status === 'active' || ruleset.status === 'published') && (
+                              <span className="text-xs text-gray-700 bg-gray-100 rounded-md px-2.5 py-1 whitespace-nowrap inline-flex items-center justify-center h-8 font-medium w-[135px]">
+                                Active
+                              </span>
+                            )}
+                            {ruleset.status === 'pending' && (
+                              <span className="text-xs text-amber-700 bg-amber-100 rounded-md px-2.5 py-1 whitespace-nowrap inline-flex items-center justify-center h-8 font-medium w-[160px]">
+                                Awaiting Approval
+                              </span>
+                            )}
+                            {(ruleset.status === 'draft' || ruleset.status === 'rejected') && (
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleSendForApproval(ruleset)}
+                                disabled={sendForApprovalMutation.isPending}
+                                className="border-blue-300 text-blue-700 rounded-lg h-8 px-3 bg-white hover:bg-blue-50 inline-flex items-center justify-center gap-1.5 disabled:opacity-50 whitespace-nowrap w-[160px]"
+                              >
+                                <Send size={14} />
+                                Send for Approval
+                              </Button>
+                            )}
+                            {ruleset.status === 'approved' && (
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleSetActive(ruleset)}
+                                disabled={setActiveMutation.isPending}
+                                className="border-green-300 text-green-700 rounded-lg h-8 px-3 bg-white hover:bg-green-50 inline-flex items-center justify-center gap-1.5 disabled:opacity-50 whitespace-nowrap w-[135px]"
+                              >
+                                <CheckCircle size={14} />
+                                Set as Active
+                              </Button>
+                            )}
+                            {/* Edit button */}
                             <Button 
                               variant="outline" 
                               size="sm"
@@ -239,8 +235,7 @@ export function ZoneScoringList() {
                             >
                               <Edit size={14} />
                             </Button>
-                            
-                            {/* Delete button - fixed position */}
+                            {/* Delete button */}
                             <Button 
                               variant="outline" 
                               size="sm"
