@@ -4,7 +4,10 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Dropdown } from '../ui/Dropdown';
 import { Checkbox } from '../ui/checkbox';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { AlertTriangle, Info } from 'lucide-react';
+import { api } from '../../services/api';
+import { useApiQuery } from '../../hooks/useApiQuery';
 import type { TariffCategory, CreateTariffCategoryDto, UpdateTariffCategoryDto, TariffCategorySettings } from '../../types';
 
 interface TariffCategoryModalProps {
@@ -38,6 +41,27 @@ export function TariffCategoryModal({
     isFixedRate: false,
     isActive: true,
   });
+
+  // Fetch all categories to check for base category conflicts
+  const { data: allCategories = [] } = useApiQuery(
+    ['tariff-category'],
+    () => api.tariffCategory.getAll(),
+    { enabled: isOpen }
+  );
+
+  // Check for existing base categories of the same type
+  const existingBaseCategories = useMemo(() => {
+    if (!formData.category || !formData.settingsId) return [];
+    return allCategories.filter(
+      cat => 
+        cat.category === formData.category &&
+        cat.settingsId === parseInt(formData.settingsId) &&
+        cat.isBaseCategory &&
+        (mode === 'create' || (initialData && cat.id !== initialData.id))
+    );
+  }, [allCategories, formData.category, formData.settingsId, mode, initialData]);
+
+  const hasBaseCategoryConflict = formData.isBaseCategory && existingBaseCategories.length > 0;
 
   useEffect(() => {
     if (initialData && mode === 'edit') {
@@ -187,7 +211,13 @@ export function TariffCategoryModal({
 
           {/* Range Fields */}
           <div className="space-y-4 pt-4 border-t border-gray-200">
-            <h3 className="text-sm font-semibold text-gray-700">Range Information (Optional)</h3>
+            <div className="flex items-start gap-2">
+              <h3 className="text-sm font-semibold text-gray-700">Range Information (Optional)</h3>
+              <div className="flex items-center gap-1 text-xs text-gray-500 mt-0.5">
+                <Info size={14} />
+                <span>For tiered categories, use single threshold (e.g., lowerRange = 2500 for &quot;&gt; 2500 sq ft&quot;)</span>
+              </div>
+            </div>
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -201,9 +231,14 @@ export function TariffCategoryModal({
                   min="0"
                   value={formData.lowerRange}
                   onChange={(e) => handleInputChange('lowerRange', e.target.value)}
-                  placeholder="Enter lower range"
+                  placeholder={formData.category === 'Domestic' ? 'e.g., 2500 (for > 2500 sq ft)' : 'e.g., 100'}
                   className="bg-gray-50 border-gray-300"
                 />
+                {formData.category === 'Domestic' && (
+                  <p className="text-xs text-gray-500">
+                    For Domestic tiers: Use single value (e.g., 2500 for &quot;&gt; 2500 sq ft&quot; threshold)
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -217,9 +252,14 @@ export function TariffCategoryModal({
                   min="0"
                   value={formData.upperRange}
                   onChange={(e) => handleInputChange('upperRange', e.target.value)}
-                  placeholder="Enter upper range"
+                  placeholder={formData.category === 'Domestic' ? 'e.g., 1000 (for <= 1000 sq ft)' : 'e.g., 500'}
                   className="bg-gray-50 border-gray-300"
                 />
+                {formData.category === 'Domestic' && (
+                  <p className="text-xs text-gray-500">
+                    For base tier: Use same value as lowerRange (e.g., 1000 for &quot;&lt;= 1000 sq ft&quot;)
+                  </p>
+                )}
               </div>
             </div>
 
@@ -231,10 +271,22 @@ export function TariffCategoryModal({
                 id="rangeDescription"
                 value={formData.rangeDescription}
                 onChange={(e) => handleInputChange('rangeDescription', e.target.value)}
-                placeholder="e.g., Tin shed"
+                placeholder="e.g., Tin shed, or descriptive text"
                 className="bg-gray-50 border-gray-300"
               />
+              <p className="text-xs text-gray-500">
+                Optional description for categories without numeric ranges
+              </p>
             </div>
+
+            {formData.category === 'Domestic' && (formData.lowerRange || formData.upperRange) && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-xs text-blue-800">
+                    <strong>Domestic Category Tier:</strong> Categories are evaluated from highest to lowest threshold. 
+                    The base category (typically with &lt;= threshold) serves as the default tier.
+                  </p>
+              </div>
+            )}
           </div>
 
           {/* Flags */}
@@ -242,15 +294,38 @@ export function TariffCategoryModal({
             <h3 className="text-sm font-semibold text-gray-700">Category Flags</h3>
             
             <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="isBaseCategory"
-                  checked={formData.isBaseCategory}
-                  onCheckedChange={(checked) => handleInputChange('isBaseCategory', checked === true)}
-                />
-                <Label htmlFor="isBaseCategory" className="text-sm font-medium text-gray-700 cursor-pointer">
-                  Base Category
-                </Label>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="isBaseCategory"
+                    checked={formData.isBaseCategory}
+                    onCheckedChange={(checked) => handleInputChange('isBaseCategory', checked === true)}
+                  />
+                  <Label htmlFor="isBaseCategory" className="text-sm font-medium text-gray-700 cursor-pointer">
+                    Base Category
+                  </Label>
+                </div>
+                <div className="ml-6 space-y-1">
+                  <p className="text-xs text-gray-600">
+                    This category serves as the base/default tier for its category type. 
+                    The base category is the one that matches the calculated area value.
+                  </p>
+                  {formData.category === 'Domestic' && (
+                    <p className="text-xs text-gray-600">
+                      For Domestic categories, the base is typically the lowest tier (e.g., &quot;Lower middle&quot; with &lt;= 1000 sq ft).
+                    </p>
+                  )}
+                  {hasBaseCategoryConflict && (
+                    <div className="flex items-start gap-2 mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800">
+                      <AlertTriangle size={14} className="mt-0.5 flex-shrink-0" />
+                      <div>
+                        <strong>Warning:</strong> There {existingBaseCategories.length === 1 ? 'is' : 'are'} already {existingBaseCategories.length} base categor{existingBaseCategories.length === 1 ? 'y' : 'ies'} 
+                        {' '}for {formData.category} with this settings ID: {existingBaseCategories.map(c => c.name).join(', ')}.
+                        Having multiple base categories may cause conflicts.
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="flex items-center space-x-2">
@@ -263,6 +338,9 @@ export function TariffCategoryModal({
                   Fixed Rate
                 </Label>
               </div>
+              <p className="text-xs text-gray-600 ml-6">
+                Categories without area conditions are typically fixed rate categories.
+              </p>
 
               <div className="flex items-center space-x-2">
                 <Checkbox

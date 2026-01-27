@@ -121,90 +121,232 @@ export function AddAgentModal({ open, onClose, onSave, editMode = false, agent =
   const finalSubmitButtonText = submitButtonText || defaultSubmitButtonText;
   
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 relative">
-        <button className="absolute right-4 top-4 text-gray-400 hover:text-gray-600" onClick={onClose}><X size={20} /></button>
-        <h2 className="text-lg font-semibold mb-2">{finalModalTitle}</h2>
-        <p className="text-xs text-gray-500 mb-4">{modalDescription}</p>
-        <div className="space-y-3">
-          <Input placeholder="Full Name *" value={form.name} onChange={e => handleChange("name", e.target.value)} required />
-          <Input placeholder="Phone Number *" value={form.phone || ""} onChange={e => handleChange("phone", e.target.value)} required />
-          {showCityCorporation && (
-            <Dropdown 
-              options={cityCorporationOptions} 
-              value={form.cityCorporation || ""} 
-              onChange={v => handleChange("cityCorporation", v)} 
-              placeholder="Select City Corporation" 
-              className="w-full" 
-            />
-          )}
-          {showZoneWard && (
-            <div className="flex gap-2">
-              {zoneWardAsNumbers ? (
-                <>
-                  <Input 
-                    type="number" 
-                    placeholder="Zone ID" 
-                    value={form.zone || ""} 
-                    onChange={e => handleChange("zone", e.target.value)} 
-                    className="w-1/2 bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500" 
-                  />
-                  <Input 
-                    type="number" 
-                    placeholder="Ward ID" 
-                    value={form.ward || ""} 
-                    onChange={e => handleChange("ward", e.target.value)} 
-                    className="w-1/2 bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500" 
-                  />
-                </>
-              ) : (
-                <>
-                  <Dropdown options={zoneOptions} value={form.zone || ""} onChange={v => handleChange("zone", v)} placeholder="Select zone" className="w-1/2" />
-                  <Dropdown options={wardOptions} value={form.ward || ""} onChange={v => handleChange("ward", v)} placeholder="Select ward" className="w-1/2" />
-                </>
-              )}
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg relative animate-in fade-in-0 zoom-in-95 duration-200">
+        {/* Header */}
+        <div className="px-6 pt-6 pb-4 border-b border-gray-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">{finalModalTitle}</h2>
             </div>
-          )}
-          <Dropdown 
-            options={roleOptions.length > 0 ? roleOptions : [
-              {value:"Super Admin",label:"Super Admin"},
-              {value:"Tariff Admin",label:"Tariff Admin"},
-              {value:"Customer Admin",label:"Customer Admin"},
-              {value:"Meter Admin",label:"Meter Admin"}
-            ]} 
-            value={form.role} 
-            onChange={v => handleChange("role", v)} 
-            placeholder="Select role" 
-            className="w-full"
-            disabled={!!roleFixed}
-          />
-          <Input type="email" placeholder="Email Address *" value={form.email} onChange={e => handleChange("email", e.target.value)} required />
-          {!editMode && (
-            <>
-              <Input type="password" placeholder="Password * (min 6 characters)" value={form.password || ""} onChange={e => handleChange("password", e.target.value)} required minLength={6} />
-              <Input type="password" placeholder="Confirm Password *" value={form.confirm || ""} onChange={e => handleChange("confirm", e.target.value)} required />
-            </>
-          )}
+            <button 
+              className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg p-1.5 transition-colors" 
+              onClick={onClose}
+            >
+              <X size={20} />
+            </button>
+          </div>
         </div>
-        <div className="flex justify-between gap-2 mt-6">
-          {editMode && onDelete && (
-            <Button 
-              variant="outline" 
-              onClick={onDelete}
-              className="border-red-300 text-red-600 hover:bg-red-50"
-            >
-              Remove
-            </Button>
-          )}
-          <div className={`flex gap-2 ${editMode && onDelete ? 'ml-auto' : 'w-full justify-end'}`}>
-            <Button variant="outline" onClick={onClose}>Cancel</Button>
-            <Button 
-              className="bg-primary text-white disabled:opacity-50 disabled:cursor-not-allowed" 
-              onClick={handleSubmit}
-              disabled={!isFormValid()}
-            >
-              {finalSubmitButtonText}
-            </Button>
+
+        {/* Form Content */}
+        <div className="px-6 py-5 max-h-[calc(100vh-200px)] overflow-y-auto">
+          <div className="space-y-6">
+            {/* Role Selection - At the Top */}
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-gray-700 block">
+                Role <span className="text-red-500">*</span>
+              </label>
+              <Dropdown 
+                options={roleOptions.length > 0 ? roleOptions : [
+                  {value:"Super Admin",label:"Super Admin"},
+                  {value:"Tariff Admin",label:"Tariff Admin"},
+                  {value:"Customer Admin",label:"Customer Admin"},
+                  {value:"Meter Admin",label:"Meter Admin"}
+                ]} 
+                value={form.role} 
+                onChange={v => handleChange("role", v)} 
+                placeholder="Select role" 
+                className="w-full"
+                disabled={!!roleFixed}
+              />
+            </div>
+
+            {/* Personal Information Section */}
+            <div className="space-y-4">
+              <div className="pb-2 border-b border-gray-100">
+                <h3 className="text-sm font-semibold text-gray-800">Personal Information</h3>
+              </div>
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-gray-700">
+                    Full Name <span className="text-red-500">*</span>
+                  </label>
+                  <Input 
+                    placeholder="Enter full name" 
+                    value={form.name} 
+                    onChange={e => handleChange("name", e.target.value)} 
+                    required 
+                    className="w-full"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-gray-700">
+                    Email Address <span className="text-red-500">*</span>
+                  </label>
+                  <Input 
+                    type="email" 
+                    placeholder="Enter email address" 
+                    value={form.email} 
+                    onChange={e => handleChange("email", e.target.value)} 
+                    required 
+                    className="w-full"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-gray-700">
+                    Phone Number <span className="text-red-500">*</span>
+                  </label>
+                  <Input 
+                    placeholder="Enter phone number" 
+                    value={form.phone || ""} 
+                    onChange={e => handleChange("phone", e.target.value)} 
+                    required 
+                    className="w-full"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Location Information Section */}
+            {(showCityCorporation || showZoneWard) && (
+              <div className="space-y-4">
+                <div className="pb-2 border-b border-gray-100">
+                  <h3 className="text-sm font-semibold text-gray-800">Location Information</h3>
+                </div>
+                <div className="space-y-3">
+                  {showCityCorporation && (
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-gray-700">
+                        City Corporation
+                      </label>
+                      <Dropdown 
+                        options={cityCorporationOptions} 
+                        value={form.cityCorporation || ""} 
+                        onChange={v => handleChange("cityCorporation", v)} 
+                        placeholder="Select City Corporation" 
+                        className="w-full" 
+                      />
+                    </div>
+                  )}
+                  {showZoneWard && (
+                    <div className="grid grid-cols-2 gap-3">
+                      {zoneWardAsNumbers ? (
+                        <>
+                          <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-gray-700">Zone ID</label>
+                            <Input 
+                              type="number" 
+                              placeholder="Zone ID" 
+                              value={form.zone || ""} 
+                              onChange={e => handleChange("zone", e.target.value)} 
+                              className="w-full" 
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-gray-700">Ward ID</label>
+                            <Input 
+                              type="number" 
+                              placeholder="Ward ID" 
+                              value={form.ward || ""} 
+                              onChange={e => handleChange("ward", e.target.value)} 
+                              className="w-full" 
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-gray-700">Zone</label>
+                            <Dropdown 
+                              options={zoneOptions} 
+                              value={form.zone || ""} 
+                              onChange={v => handleChange("zone", v)} 
+                              placeholder="Select zone" 
+                              className="w-full" 
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-gray-700">Ward</label>
+                            <Dropdown 
+                              options={wardOptions} 
+                              value={form.ward || ""} 
+                              onChange={v => handleChange("ward", v)} 
+                              placeholder="Select ward" 
+                              className="w-full" 
+                            />
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Security Section - Only in Add Mode */}
+            {!editMode && (
+              <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-gray-700">
+                      Password <span className="text-red-500">*</span>
+                      <span className="text-xs text-gray-500 font-normal ml-1">(min 6 characters)</span>
+                    </label>
+                    <Input 
+                      type="password" 
+                      placeholder="Enter password" 
+                      value={form.password || ""} 
+                      onChange={e => handleChange("password", e.target.value)} 
+                      required 
+                      minLength={6} 
+                      className="w-full"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-gray-700">
+                      Confirm Password <span className="text-red-500">*</span>
+                    </label>
+                    <Input 
+                      type="password" 
+                      placeholder="Confirm password" 
+                      value={form.confirm || ""} 
+                      onChange={e => handleChange("confirm", e.target.value)} 
+                      required 
+                      className="w-full"
+                    />
+                  </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer Actions */}
+        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 rounded-b-2xl">
+          <div className="flex justify-between gap-3">
+            {editMode && onDelete && (
+              <Button 
+                variant="outline" 
+                onClick={onDelete}
+                className="border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400"
+              >
+                Remove
+              </Button>
+            )}
+            <div className={`flex gap-3 ${editMode && onDelete ? 'ml-auto' : 'w-full justify-end'}`}>
+              <Button 
+                variant="outline" 
+                onClick={onClose}
+                className="min-w-[100px]"
+              >
+                Cancel
+              </Button>
+              <Button 
+                className="bg-primary hover:bg-primary/90 text-white disabled:opacity-50 disabled:cursor-not-allowed min-w-[120px] shadow-sm" 
+                onClick={handleSubmit}
+                disabled={!isFormValid()}
+              >
+                {finalSubmitButtonText}
+              </Button>
+            </div>
           </div>
         </div>
       </div>

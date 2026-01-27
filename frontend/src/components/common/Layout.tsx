@@ -65,25 +65,21 @@ export default function Layout({ children }: LayoutProps) {
     "tariff-visualizer": "/tariff-admin/visualizer",
     "zone-scoring": "/tariff-admin/zone-scoring",
     "location-management": "/tariff-admin/location-management",
-    "tariff-category-settings": "/tariff-admin/tariff-category-settings",
-    "tariff-categories": "/tariff-admin/tariff-categories",
     "my-metrics": "/tariff-admin/metrics",
   };
   const tariffActive = isTariffAdmin
     ? (() => {
         if (pathname.startsWith("/tariff-admin/zone-scoring")) return "zone-scoring";
         if (pathname.startsWith("/tariff-admin/location-management")) return "location-management";
-        if (pathname.startsWith("/tariff-admin/tariff-category-settings")) return "tariff-category-settings";
-        if (pathname.startsWith("/tariff-admin/tariff-categories")) return "tariff-categories";
         const match = pathname.match(/^\/tariff-admin\/(\w+)/);
-        if (!match) return "zone-scoring";
+        if (!match) return "tariff-config";
         switch (match[1]) {
           case "config": return "tariff-config";
           case "history": return "tariff-history";
           case "visualizer": return "tariff-visualizer";
           case "metrics": return "my-metrics";
           case "areas": return "location-management";
-          default: return "zone-scoring";
+          default: return "tariff-config";
         }
       })()
     : "";
@@ -95,7 +91,7 @@ export default function Layout({ children }: LayoutProps) {
       navigate("/login");
       return;
     }
-    const path = tariffRouteMap[id] ?? "/tariff-admin/zone-scoring";
+    const path = tariffRouteMap[id] ?? "/tariff-admin/config";
     navigate(path);
   };
 
@@ -176,7 +172,7 @@ export default function Layout({ children }: LayoutProps) {
           <Sidebar activePage={superAdminActive} onNavigate={handleSuperAdminNavigate} />
         )}
       </aside>
-      <main className="flex-1 ml-[260px] max-w-6xl mx-auto w-full px-4 py-6">
+      <main className="flex-1 ml-[260px] w-full px-4 py-6">
         {children ?? <Outlet />}
       </main>
     </div>

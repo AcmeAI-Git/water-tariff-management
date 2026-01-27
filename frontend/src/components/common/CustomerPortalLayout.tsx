@@ -40,7 +40,7 @@ export default function CustomerPortalLayout() {
   return (
     <div className="min-h-screen bg-app">
       <CustomerPortalSidebar activePage={getActivePage()} onNavigate={handleNavigate} />
-      <div className="ml-[280px]">
+      <div className="ml-[280px] w-full px-4 py-6">
         <Outlet />
       </div>
     </div>
