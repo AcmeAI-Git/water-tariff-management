@@ -726,6 +726,7 @@ export function ApprovalQueue() {
       {/* Review Modal */}
       {selectedRequest && (
         <ReviewChangeModal
+          open={!!selectedRequest}
           request={{
             id: selectedRequest.id,
             module: selectedRequest.module,
@@ -734,7 +735,7 @@ export function ApprovalQueue() {
             oldData: selectedRequest.oldData,
             newData: selectedRequest.newData,
           }}
-          onClose={handleCloseModal}
+          onOpenChange={(open) => !open && handleCloseModal()}
           onApprove={() => {
             // Capture request before closing modal
             const requestToApprove = selectedRequest;

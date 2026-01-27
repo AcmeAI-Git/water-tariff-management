@@ -1,6 +1,5 @@
 import { Button } from '../ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { Badge } from '../ui/badge';
 import { Input } from '../ui/input';
 import { Plus, Edit, Trash2, Search, Star, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useState, useMemo } from 'react';
@@ -8,9 +7,8 @@ import { api } from '../../services/api';
 import { useApiQuery, useApiMutation } from '../../hooks/useApiQuery';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { toast } from 'sonner';
-import type { TariffCategory, CreateTariffCategoryDto, UpdateTariffCategoryDto, TariffCategorySettings } from '../../types';
+import type { TariffCategory, CreateTariffCategoryDto, UpdateTariffCategoryDto } from '../../types';
 import { TariffCategoryModal } from '../modals/TariffCategoryModal';
-import { StatusBadge } from '../zoneScoring/StatusBadge';
 
 interface TariffCategoriesTabProps {
   settingsId: number;
@@ -23,11 +21,11 @@ export function TariffCategoriesTab({ settingsId }: TariffCategoriesTabProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategoryType, setFilterCategoryType] = useState<string>('all');
 
-  // Fetch settings to pass to modal
-  const { data: settingsData } = useApiQuery(
-    ['tariff-category-settings', settingsId],
-    () => api.tariffCategorySettings.getById(settingsId)
-  );
+  // Fetch settings to pass to modal (commented out as not currently used)
+  // const { data: settingsData } = useApiQuery(
+  //   ['tariff-category-settings', settingsId],
+  //   () => api.tariffCategorySettings.getById(settingsId)
+  // );
 
   // Fetch all settings for modal dropdown
   const { data: allSettings = [] } = useApiQuery(
@@ -358,7 +356,9 @@ export function TariffCategoriesTab({ settingsId }: TariffCategoriesTabProps) {
                               <div className="flex items-center gap-2">
                                 {category.name}
                                 {category.isBaseCategory && (
-                                  <Star size={14} className="text-green-600" title="Base Category" />
+                                  <span title="Base Category">
+                                    <Star size={14} className="text-green-600" />
+                                  </span>
                                 )}
                               </div>
                             </TableCell>
@@ -377,7 +377,9 @@ export function TariffCategoriesTab({ settingsId }: TariffCategoriesTabProps) {
                                   </span>
                                 )}
                                 {hasMultipleBasesForCategory && category.isBaseCategory && (
-                                  <AlertTriangle size={14} className="text-amber-600 inline-flex items-center h-8" title="Multiple base categories exist for this settings ID" />
+                                  <span title="Multiple base categories exist for this settings ID">
+                                    <AlertTriangle size={14} className="text-amber-600 inline-flex items-center h-8" />
+                                  </span>
                                 )}
                                 
                                 {/* Set Base button - before Edit for Domestic categories */}

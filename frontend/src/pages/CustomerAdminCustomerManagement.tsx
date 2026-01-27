@@ -1209,9 +1209,9 @@ export function CustomerAdminCustomerManagement() {
                                       <span className="font-medium">Account Type:</span> {customer.accountType}
                                     </p>
                                   )}
-                                  {customer.customerCategory && (
+                                  {customer.customerCategories && customer.customerCategories.length > 0 && (
                                     <p className="text-xs text-gray-600">
-                                      <span className="font-medium">Category:</span> {customer.customerCategory}
+                                      <span className="font-medium">Category:</span> {typeof customer.customerCategories[0] === 'object' ? customer.customerCategories[0].customerCategory : customer.customerCategories[0]}
                                     </p>
                                   )}
                                 </div>

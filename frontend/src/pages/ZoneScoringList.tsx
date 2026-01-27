@@ -7,7 +7,6 @@ import { api } from '../services/api';
 import { useApiQuery, useApiMutation, useAdminId } from '../hooks/useApiQuery';
 import { useQueryClient } from '@tanstack/react-query';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import { StatusBadge } from '../components/zoneScoring/StatusBadge';
 import { DeleteConfirmationDialog } from '../components/zoneScoring/DeleteConfirmationDialog';
 import { PageHeader } from '../components/zoneScoring/PageHeader';
 import { EmptyState } from '../components/zoneScoring/EmptyState';
@@ -35,7 +34,8 @@ export function ZoneScoringList() {
       invalidateQueries: [['zone-scoring']],
       onSuccess: async () => {
         // Wait for the query to refetch after invalidation
-        const { data: updatedRulesets } = await queryClient.refetchQueries({ queryKey: ['zone-scoring'] });
+        await queryClient.refetchQueries({ queryKey: ['zone-scoring'] });
+        const updatedRulesets = queryClient.getQueryData<ZoneScoringRuleSet[]>(['zone-scoring']);
         const rulesets = (updatedRulesets ?? []) as ZoneScoringRuleSet[];
         
         // Check if there's only one approved ruleset remaining

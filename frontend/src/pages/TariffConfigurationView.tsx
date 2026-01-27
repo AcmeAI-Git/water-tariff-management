@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useState } from 'react';
 import { api } from '../services/api';
 import { useApiQuery, useApiMutation } from '../hooks/useApiQuery';
@@ -17,7 +17,7 @@ import type {
 
 export function TariffConfigurationView() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  // const navigate = useNavigate(); // Unused for now
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // Fetch settings by ID

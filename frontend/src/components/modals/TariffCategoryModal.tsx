@@ -4,8 +4,6 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Dropdown } from '../ui/Dropdown';
 import { useState, useEffect } from 'react';
-import { api } from '../../services/api';
-import { useApiQuery } from '../../hooks/useApiQuery';
 import type { TariffCategory, CreateTariffCategoryDto, UpdateTariffCategoryDto, TariffCategorySettings } from '../../types';
 
 interface TariffCategoryModalProps {

@@ -116,7 +116,6 @@ export function AddAgentModal({ open, onClose, onSave, editMode = false, agent =
   
   const defaultModalTitle = editMode ? "Edit Agent" : "Add New Agent";
   const finalModalTitle = modalTitle || defaultModalTitle;
-  const modalDescription = editMode ? "Update admin information" : "Register a new admin";
   const defaultSubmitButtonText = editMode ? "Save Changes" : "Add Agent";
   const finalSubmitButtonText = submitButtonText || defaultSubmitButtonText;
   

@@ -1,7 +1,7 @@
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { MeterReaderSidebar } from "./MeterReaderSidebar";
 import { CustomerAdminSidebar } from "./CustomerAdminSidebar";

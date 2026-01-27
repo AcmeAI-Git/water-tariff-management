@@ -8,7 +8,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Plus, Edit, Trash2, CheckCircle } from 'lucide-react';
 import { PageHeader } from '../components/zoneScoring/PageHeader';
 import { EmptyState } from '../components/zoneScoring/EmptyState';
-import { StatusBadge } from '../components/zoneScoring/StatusBadge';
 import { DeleteConfirmationDialog } from '../components/zoneScoring/DeleteConfirmationDialog';
 import { TariffCategorySettingsModal } from '../components/modals/TariffCategorySettingsModal';
 import type { 
@@ -95,10 +94,10 @@ export function TariffConfiguration() {
     createMutation.mutate(data as CreateTariffCategorySettingsDto);
   };
 
-  const handleEdit = (settings: TariffCategorySettings) => {
-    setEditingSettings(settings);
-    setIsEditModalOpen(true);
-  };
+  // const handleEdit = (settings: TariffCategorySettings) => {
+  //   setEditingSettings(settings);
+  //   setIsEditModalOpen(true);
+  // };
 
   const handleUpdate = (data: CreateTariffCategorySettingsDto | UpdateTariffCategorySettingsDto) => {
     if (!editingSettings) return;
