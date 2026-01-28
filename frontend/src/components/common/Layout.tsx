@@ -121,10 +121,11 @@ export default function Layout({ children }: LayoutProps) {
   // General admin helpers
   const generalInfoActive = isGeneralInfoAdmin
     ? (() => {
-        const match = pathname.match(/^\/general-admin\/(\w+)/);
+        const match = pathname.match(/^\/general-admin\/([^/]+)/);
         if (!match) return "dashboard";
         switch (match[1]) {
           case "dashboard": return "dashboard";
+          case "meter-readers": return "users";
           case "users": return "users";
           case "audit": return "audit";
           default: return "dashboard";

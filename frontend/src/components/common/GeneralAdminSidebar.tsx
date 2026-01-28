@@ -1,7 +1,6 @@
 import {
     Home,
     Users,
-    ClipboardList,
     LogOut,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -20,7 +19,6 @@ export function GeneralAdminSidebar({ activePage, onNavigate }: GeneralAdminSide
     const routeMap: Record<string, string> = {
         dashboard: "/general-admin/dashboard",
         users: "/general-admin/meter-readers",
-        audit: "/general-admin/audit",
     };
 
     const handleNav = (id: string) => {
@@ -52,7 +50,6 @@ export function GeneralAdminSidebar({ activePage, onNavigate }: GeneralAdminSide
     const menuItems = [
         { id: "dashboard", label: "Dashboard", icon: Home },
         { id: "users", label: "Meter Reader Management", icon: Users },
-        { id: "audit", label: "System Audit Log", icon: ClipboardList },
     ];
 
     return (
