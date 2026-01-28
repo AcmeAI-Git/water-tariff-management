@@ -1,4 +1,4 @@
-import type { CreateScoringParamDto, Area } from '../types';
+import type { CreateScoringParamDto, Area, Zone, Wasa } from '../types';
 
 export interface CSVParseResult {
   success: boolean;
@@ -75,16 +75,15 @@ export async function parseScoringParamsCSV(
     
     if (!hasAreaId && !hasAreaName) {
       missingColumns.push('areaId or areaName');
-      // Add helpful debug info
-      const foundHeaders = headers.map((h) => `"${h}" (normalized: "${h.toLowerCase().trim()}")`).join(', ');
-      errors.push(`Missing required columns: ${missingColumns.join(', ')}`);
-      errors.push(`Found headers: [${foundHeaders}]`);
-      errors.push(`Normalized header keys: [${Object.keys(normalizedHeaders).join(', ')}]`);
-      return { success: false, data: [], errors, warnings };
     }
 
     if (missingColumns.length > 0) {
+      // Add helpful debug info
+      const foundHeaders = headers.map((h) => `"${h}"`).join(', ');
+      const normalizedKeys = Object.keys(normalizedHeaders).map(key => `${key} (index: ${normalizedHeaders[key]})`).join(', ');
       errors.push(`Missing required columns: ${missingColumns.join(', ')}`);
+      errors.push(`Found headers: [${foundHeaders}]`);
+      errors.push(`Normalized header keys: [${normalizedKeys}]`);
       return { success: false, data: [], errors, warnings };
     }
 
@@ -173,22 +172,62 @@ export async function parseScoringParamsCSV(
         continue;
       }
 
+      // Parse numeric values - ensure they're valid numbers
+      const landHomeRateNum = parseFloat(landHomeRate);
+      const landRateNum = parseFloat(landRate);
+      const landTaxRateNum = parseFloat(landTaxRate);
+      const buildingTaxRateUpto120sqmNum = parseFloat(buildingTaxRateUpto120sqm);
+      const buildingTaxRateUpto200sqmNum = parseFloat(buildingTaxRateUpto200sqm);
+      const buildingTaxRateAbove200sqmNum = parseFloat(buildingTaxRateAbove200sqm);
+      const highIncomeGroupConnectionPercentageNum = parseFloat(highIncomeGroupConnectionPercentage);
+
+      // Validate that all numeric values are valid
+      if (isNaN(landHomeRateNum)) {
+        rowErrors.push(`Row ${i + 1}: landHomeRate must be a valid number`);
+      }
+      if (isNaN(landRateNum)) {
+        rowErrors.push(`Row ${i + 1}: landRate must be a valid number`);
+      }
+      if (isNaN(landTaxRateNum)) {
+        rowErrors.push(`Row ${i + 1}: landTaxRate must be a valid number`);
+      }
+      if (isNaN(buildingTaxRateUpto120sqmNum)) {
+        rowErrors.push(`Row ${i + 1}: buildingTaxRateUpto120sqm must be a valid number`);
+      }
+      if (isNaN(buildingTaxRateUpto200sqmNum)) {
+        rowErrors.push(`Row ${i + 1}: buildingTaxRateUpto200sqm must be a valid number`);
+      }
+      if (isNaN(buildingTaxRateAbove200sqmNum)) {
+        rowErrors.push(`Row ${i + 1}: buildingTaxRateAbove200sqm must be a valid number`);
+      }
+      if (isNaN(highIncomeGroupConnectionPercentageNum)) {
+        rowErrors.push(`Row ${i + 1}: highIncomeGroupConnectionPercentage must be a valid number`);
+      }
+
+      if (rowErrors.length > 0) {
+        errors.push(...rowErrors);
+        warnings.push(`Row ${i + 1} skipped due to errors`);
+        continue;
+      }
+
       // Create scoring parameter DTO
+      // Note: Percentages and geoMean will be calculated later, but we initialize them as empty strings
+      // to match the frontend type definition. They will be converted to numbers before sending to backend.
       const param: CreateScoringParamDto = {
         areaId: areaId!,
-        landHomeRate,
+        landHomeRate: landHomeRateNum.toString(),
         landHomeRatePercentage: '', // Will be calculated
-        landRate,
+        landRate: landRateNum.toString(),
         landRatePercentage: '', // Will be calculated
-        landTaxRate,
+        landTaxRate: landTaxRateNum.toString(),
         landTaxRatePercentage: '', // Will be calculated
-        buildingTaxRateUpto120sqm,
+        buildingTaxRateUpto120sqm: buildingTaxRateUpto120sqmNum.toString(),
         buildingTaxRateUpto120sqmPercentage: '', // Will be calculated
-        buildingTaxRateUpto200sqm,
+        buildingTaxRateUpto200sqm: buildingTaxRateUpto200sqmNum.toString(),
         buildingTaxRateUpto200sqmPercentage: '', // Will be calculated
-        buildingTaxRateAbove200sqm,
+        buildingTaxRateAbove200sqm: buildingTaxRateAbove200sqmNum.toString(),
         buildingTaxRateAbove200sqmPercentage: '', // Will be calculated
-        highIncomeGroupConnectionPercentage,
+        highIncomeGroupConnectionPercentage: highIncomeGroupConnectionPercentageNum.toString(),
         geoMean: '', // Will be calculated
       };
 
@@ -290,13 +329,13 @@ function normalizeHeaders(headers: string[]): { [key: string]: number } {
   const headerMap: { [key: string]: string[] } = {
     areaId: ['areaid', 'area_id', 'area id'],
     areaName: ['areaname', 'area_name', 'area name', 'area'],
-    landHomeRate: ['landhomerate', 'land_home_rate', 'land home rate', 'land+home rate', 'land+home rate (bdt/sqm)', 'land+home rate (bdt per sqm)'],
-    landRate: ['landrate', 'land_rate', 'land rate', 'land rate (bdt/sqm)', 'land rate (bdt per sqm)'],
-    landTaxRate: ['landtaxrate', 'land_tax_rate', 'land tax rate', 'land tax rate (bdt/sqm)', 'land tax rate (bdt per sqm)'],
-    buildingTaxRateUpto120sqm: ['buildingtaxrateupto120sqm', 'building_tax_rate_upto_120sqm', 'building tax rate upto 120sqm', 'building tax (≤120sqm)', 'building tax rate ≤120sqm (bdt/sqm)', 'building tax rate ≤120sqm (bdt per sqm)'],
-    buildingTaxRateUpto200sqm: ['buildingtaxrateupto200sqm', 'building_tax_rate_upto_200sqm', 'building tax rate upto 200sqm', 'building tax (≤200sqm)', 'building tax rate ≤200sqm (bdt/sqm)', 'building tax rate ≤200sqm (bdt per sqm)'],
-    buildingTaxRateAbove200sqm: ['buildingtaxrateabove200sqm', 'building_tax_rate_above_200sqm', 'building tax rate above 200sqm', 'building tax (>200sqm)', 'building tax rate >200sqm (bdt/sqm)', 'building tax rate >200sqm (bdt per sqm)'],
-    highIncomeGroupConnectionPercentage: ['highincomegroupconnectionpercentage', 'high_income_group_connection_percentage', 'high income group connection percentage', 'high income group connection percentage (bdt/sqm)', 'high income group connection percentage (bdt per sqm)', 'high income', 'high income group connection count', 'high income group connection count (bdt/sqm)', 'high income group connection count (bdt per sqm)'],
+    landHomeRate: ['landhomerate', 'land_home_rate', 'land home rate', 'land+home rate', 'land+home rate (bdt/sqm)', 'land+home rate (bdt per sqm)', 'land+home rate (bdt/sqm) *required'],
+    landRate: ['landrate', 'land_rate', 'land rate', 'land rate (bdt/sqm)', 'land rate (bdt per sqm)', 'land rate (bdt/sqm) *required'],
+    landTaxRate: ['landtaxrate', 'land_tax_rate', 'land tax rate', 'land tax rate (bdt/sqm)', 'land tax rate (bdt per sqm)', 'land tax rate (bdt/sqm) *required'],
+    buildingTaxRateUpto120sqm: ['buildingtaxrateupto120sqm', 'building_tax_rate_upto_120sqm', 'building tax rate upto 120sqm', 'building tax (≤120sqm)', 'building tax rate ≤120sqm (bdt/sqm)', 'building tax rate ≤120sqm (bdt per sqm)', 'building tax rate ≤120sqm (bdt/sqm) *required'],
+    buildingTaxRateUpto200sqm: ['buildingtaxrateupto200sqm', 'building_tax_rate_upto_200sqm', 'building tax rate upto 200sqm', 'building tax (≤200sqm)', 'building tax rate ≤200sqm (bdt/sqm)', 'building tax rate ≤200sqm (bdt per sqm)', 'building tax rate ≤200sqm (bdt/sqm) *required'],
+    buildingTaxRateAbove200sqm: ['buildingtaxrateabove200sqm', 'building_tax_rate_above_200sqm', 'building tax rate above 200sqm', 'building tax (>200sqm)', 'building tax rate >200sqm (bdt/sqm)', 'building tax rate >200sqm (bdt per sqm)', 'building tax rate >200sqm (bdt/sqm) *required'],
+    highIncomeGroupConnectionPercentage: ['highincomegroupconnectionpercentage', 'high_income_group_connection_percentage', 'high income group connection percentage', 'high income group connection percentage (bdt/sqm)', 'high income group connection percentage (bdt per sqm)', 'high income', 'high income group connection count', 'high income group connection count (bdt/sqm)', 'high income group connection count (bdt per sqm)', 'high income group connection percentage *required'],
   };
 
   headers.forEach((header, index) => {
@@ -307,7 +346,12 @@ function normalizeHeaders(headers: string[]): { [key: string]: number } {
       cleanHeader = cleanHeader.slice(1, -1).trim();
     }
     
-    const normalizedHeader = cleanHeader.toLowerCase().trim();
+    // Remove "*Required" suffix and other markers, normalize to lowercase
+    let normalizedHeader = cleanHeader
+      .replace(/\s*\*required\s*/gi, '') // Remove *Required suffix (case insensitive)
+      .toLowerCase()
+      .trim();
+    
     let matched = false;
     
     // Check each possible mapping
@@ -357,25 +401,34 @@ function isRowEmpty(row: string[]): boolean {
  * Generate CSV template content
  * Note: Zone and WASA columns are optional (for reference only)
  * Only Area Name (or Area ID) is required for parsing
+ * All numeric fields are required and must be valid numbers
+ * @param areas Optional array of areas to use first area as example, otherwise uses placeholder
+ * @param zones Optional array of zones to look up zone name
+ * @param wasas Optional array of WASAs to look up WASA name
  */
-export function generateCSVTemplate(): string {
+export function generateCSVTemplate(areas?: Area[], zones?: Zone[], wasas?: Wasa[]): string {
   const headers = [
     'Area Name',
     'Zone (Optional - for reference)',
     'WASA (Optional - for reference)',
-    'Land+Home Rate (BDT/sqm)',
-    'Land Rate (BDT/sqm)',
-    'Land Tax Rate (BDT/sqm)',
-    'Building Tax Rate ≤120sqm (BDT/sqm)',
-    'Building Tax Rate ≤200sqm (BDT/sqm)',
-    'Building Tax Rate >200sqm (BDT/sqm)',
-    'High Income Group Connection Percentage'
+    'Land+Home Rate (BDT/sqm) *Required',
+    'Land Rate (BDT/sqm) *Required',
+    'Land Tax Rate (BDT/sqm) *Required',
+    'Building Tax Rate ≤120sqm (BDT/sqm) *Required',
+    'Building Tax Rate ≤200sqm (BDT/sqm) *Required',
+    'Building Tax Rate >200sqm (BDT/sqm) *Required',
+    'High Income Group Connection Percentage *Required'
   ];
   
+  // Use first area from database if available, otherwise use placeholder
+  const exampleArea = areas && areas.length > 0 ? areas[0] : null;
+  const exampleZone = exampleArea?.zone || (exampleArea && zones ? zones.find(z => z.id === exampleArea.zoneId) : null);
+  const exampleWasa = exampleZone && wasas ? wasas.find(w => w.id === exampleZone.wasaId) : null;
+  
   const exampleRow = [
-    'Banani Block C',
-    'Zone-1',
-    'Dhaka WASA',
+    exampleArea ? exampleArea.name : '[Enter Area Name]',
+    exampleZone ? exampleZone.name : '[Zone Name]',
+    exampleWasa ? exampleWasa.name : '[WASA Name]',
     '32896.00',
     '20000.00',
     '5000.00',

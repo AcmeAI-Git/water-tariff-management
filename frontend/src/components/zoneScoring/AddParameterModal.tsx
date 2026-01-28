@@ -1,8 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 import { Button } from '../ui/button';
-import { Label } from '../ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import type { Area, CreateScoringParamDto, ScoringParam, Zone, Wasa } from '../../types';
 import { initializeScoringParam } from '../../utils/zoneScoringUtils';
 import { ScoringParameterFormFields } from './ScoringParameterFormFields';

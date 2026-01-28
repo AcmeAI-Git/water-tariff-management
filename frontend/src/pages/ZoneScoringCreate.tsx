@@ -2,15 +2,13 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { useState, useRef, useMemo } from 'react';
 import { Plus, X, Trash2, Upload, Download } from 'lucide-react';
 import { api } from '../services/api';
 import { useApiMutation, useApiQuery } from '../hooks/useApiQuery';
 import { PageHeader } from '../components/zoneScoring/PageHeader';
-import { ScoringParameterFormFields } from '../components/zoneScoring/ScoringParameterFormFields';
 import { AddParameterModal } from '../components/zoneScoring/AddParameterModal';
-import { initializeScoringParam, calculatePercentages, mapScoringParamsToDto } from '../utils/zoneScoringUtils';
+import { initializeScoringParam, calculatePercentages, mapScoringParamsToDto, convertDtosToBackendFormat } from '../utils/zoneScoringUtils';
 import { parseScoringParamsCSV, generateCSVTemplate } from '../utils/csvParser';
 import type { CreateZoneScoringRuleSetDto, CreateScoringParamDto, Area, ScoringParam, Zone, Wasa } from '../types';
 
@@ -27,7 +25,7 @@ export function ZoneScoringCreate() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch areas
-  const { data: areasData, isLoading: areasLoading } = useApiQuery<Area[]>(
+  const { data: areasData } = useApiQuery<Area[]>(
     ['areas'],
     () => api.area.getAll()
   );
@@ -242,7 +240,7 @@ export function ZoneScoringCreate() {
   };
 
   const handleDownloadTemplate = () => {
-    const template = generateCSVTemplate();
+    const template = generateCSVTemplate(areas, zones, wasas);
     const blob = new Blob([template], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -285,11 +283,14 @@ export function ZoneScoringCreate() {
     }
 
     try {
+      // Convert string DTOs to number format expected by backend
+      const backendScoringParams = convertDtosToBackendFormat(scoringParams);
+      
       await createZoneScoringMutation.mutateAsync({
         title: title.trim(),
         description: description.trim() || undefined,
         status: 'draft',
-        scoringParams,
+        scoringParams: backendScoringParams as any, // Backend expects numbers, but frontend types use strings
       });
       navigate('/tariff-admin/zone-scoring');
     } catch (error) {
