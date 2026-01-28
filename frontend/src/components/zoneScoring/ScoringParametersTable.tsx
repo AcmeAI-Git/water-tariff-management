@@ -34,7 +34,7 @@ export function ScoringParametersTable({ calculatedParams, onEditParam, onRemove
         <TableRow className="border-gray-200 bg-gray-50">
           <TableHead className="text-sm font-semibold text-gray-700 whitespace-nowrap">Area Name</TableHead>
           <TableHead className="text-sm font-semibold text-gray-700 whitespace-nowrap">Zone</TableHead>
-          <TableHead className="text-sm font-semibold text-gray-700 whitespace-nowrap">City Corporation</TableHead>
+          <TableHead className="text-sm font-semibold text-gray-700 whitespace-nowrap">WASA</TableHead>
           <TableHead className="text-sm font-semibold text-gray-700 whitespace-nowrap">Land+Home Rate<br/>(BDT/sqm)</TableHead>
           <TableHead className="text-sm font-semibold text-gray-700 whitespace-nowrap">% of Land+Home</TableHead>
           <TableHead className="text-sm font-semibold text-gray-700 whitespace-nowrap">Land Rate<br/>(BDT/sqm)</TableHead>
@@ -62,11 +62,11 @@ export function ScoringParametersTable({ calculatedParams, onEditParam, onRemove
           );
           const zoneScore = apiZoneScore?.score || '-';
           
-          // Get zone and city corporation info
+          // Get zone and WASA info
           // Use nested zone object from area if available, otherwise fallback to lookup
           const zone = param.area?.zone || (param.area?.zoneId ? zones.find(z => z.id === param.area.zoneId) : null);
-          const cityCorp = zone?.wasaId 
-            ? (zone.wasa || wasas.find(cc => cc.id === zone.wasaId))
+          const wasa = zone?.wasaId 
+            ? (zone.wasa || wasas.find(w => w.id === zone.wasaId))
             : null;
           
           // Alternate row background colors for better readability
@@ -81,7 +81,7 @@ export function ScoringParametersTable({ calculatedParams, onEditParam, onRemove
                 {zone?.name || '-'}
               </TableCell>
               <TableCell className="text-sm text-gray-600 whitespace-nowrap">
-                {cityCorp?.name || '-'}
+                {wasa?.name || '-'}
               </TableCell>
               <TableCell className="text-sm text-gray-900 whitespace-nowrap">
                 {param.landHomeRate}

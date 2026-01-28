@@ -41,13 +41,13 @@ export function ZoneScoringCreate() {
 
   // Fetch WASAs
   const { data: wasasData } = useApiQuery<Wasa[]>(
-    ['city-corporations'],
+    ['wasas'],
     () => api.wasas.getAll()
   );
   const wasas: Wasa[] = (wasasData ?? []) as Wasa[];
 
   // State for hierarchical filtering
-  const [filterCityCorpId, setFilterCityCorpId] = useState<string>('');
+  const [filterWasaId, setFilterWasaId] = useState<string>('');
   const [filterZoneId, setFilterZoneId] = useState<string>('');
 
   const createZoneScoringMutation = useApiMutation(
@@ -91,11 +91,11 @@ export function ZoneScoringCreate() {
     let result = areas.filter(area => !scoringParams.some(p => p.areaId === area.id));
 
     // Filter by wasa
-    if (filterCityCorpId) {
+    if (filterWasaId) {
       result = result.filter(area => {
         // Use nested zone object from area if available
         const zone = area.zone || zones.find(z => z.id === area.zoneId);
-        return zone?.wasaId === parseInt(filterCityCorpId);
+        return zone?.wasaId === parseInt(filterWasaId);
       });
     }
 
@@ -109,13 +109,13 @@ export function ZoneScoringCreate() {
     }
 
     return result;
-  }, [areas, scoringParams, filterCityCorpId, filterZoneId, zones]);
+  }, [areas, scoringParams, filterWasaId, filterZoneId, zones]);
 
-  // Get zones for selected city corporation
-  const zonesForCityCorp = useMemo(() => {
-    if (!filterCityCorpId) return [];
-    return zones.filter(z => z.wasaId === parseInt(filterCityCorpId));
-  }, [zones, filterCityCorpId]);
+  // Get zones for selected WASA
+  const zonesForWasa = useMemo(() => {
+    if (!filterWasaId) return [];
+    return zones.filter(z => z.wasaId === parseInt(filterWasaId));
+  }, [zones, filterWasaId]);
 
   const handleAddParameter = () => {
     if (!newParam.areaId || newParam.areaId === 0) {
@@ -534,7 +534,7 @@ export function ZoneScoringCreate() {
                     onClick={() => {
                     setIsAddParamModalOpen(false);
                     setNewParam(initializeScoringParam());
-                    setFilterCityCorpId('');
+                    setFilterWasaId('');
                     setFilterZoneId('');
                   }}
                   className="h-8 w-8 p-0"
@@ -551,10 +551,10 @@ export function ZoneScoringCreate() {
                       WASA
                     </Label>
                     <Select 
-                      value={filterCityCorpId || '__all_city_corps__'} 
+                      value={filterWasaId || '__all_wasas__'} 
                       onValueChange={(value) => {
-                        const cityCorpId = value === '__all_city_corps__' ? '' : value;
-                        setFilterCityCorpId(cityCorpId);
+                        const wasaId = value === '__all_wasas__' ? '' : value;
+                        setFilterWasaId(wasaId);
                         setFilterZoneId(''); // Reset zone when wasa changes
                         setNewParam({ ...newParam, areaId: 0 }); // Reset area selection
                       }}
@@ -563,7 +563,7 @@ export function ZoneScoringCreate() {
                         <SelectValue placeholder="Filter by WASA (optional)" />
                       </SelectTrigger>
                       <SelectContent className="bg-white">
-                        <SelectItem value="__all_city_corps__">All WASAs</SelectItem>
+                        <SelectItem value="__all_wasas__">All WASAs</SelectItem>
                         {wasas.map((cc) => (
                           <SelectItem key={cc.id} value={cc.id.toString()}>
                             {cc.name} ({cc.code})
@@ -575,7 +575,7 @@ export function ZoneScoringCreate() {
                 )}
 
                 {/* Zone Filter */}
-                {zones.length > 0 && filterCityCorpId && (
+                {zones.length > 0 && filterWasaId && (
                   <div>
                     <Label className="text-sm font-medium text-gray-700 mb-2 block">
                       Zone
@@ -587,14 +587,14 @@ export function ZoneScoringCreate() {
                         setFilterZoneId(zoneId);
                         setNewParam({ ...newParam, areaId: 0 }); // Reset area selection
                       }}
-                      disabled={!filterCityCorpId}
+                      disabled={!filterWasaId}
                     >
                       <SelectTrigger className="bg-white border-gray-300 rounded-lg h-11 disabled:opacity-50 disabled:cursor-not-allowed">
-                        <SelectValue placeholder={filterCityCorpId ? "Filter by zone (optional)" : "Select city corporation first"} />
+                        <SelectValue placeholder={filterWasaId ? "Filter by zone (optional)" : "Select WASA first"} />
                       </SelectTrigger>
                       <SelectContent className="bg-white">
                         <SelectItem value="__all_zones__">All Zones</SelectItem>
-                        {zonesForCityCorp.map((zone) => (
+                        {zonesForWasa.map((zone) => (
                           <SelectItem key={zone.id} value={zone.id.toString()}>
                             {zone.name} - {zone.cityName}
                           </SelectItem>
@@ -623,17 +623,17 @@ export function ZoneScoringCreate() {
                         <SelectItem value="0" disabled>
                           {areas.filter(area => !scoringParams.some(p => p.areaId === area.id)).length === 0 
                             ? 'All areas already added' 
-                            : `No areas available${filterCityCorpId || filterZoneId ? ' for selected filters' : ''}`}
+                            : `No areas available${filterWasaId || filterZoneId ? ' for selected filters' : ''}`}
                         </SelectItem>
                       ) : (
                         filteredAreasForModal.map((area) => {
                           // Use nested zone object if available
                           const zone = area.zone || zones.find(z => z.id === area.zoneId);
-                          const cityCorp = zone?.wasaId 
-                            ? wasas.find(cc => cc.id === zone.wasaId)
+                          const wasa = zone?.wasaId 
+                            ? wasas.find(w => w.id === zone.wasaId)
                             : null;
-                          const displayText = zone && cityCorp 
-                            ? `${area.name} (${zone.name}, ${cityCorp.name})`
+                          const displayText = zone && wasa 
+                            ? `${area.name} (${zone.name}, ${wasa.name})`
                             : area.name;
                           
                           return (

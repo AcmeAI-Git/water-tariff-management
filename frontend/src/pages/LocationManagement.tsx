@@ -541,7 +541,7 @@ export function LocationManagement() {
     
     // Set both values - WASA first, then zone
     setEditAreaWasaId(wasaId);
-    // Set zone after city corp is set (using setTimeout to ensure state update order)
+    // Set zone after WASA is set (using setTimeout to ensure state update order)
     setTimeout(() => {
       setEditAreaZoneId(zoneId);
       isInitializingEdit.current = false;
@@ -650,7 +650,7 @@ export function LocationManagement() {
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Location Management</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage city corporations, zones, and areas</p>
+          <p className="text-sm text-gray-500 mt-1">Manage WASAs, zones, and areas</p>
         </div>
 
         {/* Tabs */}
@@ -773,46 +773,46 @@ export function LocationManagement() {
               </div>
             )}
 
-            {/* Create City Corporation Modal */}
+            {/* Create WASA Modal */}
             <Dialog open={isWasaCreateModalOpen} onOpenChange={setIsWasaCreateModalOpen}>
               <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-2xl">
                 <DialogHeader>
-                  <DialogTitle className="text-xl font-semibold text-gray-900">Add New City Corporation</DialogTitle>
+                  <DialogTitle className="text-xl font-semibold text-gray-900">Add New WASA</DialogTitle>
                   <DialogDescription className="text-sm text-gray-600">
-                    Create a new city corporation
+                    Create a new WASA
                   </DialogDescription>
                 </DialogHeader>
                 <div className="py-4 space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="create-city-corp-name" className="text-sm font-medium text-gray-700">
+                    <Label htmlFor="create-wasa-name" className="text-sm font-medium text-gray-700">
                       Name <span className="text-red-500">*</span>
                     </Label>
                     <Input
-                      id="create-city-corp-name"
-                      placeholder="e.g., Dhaka North City Corporation"
+                      id="create-wasa-name"
+                      placeholder="e.g., Dhaka WASA"
                       value={createWasaName}
                       onChange={(e) => setCreateWasaName(e.target.value)}
                       className="border-gray-300 rounded-lg h-11"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="create-city-corp-code" className="text-sm font-medium text-gray-700">
+                    <Label htmlFor="create-wasa-code" className="text-sm font-medium text-gray-700">
                       Code <span className="text-red-500">*</span>
                     </Label>
                     <Input
-                      id="create-city-corp-code"
-                      placeholder="e.g., DNCC"
+                      id="create-wasa-code"
+                      placeholder="e.g., DWASA"
                       value={createWasaCode}
                       onChange={(e) => setCreateWasaCode(e.target.value)}
                       className="border-gray-300 rounded-lg h-11"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="create-city-corp-address" className="text-sm font-medium text-gray-700">
+                    <Label htmlFor="create-wasa-address" className="text-sm font-medium text-gray-700">
                       Address
                     </Label>
                     <Input
-                      id="create-city-corp-address"
+                      id="create-wasa-address"
                       placeholder="Optional address"
                       value={createWasaAddress}
                       onChange={(e) => setCreateWasaAddress(e.target.value)}
@@ -844,44 +844,44 @@ export function LocationManagement() {
               </DialogContent>
             </Dialog>
 
-            {/* Edit City Corporation Modal */}
+            {/* Edit WASA Modal */}
             <Dialog open={isWasaEditModalOpen} onOpenChange={setIsWasaEditModalOpen}>
               <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-2xl">
                 <DialogHeader>
-                  <DialogTitle className="text-xl font-semibold text-gray-900">Edit City Corporation</DialogTitle>
+                  <DialogTitle className="text-xl font-semibold text-gray-900">Edit WASA</DialogTitle>
                   <DialogDescription className="text-sm text-gray-600">
-                    Update city corporation details
+                    Update WASA details
                   </DialogDescription>
                 </DialogHeader>
                 <div className="py-4 space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="edit-city-corp-name" className="text-sm font-medium text-gray-700">
+                    <Label htmlFor="edit-wasa-name" className="text-sm font-medium text-gray-700">
                       Name <span className="text-red-500">*</span>
                     </Label>
                     <Input
-                      id="edit-city-corp-name"
+                      id="edit-wasa-name"
                       value={editWasaName}
                       onChange={(e) => setEditWasaName(e.target.value)}
                       className="border-gray-300 rounded-lg h-11"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="edit-city-corp-code" className="text-sm font-medium text-gray-700">
+                    <Label htmlFor="edit-wasa-code" className="text-sm font-medium text-gray-700">
                       Code <span className="text-red-500">*</span>
                     </Label>
                     <Input
-                      id="edit-city-corp-code"
+                      id="edit-wasa-code"
                       value={editWasaCode}
                       onChange={(e) => setEditWasaCode(e.target.value)}
                       className="border-gray-300 rounded-lg h-11"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="edit-city-corp-address" className="text-sm font-medium text-gray-700">
+                    <Label htmlFor="edit-wasa-address" className="text-sm font-medium text-gray-700">
                       Address
                     </Label>
                     <Input
-                      id="edit-city-corp-address"
+                      id="edit-wasa-address"
                       value={editWasaAddress}
                       onChange={(e) => setEditWasaAddress(e.target.value)}
                       className="border-gray-300 rounded-lg h-11"
@@ -920,8 +920,8 @@ export function LocationManagement() {
                 setWasaToDelete(null);
               }}
               onConfirm={confirmDeleteWasa}
-              title="Delete City Corporation"
-              description="Are you sure you want to delete the city corporation"
+              title="Delete WASA"
+              description="Are you sure you want to delete the WASA"
               itemName={wasaToDelete?.name}
               isPending={deleteWasaMutation.isPending}
             />
@@ -993,7 +993,7 @@ export function LocationManagement() {
                       <TableHead className="text-sm font-semibold text-gray-700">Zone No</TableHead>
                       <TableHead className="text-sm font-semibold text-gray-700">Name</TableHead>
                       <TableHead className="text-sm font-semibold text-gray-700">City Name</TableHead>
-                      <TableHead className="text-sm font-semibold text-gray-700">City Corporation</TableHead>
+                      <TableHead className="text-sm font-semibold text-gray-700">WASA</TableHead>
                       <TableHead className="text-sm font-semibold text-gray-700 text-center">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1100,7 +1100,7 @@ export function LocationManagement() {
                     <p className="text-xs text-gray-500">Maximum 100 characters</p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="create-zone-city-corp" className="text-sm font-medium text-gray-700">
+                    <Label htmlFor="create-zone-wasa" className="text-sm font-medium text-gray-700">
                       WASA <span className="text-red-500">*</span>
                     </Label>
                     <Select value={createZoneWasaId} onValueChange={setCreateZoneWasaId}>
@@ -1200,7 +1200,7 @@ export function LocationManagement() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="edit-zone-city-corp" className="text-sm font-medium text-gray-700">
+                    <Label htmlFor="edit-zone-wasa" className="text-sm font-medium text-gray-700">
                       WASA <span className="text-red-500">*</span>
                     </Label>
                     <Select value={editZoneWasaId} onValueChange={setEditZoneWasaId}>
@@ -1280,14 +1280,14 @@ export function LocationManagement() {
                     value={areaFilterWasaId} 
                     onValueChange={(value) => {
                       setAreaFilterWasaId(value);
-                      setAreaFilterZoneId('all'); // Reset zone filter when city corp changes
+                      setAreaFilterZoneId('all'); // Reset zone filter when WASA changes
                     }}
                   >
                     <SelectTrigger className="w-full border-gray-300 rounded-lg h-11 bg-white min-w-0 [&>*:first-child]:truncate [&>*:first-child]:min-w-0">
-                      <SelectValue placeholder="Filter by City Corp" />
+                      <SelectValue placeholder="Filter by WASA" />
                     </SelectTrigger>
                     <SelectContent className="bg-white border border-gray-200">
-                      <SelectItem value="all">All City Corporations</SelectItem>
+                      <SelectItem value="all">All WASAs</SelectItem>
                       {wasas.map(cc => (
                         <SelectItem key={cc.id} value={cc.id.toString()}>
                           {cc.name} ({cc.code})
@@ -1303,15 +1303,15 @@ export function LocationManagement() {
                     disabled={!areaFilterWasaId || areaFilterWasaId === 'all'}
                   >
                     <SelectTrigger className="w-full border-gray-300 rounded-lg h-11 bg-white disabled:opacity-50 disabled:cursor-not-allowed min-w-0 [&>*:first-child]:truncate [&>*:first-child]:min-w-0">
-                      <SelectValue placeholder={areaFilterWasaId ? "Filter by Zone" : "Select City Corp first"} />
+                      <SelectValue placeholder={areaFilterWasaId ? "Filter by Zone" : "Select WASA first"} />
                     </SelectTrigger>
                     <SelectContent className="bg-white border border-gray-200">
                       {!areaFilterWasaId || areaFilterWasaId === 'all' ? (
                         <SelectItem value="__placeholder__" disabled className="text-gray-500 cursor-not-allowed">
-                          Select city corporation first
+                          Select WASA first
                         </SelectItem>
                       ) : (() => {
-                        // Get zones from areas that belong to the selected city corporation
+                        // Get zones from areas that belong to the selected WASA
                         // Use nested zone object from areas
                         const zonesFromAreas = areas
                           .filter(area => {
@@ -1332,7 +1332,7 @@ export function LocationManagement() {
                         if (zonesFromAreas.length === 0) {
                           return (
                             <SelectItem value="__no_zones__" disabled className="text-gray-500 cursor-not-allowed">
-                              No zones with areas found for this city corporation
+                              No zones with areas found for this WASA
                             </SelectItem>
                           );
                         }
@@ -1402,7 +1402,7 @@ export function LocationManagement() {
                       <TableHead className="text-sm font-semibold text-gray-700">ID</TableHead>
                       <TableHead className="text-sm font-semibold text-gray-700">Name</TableHead>
                       <TableHead className="text-sm font-semibold text-gray-700">Zone</TableHead>
-                      <TableHead className="text-sm font-semibold text-gray-700">City Corporation</TableHead>
+                      <TableHead className="text-sm font-semibold text-gray-700">WASA</TableHead>
                       <TableHead className="text-sm font-semibold text-gray-700">GeoJSON Type</TableHead>
                       <TableHead className="text-sm font-semibold text-gray-700 text-center">Actions</TableHead>
                     </TableRow>
@@ -1482,7 +1482,7 @@ export function LocationManagement() {
                     areaId=""
                     onWasaChange={(value) => {
                       setCreateAreaWasaId(value);
-                      setCreateAreaZoneId(''); // Reset zone when city corp changes
+                      setCreateAreaZoneId(''); // Reset zone when WASA changes
                     }}
                     onZoneChange={setCreateAreaZoneId}
                     onAreaChange={() => {}}
@@ -1581,9 +1581,9 @@ export function LocationManagement() {
                     areaId=""
                     onWasaChange={(value) => {
                       setEditAreaWasaId(value);
-                      // Only reset zone if city corp is actually changing (not during initialization)
+                      // Only reset zone if WASA is actually changing (not during initialization)
                       if (!isInitializingEdit.current && value !== editAreaWasaId) {
-                        setEditAreaZoneId(''); // Reset zone when city corp changes
+                        setEditAreaZoneId(''); // Reset zone when WASA changes
                       }
                     }}
                     onZoneChange={setEditAreaZoneId}

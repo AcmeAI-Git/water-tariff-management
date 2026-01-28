@@ -34,7 +34,7 @@ export function AddParameterModal({
   calculatedParams = [],
   ruleSetId,
 }: AddParameterModalProps) {
-  const [selectedCityCorpId, setSelectedCityCorpId] = useState<string>('');
+  const [selectedWasaId, setSelectedWasaId] = useState<string>('');
   const [selectedZoneId, setSelectedZoneId] = useState<string>('');
 
   // Filter areas based on selected wasa and zone
@@ -42,11 +42,11 @@ export function AddParameterModal({
     let result = areas;
 
     // Filter by wasa
-    if (selectedCityCorpId) {
+    if (selectedWasaId) {
       result = result.filter(area => {
         // Use nested zone object from area if available
         const zone = area.zone || zones.find(z => z.id === area.zoneId);
-        return zone?.wasaId === parseInt(selectedCityCorpId);
+        return zone?.wasaId === parseInt(selectedWasaId);
       });
     }
 
@@ -60,25 +60,25 @@ export function AddParameterModal({
     }
 
     return result;
-  }, [areas, selectedCityCorpId, selectedZoneId, zones]);
+  }, [areas, selectedWasaId, selectedZoneId, zones]);
 
   // Get zones for selected wasa
-  const zonesForCityCorp = useMemo(() => {
-    if (!selectedCityCorpId) return [];
-    return zones.filter(z => z.wasaId === parseInt(selectedCityCorpId));
-  }, [zones, selectedCityCorpId]);
+  const zonesForWasa = useMemo(() => {
+    if (!selectedWasaId) return [];
+    return zones.filter(z => z.wasaId === parseInt(selectedWasaId));
+  }, [zones, selectedWasaId]);
 
   const handleClose = () => {
     setNewParam(initializeScoringParam());
-    setSelectedCityCorpId('');
+    setSelectedWasaId('');
     setSelectedZoneId('');
     onClose();
   };
 
-  const handleCityCorpChange = (value: string) => {
+  const handleWasaChange = (value: string) => {
     // Handle placeholder value
-    const cityCorpId = value === '__all_city_corps__' ? '' : value;
-    setSelectedCityCorpId(cityCorpId);
+    const wasaId = value === '__all_wasas__' ? '' : value;
+    setSelectedWasaId(wasaId);
     setSelectedZoneId(''); // Reset zone when wasa changes
     setNewParam({ ...newParam, areaId: 0 }); // Reset area selection
   };
@@ -105,12 +105,12 @@ export function AddParameterModal({
               <Label className="text-sm font-medium text-gray-700">
                 WASA
               </Label>
-              <Select value={selectedCityCorpId || '__all_city_corps__'} onValueChange={handleCityCorpChange}>
+              <Select value={selectedWasaId || '__all_wasas__'} onValueChange={handleWasaChange}>
                 <SelectTrigger className="bg-white border-gray-300 rounded-lg h-11 w-full">
                   <SelectValue placeholder="Filter by WASA (optional)" />
                 </SelectTrigger>
                 <SelectContent className="bg-white max-h-[300px] overflow-y-auto">
-                  <SelectItem value="__all_city_corps__">All WASAs</SelectItem>
+                  <SelectItem value="__all_wasas__">All WASAs</SelectItem>
                   {wasas.map((cc) => (
                     <SelectItem key={cc.id} value={cc.id.toString()} className="hover:bg-gray-100 cursor-pointer">
                       {cc.name} ({cc.code})
@@ -122,18 +122,18 @@ export function AddParameterModal({
           )}
 
           {/* Zone Filter */}
-          {zones.length > 0 && selectedCityCorpId && (
+          {zones.length > 0 && selectedWasaId && (
             <div className="space-y-2 w-full">
               <Label className="text-sm font-medium text-gray-700">
                 Zone
               </Label>
-              <Select value={selectedZoneId || '__all_zones__'} onValueChange={handleZoneChange} disabled={!selectedCityCorpId}>
+              <Select value={selectedZoneId || '__all_zones__'} onValueChange={handleZoneChange} disabled={!selectedWasaId}>
                 <SelectTrigger className="bg-white border-gray-300 rounded-lg h-11 w-full disabled:opacity-50 disabled:cursor-not-allowed">
-                  <SelectValue placeholder={selectedCityCorpId ? "Filter by zone (optional)" : "Select city corporation first"} />
+                  <SelectValue placeholder={selectedWasaId ? "Filter by zone (optional)" : "Select WASA first"} />
                 </SelectTrigger>
                 <SelectContent className="bg-white max-h-[300px] overflow-y-auto">
                   <SelectItem value="__all_zones__">All Zones</SelectItem>
-                  {zonesForCityCorp.map((zone) => (
+                  {zonesForWasa.map((zone) => (
                     <SelectItem key={zone.id} value={zone.id.toString()} className="hover:bg-gray-100 cursor-pointer">
                       {zone.name} - {zone.cityName}
                     </SelectItem>
@@ -157,16 +157,16 @@ export function AddParameterModal({
               </SelectTrigger>
               <SelectContent className="bg-white max-h-[300px] overflow-y-auto">
                 {filteredAreas.length === 0 ? (
-                  <SelectItem value="0" disabled>No areas available{selectedCityCorpId || selectedZoneId ? ' for selected filters' : ''}</SelectItem>
+                  <SelectItem value="0" disabled>No areas available{selectedWasaId || selectedZoneId ? ' for selected filters' : ''}</SelectItem>
                 ) : (
                   filteredAreas.map((area) => {
                     // Use nested zone object if available
                     const zone = area.zone || zones.find(z => z.id === area.zoneId);
-                    const cityCorp = zone?.wasaId 
-                      ? wasas.find(cc => cc.id === zone.wasaId)
+                    const wasa = zone?.wasaId 
+                      ? wasas.find(w => w.id === zone.wasaId)
                       : null;
-                    const displayText = zone && cityCorp 
-                      ? `${area.name} (${zone.name}, ${cityCorp.name})`
+                    const displayText = zone && wasa 
+                      ? `${area.name} (${zone.name}, ${wasa.name})`
                       : area.name;
                     
                     return (

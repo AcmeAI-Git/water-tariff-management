@@ -98,9 +98,9 @@ export function CustomerAdminCustomerManagement() {
     }
   );
 
-  // Fetch city corporations
-  const { data: wasas = [], isLoading: cityCorpsLoading } = useApiQuery(
-    ['city-corporations'],
+  // Fetch WASAs
+  const { data: wasas = [], isLoading: wasasLoading } = useApiQuery(
+    ['wasas'],
     () => api.wasas.getAll()
   );
 
@@ -159,7 +159,7 @@ export function CustomerAdminCustomerManagement() {
       filtered = filtered.filter((customer) => customer.sewerStatus === sewerStatusFilter);
     }
 
-    // City Corporation filter - derive from zone
+    // WASA filter - derive from zone
     if (wasaFilter !== 'all') {
       filtered = filtered.filter((customer) => {
         const customerZoneId = customer.zoneId || (customer as any).zoneId;
@@ -226,7 +226,7 @@ export function CustomerAdminCustomerManagement() {
     return Array.from(statuses).sort();
   }, [customers]);
 
-  // Filter zones by selected city corporation
+  // Filter zones by selected WASA
   const filteredZonesForFilter = useMemo(() => {
     if (wasaFilter === 'all') return zones;
     return zones.filter((zone) => zone.wasaId === parseInt(wasaFilter));
@@ -329,7 +329,7 @@ export function CustomerAdminCustomerManagement() {
       return;
     }
     if (!formData.wasaId) {
-      toast.error('Please select a city corporation');
+      toast.error('Please select a WASA');
       return;
     }
     if (!formData.zoneId) {
@@ -823,7 +823,7 @@ export function CustomerAdminCustomerManagement() {
     );
   }
 
-  if (usersLoading || zonesLoading || areasLoading || cityCorpsLoading) {
+  if (usersLoading || zonesLoading || areasLoading || wasasLoading) {
     return (
       <div className="min-h-screen bg-app flex items-center justify-center">
         <LoadingSpinner />
@@ -1028,9 +1028,9 @@ export function CustomerAdminCustomerManagement() {
                 </div>
               </div>
 
-              {/* Row 2: Location Filters (City Corp, Zone, Area) */}
+              {/* Row 2: Location Filters (WASA, Zone, Area) */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {/* City Corporation Filter */}
+                {/* WASA Filter */}
                 <div className="w-full min-w-0">
                   <Dropdown
                     options={[
