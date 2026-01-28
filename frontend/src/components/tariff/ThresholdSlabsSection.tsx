@@ -50,7 +50,7 @@ export function ThresholdSlabsSection({ disabled = false }: ThresholdSlabsSectio
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const { data: allSlabs = [], isLoading: slabsLoading } = useApiQuery<TariffThresholdSlab[]>(
-    ['tariff-threshold-slabs', filterActive],
+    ['tariff-threshold-slabs', filterActive === undefined ? 'all' : filterActive ? 'active' : 'inactive'],
     () => api.tariffThresholdSlabs.getAll(filterActive),
     { enabled: !disabled }
   );
