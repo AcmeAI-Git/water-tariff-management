@@ -24,13 +24,13 @@ interface AddAgentModalProps {
   agent?: Agent | null;
   roleFixed?: string; // For locking role to specific value (e.g., "Meter Admin")
   onDelete?: () => void; // Optional delete handler for edit mode
-  wasaOptions?: Array<{ value: string; label: string }>; // City Corporation options from API
+  wasaOptions?: Array<{ value: string; label: string }>; // WASA options from API
   zoneOptions?: Array<{ value: string; label: string }>; // Zone options from API
   wardOptions?: Array<{ value: string; label: string }>; // Ward options from API
   roleOptions?: Array<{ value: string; label: string }>; // Role options from API
   modalTitle?: string; // Custom modal title (defaults to "Add New Agent" or "Edit Agent")
   submitButtonText?: string; // Custom submit button text (defaults to "Add Agent" or "Save Changes")
-  showWasa?: boolean; // Show city corporation field (default false)
+  showWasa?: boolean; // Show WASA field (default false)
   showZoneWard?: boolean; // Show zone/ward fields (default false)
   zoneWardAsNumbers?: boolean; // Use number inputs instead of dropdowns (default false)
 }

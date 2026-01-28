@@ -355,14 +355,14 @@ function isRowEmpty(row: string[]): boolean {
 
 /**
  * Generate CSV template content
- * Note: Zone and City Corporation columns are optional (for reference only)
+ * Note: Zone and WASA columns are optional (for reference only)
  * Only Area Name (or Area ID) is required for parsing
  */
 export function generateCSVTemplate(): string {
   const headers = [
     'Area Name',
     'Zone (Optional - for reference)',
-    'City Corporation (Optional - for reference)',
+    'WASA (Optional - for reference)',
     'Land+Home Rate (BDT/sqm)',
     'Land Rate (BDT/sqm)',
     'Land Tax Rate (BDT/sqm)',
@@ -375,7 +375,7 @@ export function generateCSVTemplate(): string {
   const exampleRow = [
     'Banani Block C',
     'Zone-1',
-    'Dhaka North City Corporation',
+    'Dhaka WASA',
     '32896.00',
     '20000.00',
     '5000.00',

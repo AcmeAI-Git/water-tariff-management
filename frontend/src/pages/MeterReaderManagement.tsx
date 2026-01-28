@@ -36,7 +36,7 @@ interface EditingMeterReader extends DisplayAdmin {
 
 // Hardcoded location values for all meter readers
 const HARDCODED_LOCATION = {
-    wasa: 'Dhaka South City Corporation',
+    wasa: 'Dhaka WASA',
     wasaId: 1, // DSCC
     zone: 'Zone 1',
     zoneId: 1,
@@ -270,7 +270,7 @@ export default function MeterReaderManagement() {
                                     Email
                                 </TableHead>
                                 <TableHead className="text-sm font-semibold text-gray-700">
-                                    City Corporation
+                                    WASA
                                 </TableHead>
                                 <TableHead className="text-sm font-semibold text-gray-700">
                                     Zone
