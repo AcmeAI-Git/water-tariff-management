@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { api } from '../services/api';
 import { useApiQuery, useApiMutation } from '../hooks/useApiQuery';
 import LoadingSpinner from '../components/common/LoadingSpinner';
@@ -33,6 +33,7 @@ export function TariffConfiguration() {
   const [editingSettings, setEditingSettings] = useState<TariffCategorySettings | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [settingsToDelete, setSettingsToDelete] = useState<TariffCategorySettings | null>(null);
+  const [activeTab, setActiveTab] = useState<'settings' | 'threshold'>('settings');
 
   // Fetch all settings
   const { data: allSettings = [], isLoading: settingsLoading } = useApiQuery(
@@ -173,8 +174,23 @@ export function TariffConfiguration() {
     await setSettingsActiveMutation.mutateAsync(settingsId);
   };
 
+  // Auto-switch tab when policy changes (but not for FIXED - let user choose)
+  useEffect(() => {
+    if (activePolicy?.tariffType === 'AREA_BASED') {
+      setActiveTab('settings');
+    } else if (activePolicy?.tariffType === 'THRESHOLD') {
+      setActiveTab('threshold');
+    }
+    // For FIXED, don't auto-switch - keep current tab
+  }, [activePolicy?.tariffType]);
+
   // Sort settings by ID descending (newest first)
   const sortedSettings = [...allSettings].sort((a, b) => b.id - a.id);
+
+  // Check if tabs should be enabled
+  const isAreaBased = activePolicy?.tariffType === 'AREA_BASED';
+  const isThreshold = activePolicy?.tariffType === 'THRESHOLD';
+  const isFixed = activePolicy?.tariffType === 'FIXED';
 
   if (settingsLoading) {
     return (
@@ -193,110 +209,8 @@ export function TariffConfiguration() {
           showBackButton={false}
         />
 
-        {/* Create Button */}
-        <div className="mb-6">
-          <Button
-            onClick={() => setIsCreateModalOpen(true)}
-            disabled={createMutation.isPending}
-            className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-11 px-6 flex items-center gap-2 disabled:opacity-50"
-          >
-            <Plus size={18} />
-            {createMutation.isPending ? 'Creating...' : 'Create New Settings'}
-          </Button>
-        </div>
-
-        {/* Settings Table */}
-        {sortedSettings.length === 0 ? (
-          <EmptyState
-            title="No settings rulesets found"
-            actionLabel="Create Your First Settings Ruleset"
-            onAction={() => setIsCreateModalOpen(true)}
-          />
-        ) : (
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden w-full">
-            <div className="overflow-x-auto w-full">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-gray-200 bg-gray-50">
-                    <TableHead className="text-sm font-semibold text-gray-700 text-center whitespace-nowrap">Settings ID</TableHead>
-                    <TableHead className="text-sm font-semibold text-gray-700 text-center whitespace-nowrap">Categories</TableHead>
-                    <TableHead className="text-sm font-semibold text-gray-700 text-center whitespace-nowrap">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sortedSettings.map((setting) => (
-                    <TableRow 
-                      key={setting.id} 
-                      className="border-gray-100 cursor-pointer hover:bg-gray-50"
-                      onClick={() => navigate(`/tariff-admin/config/${setting.id}`)}
-                    >
-                      <TableCell className="text-sm font-medium text-gray-900 text-center whitespace-nowrap">
-                        {setting.id}
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-600 text-center whitespace-nowrap">
-                        {categoryCounts[setting.id] || 0}
-                      </TableCell>
-                      <TableCell className="text-center align-middle">
-                        <div className="flex items-center justify-center gap-2">
-                          {setting.isActive && (
-                            <span className="text-xs text-gray-700 bg-gray-100 rounded-md px-2.5 py-1 whitespace-nowrap inline-flex items-center justify-center h-8 font-medium w-[135px]">
-                              Active
-                            </span>
-                          )}
-                          {!setting.isActive && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleSetActive(setting.id);
-                              }}
-                              disabled={setSettingsActiveMutation.isPending}
-                              className="border-green-300 text-green-700 rounded-lg h-8 px-3 bg-white hover:bg-green-50 inline-flex items-center justify-center gap-1.5 disabled:opacity-50 whitespace-nowrap w-[135px]"
-                              title="Set as Active"
-                            >
-                              <CheckCircle size={14} />
-                              Set as Active
-                            </Button>
-                          )}
-                          {/* Edit button */}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/tariff-admin/config/${setting.id}`);
-                            }}
-                            className="border-gray-300 text-gray-700 rounded-lg h-8 w-8 p-0 bg-white hover:bg-gray-50 inline-flex items-center justify-center"
-                            title="View/Edit"
-                          >
-                            <Edit size={14} />
-                          </Button>
-                          {/* Delete button */}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDelete(setting);
-                            }}
-                            className="border-red-300 text-red-700 rounded-lg h-8 w-8 p-0 bg-white hover:bg-red-50 inline-flex items-center justify-center"
-                            title="Delete"
-                          >
-                            <Trash2 size={14} />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-        )}
-
         {/* Tariff Policy dropdown */}
-        <div className="mt-10">
+        <div className="mt-6 mb-6">
           <Label className="text-lg font-semibold text-gray-900 block mb-3">
             Tariff Policy
           </Label>
@@ -322,13 +236,166 @@ export function TariffConfiguration() {
           </Select>
         </div>
 
-        {/* Threshold Slabs section – active only when THRESHOLD policy is selected */}
-        <div className="mt-10">
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Threshold Slabs</h2>
+        {/* Tabs */}
+        <div className="mt-6 mb-8 border-b border-gray-200">
+          <div className="flex gap-6">
+            <button
+              onClick={() => setActiveTab('settings')}
+              disabled={!isAreaBased || isFixed}
+              className={`pb-3 text-[15px] font-medium border-b-2 transition-colors ${
+                activeTab === 'settings'
+                  ? 'border-[#4C6EF5] text-[#4C6EF5]'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              } ${(!isAreaBased || isFixed) ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              Settings Rulesets
+            </button>
+            <button
+              onClick={() => setActiveTab('threshold')}
+              disabled={!isThreshold || isFixed}
+              className={`pb-3 text-[15px] font-medium border-b-2 transition-colors ${
+                activeTab === 'threshold'
+                  ? 'border-[#4C6EF5] text-[#4C6EF5]'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              } ${(!isThreshold || isFixed) ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              Threshold Slabs
+            </button>
           </div>
-          <ThresholdSlabsSection disabled={activePolicy?.tariffType !== 'THRESHOLD'} />
         </div>
+
+        {/* Settings Rulesets Tab */}
+        {activeTab === 'settings' && (
+          <>
+            {!isAreaBased && !isFixed ? (
+              <div className="text-sm text-gray-600">
+                Select <span className="font-medium text-gray-900">Area Based</span> in the Tariff Policy dropdown above to manage settings and categories.
+              </div>
+            ) : isFixed ? (
+              null
+            ) : (
+              <>
+                {/* Create Button */}
+                <div className="mb-6">
+                  <Button
+                    onClick={() => setIsCreateModalOpen(true)}
+                    disabled={createMutation.isPending || !isAreaBased}
+                    className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-11 px-6 flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <Plus size={18} />
+                    {createMutation.isPending ? 'Creating...' : 'Create New Settings'}
+                  </Button>
+                </div>
+
+                {/* Settings Table */}
+                {sortedSettings.length === 0 ? (
+                  <EmptyState
+                    title="No settings rulesets found"
+                    actionLabel="Create Your First Settings Ruleset"
+                    onAction={() => setIsCreateModalOpen(true)}
+                  />
+                ) : (
+                  <div className="bg-white rounded-xl border border-gray-200 overflow-hidden w-full">
+                    <div className="overflow-x-auto w-full">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="border-gray-200 bg-gray-50">
+                            <TableHead className="text-sm font-semibold text-gray-700 text-center whitespace-nowrap">Settings ID</TableHead>
+                            <TableHead className="text-sm font-semibold text-gray-700 text-center whitespace-nowrap">Categories</TableHead>
+                            <TableHead className="text-sm font-semibold text-gray-700 text-center whitespace-nowrap">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {sortedSettings.map((setting) => (
+                            <TableRow 
+                              key={setting.id} 
+                              className="border-gray-100 cursor-pointer hover:bg-gray-50"
+                              onClick={() => navigate(`/tariff-admin/config/${setting.id}`)}
+                            >
+                              <TableCell className="text-sm font-medium text-gray-900 text-center whitespace-nowrap">
+                                {setting.id}
+                              </TableCell>
+                              <TableCell className="text-sm text-gray-600 text-center whitespace-nowrap">
+                                {categoryCounts[setting.id] || 0}
+                              </TableCell>
+                              <TableCell className="text-center align-middle">
+                                <div className="flex items-center justify-center gap-2">
+                                  {setting.isActive && (
+                                    <span className="text-xs text-gray-700 bg-gray-100 rounded-md px-2.5 py-1 whitespace-nowrap inline-flex items-center justify-center h-8 font-medium w-[135px]">
+                                      Active
+                                    </span>
+                                  )}
+                                  {!setting.isActive && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSetActive(setting.id);
+                                      }}
+                                      disabled={setSettingsActiveMutation.isPending || !isAreaBased}
+                                      className="border-green-300 text-green-700 rounded-lg h-8 px-3 bg-white hover:bg-green-50 inline-flex items-center justify-center gap-1.5 disabled:opacity-50 whitespace-nowrap w-[135px]"
+                                      title="Set as Active"
+                                    >
+                                      <CheckCircle size={14} />
+                                      Set as Active
+                                    </Button>
+                                  )}
+                                  {/* Edit button */}
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigate(`/tariff-admin/config/${setting.id}`);
+                                    }}
+                                    className="border-gray-300 text-gray-700 rounded-lg h-8 w-8 p-0 bg-white hover:bg-gray-50 inline-flex items-center justify-center"
+                                    title="View/Edit"
+                                  >
+                                    <Edit size={14} />
+                                  </Button>
+                                  {/* Delete button */}
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDelete(setting);
+                                    }}
+                                    disabled={!isAreaBased}
+                                    className="border-red-300 text-red-700 rounded-lg h-8 w-8 p-0 bg-white hover:bg-red-50 inline-flex items-center justify-center disabled:opacity-50"
+                                    title="Delete"
+                                  >
+                                    <Trash2 size={14} />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        )}
+
+        {/* Threshold Slabs Tab */}
+        {activeTab === 'threshold' && (
+          <>
+            {!isThreshold && !isFixed ? (
+              <div className="text-sm text-gray-600">
+                Select <span className="font-medium text-gray-900">Threshold</span> in the Tariff Policy dropdown above to manage slabs.
+              </div>
+            ) : isFixed ? (
+              null
+            ) : (
+              <ThresholdSlabsSection disabled={!isThreshold} />
+            )}
+          </>
+        )}
 
         {/* Create Modal */}
         <TariffCategorySettingsModal
