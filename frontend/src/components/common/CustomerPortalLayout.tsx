@@ -15,7 +15,6 @@ export default function CustomerPortalLayout() {
     const path = location.pathname;
     if (path.includes('/dashboard')) return 'customer-dashboard';
     if (path.includes('/billing')) return 'customer-billing';
-    if (path.includes('/visualizer')) return 'customer-visualizer';
     if (path.includes('/analytics')) return 'customer-analytics';
     if (path.includes('/feedback')) return 'customer-feedback';
     return 'customer-dashboard';
@@ -32,7 +31,6 @@ export default function CustomerPortalLayout() {
     const routeMap: Record<string, string> = {
       'customer-dashboard': '/customer/dashboard',
       'customer-billing': '/customer/billing',
-      'customer-visualizer': '/customer/visualizer',
       'customer-analytics': '/customer/analytics',
       'customer-feedback': '/customer/feedback',
     };

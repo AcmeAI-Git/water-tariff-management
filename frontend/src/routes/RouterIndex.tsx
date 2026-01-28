@@ -7,7 +7,6 @@ import { SystemAuditLog } from "../pages/SystemAuditLog";
 import { MeterAdminDataEntry } from "../pages/MeterAdminDataEntry";
 import { MeterAdminPendingSubmissions } from "../pages/MeterAdminPendingSubmissions";
 import { MeterAdminSubmittedReadings } from "../pages/MeterAdminSubmittedReadings";
-import TariffVisualizer from "../pages/TariffVisualizer";
 import { MeterAdminMetrics } from "../pages/MeterAdminMetrics";
 import { CustomerAdminCustomerManagement } from "../pages/CustomerAdminCustomerManagement";
 import { CustomerAdminSubmissionHistory } from "../pages/CustomerAdminSubmissionHistory";
@@ -89,14 +88,6 @@ const RouterIndex = () => {
           } 
         />
         <Route 
-          path="/meter-reader/visualizer" 
-          element={
-            <ProtectedRoute allowedRoles={['meter-admin']}>
-              <TariffVisualizer />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
           path="/meter-reader/metrics" 
           element={
             <ProtectedRoute allowedRoles={['meter-admin']}>
@@ -119,14 +110,6 @@ const RouterIndex = () => {
           element={
             <ProtectedRoute allowedRoles={['customer-admin']}>
               <CustomerAdminSubmissionHistory />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/customer-admin/visualizer" 
-          element={
-            <ProtectedRoute allowedRoles={['customer-admin']}>
-              <TariffVisualizer />
             </ProtectedRoute>
           } 
         />
@@ -173,14 +156,6 @@ const RouterIndex = () => {
           element={
             <ProtectedRoute allowedRoles={['tariff-admin']}>
               <TariffAdminTariffHistory />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/tariff-admin/visualizer" 
-          element={
-            <ProtectedRoute allowedRoles={['tariff-admin']}>
-              <TariffVisualizer />
             </ProtectedRoute>
           } 
         />
@@ -293,14 +268,6 @@ const RouterIndex = () => {
           element={
             <CustomerProtectedRoute>
               <CustomerBillingHistory />
-            </CustomerProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/customer/visualizer" 
-          element={
-            <CustomerProtectedRoute>
-              <TariffVisualizer />
             </CustomerProtectedRoute>
           } 
         />

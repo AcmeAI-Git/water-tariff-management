@@ -1,4 +1,4 @@
-import { Home, FileText, TrendingUp, BarChart3, MessageSquare, LogOut } from "lucide-react";
+import { Home, FileText, BarChart3, MessageSquare, LogOut } from "lucide-react";
 
 interface CustomerPortalSidebarProps {
     activePage: string;
@@ -19,11 +19,6 @@ export function CustomerPortalSidebar({
             id: "customer-billing",
             label: "Billing History",
             icon: FileText,
-        },
-        {
-            id: "customer-visualizer",
-            label: "Tariff Visualizer",
-            icon: TrendingUp,
         },
         {
             id: "customer-analytics",

@@ -711,6 +711,8 @@ export function CustomerAdminCustomerManagement() {
       // Show results
       if (errorCount === 0) {
         setCsvUploadSuccess(`Successfully imported ${successCount} customer(s)${csvCustomersToUpdate.length > 0 ? ` (${csvCustomersToUpdate.length} updated, ${csvCustomersToAdd.length} added)` : ''}.`);
+        // Close the modal on successful import
+        setIsDialogOpen(false);
       } else {
         setCsvUploadError(`Imported ${successCount} customer(s) successfully, but ${errorCount} failed:\n${errors.join('\n')}`);
       }
@@ -836,7 +838,7 @@ export function CustomerAdminCustomerManagement() {
           <h1 className="text-xl md:text-[1.75rem] font-semibold text-gray-900">Customer Management</h1>
         </div>
 
-        {/* Add Button and CSV Actions */}
+        {/* Add Button */}
         <div className="mb-6 flex items-center gap-3">
           <Button 
             onClick={() => setIsDialogOpen(true)}
@@ -845,46 +847,6 @@ export function CustomerAdminCustomerManagement() {
             <Plus size={18} />
             Add New Customer
           </Button>
-          
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleDownloadTemplate}
-              className="border-gray-300 text-gray-700 rounded-lg h-11 px-4 flex items-center gap-2 bg-white hover:bg-gray-50"
-            >
-              <Download size={16} />
-              Download Template
-            </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv"
-              onChange={handleCSVUpload}
-              className="hidden"
-              id="csv-upload-input"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={allAreas.length === 0 || isParsingCSV}
-              className="border-gray-300 text-gray-700 rounded-lg h-11 px-4 flex items-center gap-2 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Upload size={16} />
-              {isParsingCSV ? 'Parsing...' : 'Upload CSV'}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleExportCSV}
-              disabled={customers.length === 0}
-              className="border-gray-300 text-gray-700 rounded-lg h-11 px-4 flex items-center gap-2 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Download size={16} />
-              Export CSV
-            </Button>
-          </div>
           
           <CustomerMeterModal
             open={isDialogOpen}
@@ -898,6 +860,11 @@ export function CustomerAdminCustomerManagement() {
             zones={zones}
             areas={allAreas}
             mode="add"
+            onDownloadTemplate={handleDownloadTemplate}
+            onCSVUpload={handleCSVUpload}
+            csvFileInputRef={fileInputRef}
+            isParsingCSV={isParsingCSV}
+            showBulkImport={true}
           />
         </div>
 
@@ -1066,16 +1033,16 @@ export function CustomerAdminCustomerManagement() {
                 <div className="w-full min-w-0">
                   <Dropdown
                     options={[
-                      { value: 'all', label: 'All City Corporations' },
+                      { value: 'all', label: 'All WASAs' },
                       ...wasas.map(cc => ({ value: cc.id.toString(), label: `${cc.name} (${cc.code})` }))
                     ]}
                     value={wasaFilter}
                     onChange={(value) => {
                       setWasaFilter(value);
-                      setZoneFilter('all'); // Reset zone when city corp changes
-                      setAreaFilter('all'); // Reset area when city corp changes
+                      setZoneFilter('all'); // Reset zone when wasa changes
+                      setAreaFilter('all'); // Reset area when wasa changes
                     }}
-                    placeholder="City Corporation"
+                    placeholder="WASA"
                     className="bg-white border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500 w-full"
                   />
                 </div>
@@ -1092,7 +1059,7 @@ export function CustomerAdminCustomerManagement() {
                       setZoneFilter(value);
                       setAreaFilter('all'); // Reset area when zone changes
                     }}
-                    placeholder={wasaFilter === 'all' ? 'Select City Corp First' : 'Zone'}
+                    placeholder={wasaFilter === 'all' ? 'Select WASA First' : 'Zone'}
                     disabled={wasaFilter === 'all'}
                     className="bg-white border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500 w-full"
                   />
@@ -1293,7 +1260,23 @@ export function CustomerAdminCustomerManagement() {
         {/* Table */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">Registered Customers</h3>
+            <div className="grid grid-cols-5 gap-4 items-center">
+              <div className="col-span-4">
+                <h3 className="text-lg font-semibold text-gray-900">Registered Customers</h3>
+              </div>
+              <div className="col-span-1 flex justify-start">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleExportCSV}
+                  disabled={customers.length === 0}
+                  className="border-gray-300 text-gray-700 rounded-lg h-10 px-4 flex items-center gap-2 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Download size={16} />
+                  Export CSV
+                </Button>
+              </div>
+            </div>
           </div>
 
           <div className="overflow-x-auto">
@@ -1302,29 +1285,15 @@ export function CustomerAdminCustomerManagement() {
                 <TableRow className="border-gray-200 bg-gray-50">
                   <TableHead className="text-sm font-semibold text-gray-700">Name</TableHead>
                   <TableHead className="text-sm font-semibold text-gray-700">Inspection Code</TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700">Account Type</TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700">Category</TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700">Meter Number</TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700">Meter Status</TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700">Phone</TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700">Email</TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700">Status</TableHead>
                   <TableHead className="text-sm font-semibold text-gray-700">Water Status</TableHead>
                   <TableHead className="text-sm font-semibold text-gray-700">Sewer Status</TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700">City Corporation</TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700">Zone</TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700">Area</TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700">Address</TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700">Land Size (sq ft)</TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700">Stories</TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700">Flats</TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700 text-left">Action</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700 text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredCustomers.length === 0 ? (
                   <TableRow key="empty-state">
-                    <TableCell colSpan={19} className="text-center py-8 text-gray-500">
+                    <TableCell colSpan={5} className="text-center py-8 text-gray-500">
                       No customers found matching your search criteria
                     </TableCell>
                   </TableRow>
@@ -1335,70 +1304,43 @@ export function CustomerAdminCustomerManagement() {
                       ? `customer-${customer.id}` 
                       : `customer-${index}-${customer.inspCode || customer.name || 'unknown'}-${index}`;
                     
-                    // Find location information - use nested zone object from area if available, otherwise fallback to lookup
-                    const area = allAreas.find(a => a.id === customer.areaId);
-                    const zone = area?.zone || (area?.zoneId ? zones.find(z => z.id === area.zoneId) : null) || (customer.zoneId ? zones.find(z => z.id === customer.zoneId) : null);
-                    const cityCorp = zone?.wasaId 
-                      ? (zone.wasa || wasas.find(cc => cc.id === zone.wasaId))
-                      : null;
-                    
-                    // Find meter for this customer
-                    const userAccount = customer.id ? String(customer.id) : (customer as any).account;
-                    const customerMeter = meters.find((m: Meter) => {
-                      const meterAccount = m.account || m.userAccount;
-                      return String(meterAccount) === String(userAccount);
-                    });
-                    
                     return (
                       <TableRow key={uniqueKey} className="border-gray-100">
                         <TableCell className="text-sm font-medium text-gray-900">{customer.name || customer.fullName || '-'}</TableCell>
                         <TableCell className="text-sm text-gray-600">{customer.inspCode || '-'}</TableCell>
-                        <TableCell className="text-sm text-gray-600">{customer.accountType || '-'}</TableCell>
-                        <TableCell className="text-sm text-gray-600">{customer.customerCategory || '-'}</TableCell>
-                        <TableCell className="text-sm text-gray-600">{customerMeter?.meterNo ? String(customerMeter.meterNo) : (customer.meterNo ? String(customer.meterNo) : '-')}</TableCell>
-                        <TableCell className="text-sm text-gray-600">{customerMeter?.meterStatus || customer.meterStatus || '-'}</TableCell>
-                        <TableCell className="text-sm text-gray-600">{customer.phone || '-'}</TableCell>
-                        <TableCell className="text-sm text-gray-600">{customer.email || '-'}</TableCell>
-                        <TableCell className="text-sm text-gray-600">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            customer.status?.toLowerCase() === 'active' 
-                              ? 'bg-green-100 text-green-800' 
-                              : customer.status?.toLowerCase() === 'inactive'
-                              ? 'bg-red-100 text-red-800'
-                              : 'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {customer.status ? customer.status.charAt(0).toUpperCase() + customer.status.slice(1) : '-'}
-                          </span>
-                        </TableCell>
                         <TableCell className="text-sm text-gray-600">{customer.waterStatus || '-'}</TableCell>
                         <TableCell className="text-sm text-gray-600">{customer.sewerStatus || '-'}</TableCell>
-                        <TableCell className="text-sm text-gray-600">{cityCorp ? `${cityCorp.name} (${cityCorp.code})` : '-'}</TableCell>
-                        <TableCell className="text-sm text-gray-600">{zone?.name || '-'}</TableCell>
-                        <TableCell className="text-sm text-gray-600">{area?.name || '-'}</TableCell>
-                        <TableCell className="text-sm text-gray-600 max-w-xs truncate" title={customer.address}>{customer.address || '-'}</TableCell>
-                        <TableCell className="text-sm text-gray-600">{customer.landSizeDecimal !== undefined && customer.landSizeDecimal !== null ? customer.landSizeDecimal.toLocaleString() : '-'}</TableCell>
-                        <TableCell className="text-sm text-gray-600">{customer.numberOfStories !== undefined && customer.numberOfStories !== null ? customer.numberOfStories : '-'}</TableCell>
-                        <TableCell className="text-sm text-gray-600">{customer.numberOfFlats !== undefined && customer.numberOfFlats !== null ? customer.numberOfFlats : '-'}</TableCell>
                         <TableCell className="text-center">
-                          <div className="flex items-center justify-center gap-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => handleEditClick(customer)}
-                              className="border-gray-300 text-gray-700 rounded-lg h-8 w-8 p-0 bg-white hover:bg-gray-50 flex items-center justify-center"
-                              title="Edit customer"
-                            >
-                              <Edit size={14} />
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => handleDeleteClick(customer)}
-                              className="border-red-300 text-red-600 rounded-lg h-8 w-8 p-0 bg-white hover:bg-red-50 flex items-center justify-center"
-                              title="Delete customer"
-                            >
-                              <Trash2 size={14} />
-                            </Button>
+                          <div className="flex items-center justify-center gap-3">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              customer.status?.toLowerCase() === 'active' 
+                                ? 'bg-green-100 text-green-800' 
+                                : customer.status?.toLowerCase() === 'inactive'
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {customer.status ? customer.status.charAt(0).toUpperCase() + customer.status.slice(1) : '-'}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleEditClick(customer)}
+                                className="border-gray-300 text-gray-700 rounded-lg h-8 w-8 p-0 bg-white hover:bg-gray-50 flex items-center justify-center"
+                                title="Edit customer"
+                              >
+                                <Edit size={14} />
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleDeleteClick(customer)}
+                                className="border-red-300 text-red-600 rounded-lg h-8 w-8 p-0 bg-white hover:bg-red-50 flex items-center justify-center"
+                                title="Delete customer"
+                              >
+                                <Trash2 size={14} />
+                              </Button>
+                            </div>
                           </div>
                         </TableCell>
                       </TableRow>

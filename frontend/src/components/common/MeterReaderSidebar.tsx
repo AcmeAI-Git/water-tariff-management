@@ -28,11 +28,6 @@ export function MeterReaderSidebar({
             label: "Submission History",
             icon: FileCheck,
         },
-        {
-            id: "meter-reader-visualizer",
-            label: "Tariff Visualizer",
-            icon: BarChart3,
-        },
         { id: "meter-reader-metrics", label: "My Metrics", icon: TrendingUp },
     ];
 
