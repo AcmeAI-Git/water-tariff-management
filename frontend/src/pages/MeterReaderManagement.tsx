@@ -34,16 +34,6 @@ interface EditingMeterReader extends DisplayAdmin {
     index: number;
 }
 
-// Hardcoded location values for all meter readers
-const HARDCODED_LOCATION = {
-    wasa: 'Dhaka WASA',
-    wasaId: 1, // DSCC
-    zone: 'Zone 1',
-    zoneId: 1,
-    ward: 'Ward 1',
-    wardId: 1,
-};
-
 export default function MeterReaderManagement() {
     const [searchTerm, setSearchTerm] = useState("");
     const [showModal, setShowModal] = useState(false);
@@ -270,13 +260,7 @@ export default function MeterReaderManagement() {
                                     Email
                                 </TableHead>
                                 <TableHead className="text-sm font-semibold text-gray-700">
-                                    WASA
-                                </TableHead>
-                                <TableHead className="text-sm font-semibold text-gray-700">
-                                    Zone
-                                </TableHead>
-                                <TableHead className="text-sm font-semibold text-gray-700">
-                                    Ward
+                                    Phone
                                 </TableHead>
                                 <TableHead className="text-sm font-semibold text-gray-700">
                                     Role
@@ -289,7 +273,7 @@ export default function MeterReaderManagement() {
                         <TableBody>
                             {filteredAdmins.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={7} className="text-center text-gray-500 py-8">
+                                    <TableCell colSpan={5} className="text-center text-gray-500 py-8">
                                         {searchTerm ? 'No meter readers found matching your search' : 'No meter readers found'}
                                     </TableCell>
                                 </TableRow>
@@ -307,13 +291,7 @@ export default function MeterReaderManagement() {
                                                 {admin.email}
                                             </TableCell>
                                             <TableCell className="text-sm text-gray-600">
-                                                {HARDCODED_LOCATION.wasa}
-                                            </TableCell>
-                                            <TableCell className="text-sm text-gray-600">
-                                                {HARDCODED_LOCATION.zone}
-                                            </TableCell>
-                                            <TableCell className="text-sm text-gray-600">
-                                                {HARDCODED_LOCATION.ward}
+                                                {admin.phone || 'N/A'}
                                             </TableCell>
                                             <TableCell>
                                                 <span

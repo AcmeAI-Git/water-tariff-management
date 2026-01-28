@@ -116,3 +116,50 @@ export function mapScoringParamToDto(param: ScoringParam): CreateScoringParamDto
 export function mapScoringParamsToDto(params: ScoringParam[]): CreateScoringParamDto[] {
   return params.map(mapScoringParamToDto);
 }
+
+/**
+ * Convert CreateScoringParamDto (with string values) to backend format (with number values)
+ * Backend API expects all numeric fields as numbers, not strings
+ */
+export function convertDtoToBackendFormat(dto: CreateScoringParamDto): {
+  areaId: number;
+  landHomeRate: number;
+  landHomeRatePercentage: number;
+  landRate: number;
+  landRatePercentage: number;
+  landTaxRate: number;
+  landTaxRatePercentage: number;
+  buildingTaxRateUpto120sqm: number;
+  buildingTaxRateUpto120sqmPercentage: number;
+  buildingTaxRateUpto200sqm: number;
+  buildingTaxRateUpto200sqmPercentage: number;
+  buildingTaxRateAbove200sqm: number;
+  buildingTaxRateAbove200sqmPercentage: number;
+  highIncomeGroupConnectionPercentage: number;
+  geoMean: number;
+} {
+  return {
+    areaId: dto.areaId,
+    landHomeRate: parseFloat(dto.landHomeRate) || 0,
+    landHomeRatePercentage: parseFloat(dto.landHomeRatePercentage) || 0,
+    landRate: parseFloat(dto.landRate) || 0,
+    landRatePercentage: parseFloat(dto.landRatePercentage) || 0,
+    landTaxRate: parseFloat(dto.landTaxRate) || 0,
+    landTaxRatePercentage: parseFloat(dto.landTaxRatePercentage) || 0,
+    buildingTaxRateUpto120sqm: parseFloat(dto.buildingTaxRateUpto120sqm) || 0,
+    buildingTaxRateUpto120sqmPercentage: parseFloat(dto.buildingTaxRateUpto120sqmPercentage) || 0,
+    buildingTaxRateUpto200sqm: parseFloat(dto.buildingTaxRateUpto200sqm) || 0,
+    buildingTaxRateUpto200sqmPercentage: parseFloat(dto.buildingTaxRateUpto200sqmPercentage) || 0,
+    buildingTaxRateAbove200sqm: parseFloat(dto.buildingTaxRateAbove200sqm) || 0,
+    buildingTaxRateAbove200sqmPercentage: parseFloat(dto.buildingTaxRateAbove200sqmPercentage) || 0,
+    highIncomeGroupConnectionPercentage: parseFloat(dto.highIncomeGroupConnectionPercentage) || 0,
+    geoMean: parseFloat(dto.geoMean) || 0,
+  };
+}
+
+/**
+ * Convert array of CreateScoringParamDto to backend format
+ */
+export function convertDtosToBackendFormat(dtos: CreateScoringParamDto[]) {
+  return dtos.map(convertDtoToBackendFormat);
+}

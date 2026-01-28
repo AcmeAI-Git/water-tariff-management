@@ -14,7 +14,7 @@ import { StatusBadge } from '../components/zoneScoring/StatusBadge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { calculatePercentages, initializeScoringParam, mapScoringParamsToDto } from '../utils/zoneScoringUtils';
+import { calculatePercentages, initializeScoringParam, mapScoringParamsToDto, convertDtosToBackendFormat } from '../utils/zoneScoringUtils';
 import { parseScoringParamsCSV, generateCSVTemplate } from '../utils/csvParser';
 import type { ZoneScoringRuleSet, ScoringParam, Area, CreateScoringParamDto, Zone, Wasa, ZoneScore } from '../types';
 
@@ -197,10 +197,13 @@ export function ZoneScoringView() {
       // Continue with update even if approval request check fails
     }
     
+    const dtos = mapScoringParamsToDto(updatedParams);
+    const backendParams = convertDtosToBackendFormat(dtos);
+    
     await updateZoneScoringMutation.mutateAsync({
       id: rulesetData.id,
       data: {
-        scoringParams: mapScoringParamsToDto(updatedParams),
+        scoringParams: backendParams as any, // Backend expects numbers, but frontend types use strings
         status: 'draft', // Automatically set to draft when parameters are modified
       },
     });
@@ -260,6 +263,7 @@ export function ZoneScoringView() {
       console.log('Recalculated params count:', recalculatedAllParams.length);
       
       const updatedParams = mapScoringParamsToDto(recalculatedAllParams);
+      const backendParams = convertDtosToBackendFormat(updatedParams);
       
       console.log('Updated params DTO count:', updatedParams.length);
 
@@ -267,7 +271,7 @@ export function ZoneScoringView() {
       await updateZoneScoringMutation.mutateAsync({
         id: rulesetData.id,
         data: {
-          scoringParams: updatedParams,
+          scoringParams: backendParams as any, // Backend expects numbers, but frontend types use strings
           status: 'draft', // Automatically set to draft when parameters are added
         },
       });
@@ -335,6 +339,7 @@ export function ZoneScoringView() {
       // Recalculate percentages for remaining params
       const recalculatedParams = calculatePercentages(remainingParams);
       const updatedParams = mapScoringParamsToDto(recalculatedParams);
+      const backendParams = convertDtosToBackendFormat(updatedParams);
 
       // Check for and handle pending approval requests
       try {
@@ -367,7 +372,7 @@ export function ZoneScoringView() {
       await updateZoneScoringMutation.mutateAsync({
         id: rulesetData.id,
         data: {
-          scoringParams: updatedParams,
+          scoringParams: backendParams as any, // Backend expects numbers, but frontend types use strings
           status: 'draft', // Automatically set to draft when parameters are removed
         },
       });
@@ -533,12 +538,14 @@ export function ZoneScoringView() {
 
       // Recalculate percentages for all parameters
       const recalculated = calculatePercentages(allParams);
+      const dtos = mapScoringParamsToDto(recalculated);
+      const backendParams = convertDtosToBackendFormat(dtos);
 
       // Update ruleset with merged params and set status to draft
       await updateZoneScoringMutation.mutateAsync({
         id: rulesetData.id,
         data: {
-          scoringParams: mapScoringParamsToDto(recalculated),
+          scoringParams: backendParams as any, // Backend expects numbers, but frontend types use strings
           status: 'draft', // Automatically set to draft
         },
       });
@@ -596,7 +603,7 @@ export function ZoneScoringView() {
   };
 
   const handleDownloadTemplate = () => {
-    const template = generateCSVTemplate();
+    const template = generateCSVTemplate(areas, zones, wasas);
     const blob = new Blob([template], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
