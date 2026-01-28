@@ -153,38 +153,40 @@ export function HierarchicalLocationSelector({
         </div>
 
         {/* Area */}
-        <div className="space-y-2 min-w-0">
-          <Label className="text-sm font-medium text-gray-700">
-            {areaLabel} {requiredIndicator}
-          </Label>
-          <Select
-            value={areaId || ''}
-            onValueChange={onAreaChange}
-            disabled={disabled || !zoneId}
-          >
-            <SelectTrigger className="w-full border-gray-300 rounded-lg h-11 bg-white disabled:opacity-50 disabled:cursor-not-allowed min-w-0" title={areaId ? filteredAreas.find(a => a.id.toString() === areaId)?.name || '' : ''}>
-              <SelectValue placeholder={zoneId ? areaPlaceholder : 'Select zone first'} />
-            </SelectTrigger>
-            <SelectContent className="bg-white border border-gray-200 max-w-[var(--radix-select-trigger-width)] z-[100]" position="popper">
-              {!zoneId ? (
-                <div className="px-2 py-1.5 text-sm text-gray-500">Please select a zone first</div>
-              ) : filteredAreas.length === 0 ? (
-                <div className="px-2 py-1.5 text-sm text-gray-500">No areas available for this zone</div>
-              ) : (
-                filteredAreas.map((area) => (
-                  <SelectItem
-                    key={area.id}
-                    value={area.id.toString()}
-                    className="whitespace-normal"
-                    title={area.name || area.id.toString()}
-                  >
-                    {area.name || area.id.toString()}
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
-        </div>
+        {showArea && (
+          <div className="space-y-2 min-w-0">
+            <Label className="text-sm font-medium text-gray-700">
+              {areaLabel} {requiredIndicator}
+            </Label>
+            <Select
+              value={areaId || ''}
+              onValueChange={onAreaChange}
+              disabled={disabled || !zoneId}
+            >
+              <SelectTrigger className="w-full border-gray-300 rounded-lg h-11 bg-white disabled:opacity-50 disabled:cursor-not-allowed min-w-0" title={areaId ? filteredAreas.find(a => a.id.toString() === areaId)?.name || '' : ''}>
+                <SelectValue placeholder={zoneId ? areaPlaceholder : 'Select zone first'} />
+              </SelectTrigger>
+              <SelectContent className="bg-white border border-gray-200 max-w-[var(--radix-select-trigger-width)] z-[100]" position="popper">
+                {!zoneId ? (
+                  <div className="px-2 py-1.5 text-sm text-gray-500">Please select a zone first</div>
+                ) : filteredAreas.length === 0 ? (
+                  <div className="px-2 py-1.5 text-sm text-gray-500">No areas available for this zone</div>
+                ) : (
+                  filteredAreas.map((area) => (
+                    <SelectItem
+                      key={area.id}
+                      value={area.id.toString()}
+                      className="whitespace-normal"
+                      title={area.name || area.id.toString()}
+                    >
+                      {area.name || area.id.toString()}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
     );
   }
@@ -219,46 +221,45 @@ export function HierarchicalLocationSelector({
         </Select>
       </div>
 
-      {/* Zone and Area in a grid */}
-      <div className={`grid ${showArea ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'} gap-4`}>
-        {/* Zone */}
-        <div className="space-y-2 min-w-0">
-          <Label className="text-sm font-medium text-gray-700">
-            {zoneLabel} {requiredIndicator}
-          </Label>
-          <Select
-            value={zoneId || ''}
-            onValueChange={handleZoneChange}
-            disabled={disabled || !wasaId}
+      {/* Zone */}
+      <div className="space-y-2 min-w-0">
+        <Label className="text-sm font-medium text-gray-700">
+          {zoneLabel} {requiredIndicator}
+        </Label>
+        <Select
+          value={zoneId || ''}
+          onValueChange={handleZoneChange}
+          disabled={disabled || !wasaId}
+        >
+          <SelectTrigger 
+            className="w-full border-gray-300 rounded-lg h-11 bg-white disabled:opacity-50 disabled:cursor-not-allowed min-w-0" 
+            title={zoneId ? filteredZones.find(z => z.id.toString() === zoneId)?.name + ' - ' + filteredZones.find(z => z.id.toString() === zoneId)?.cityName : ''}
           >
-            <SelectTrigger 
-              className="w-full border-gray-300 rounded-lg h-11 bg-white disabled:opacity-50 disabled:cursor-not-allowed min-w-0" 
-              title={zoneId ? filteredZones.find(z => z.id.toString() === zoneId)?.name + ' - ' + filteredZones.find(z => z.id.toString() === zoneId)?.cityName : ''}
-            >
-              <SelectValue placeholder={wasaId ? zonePlaceholder : 'Select WASA first'} />
-            </SelectTrigger>
-            <SelectContent className="bg-white border border-gray-200 max-w-[var(--radix-select-trigger-width)] z-[100]" position="popper">
-              {!wasaId ? (
-                <div className="px-2 py-1.5 text-sm text-gray-500">Please select a WASA first</div>
-              ) : filteredZones.length === 0 ? (
-                <div className="px-2 py-1.5 text-sm text-gray-500">No zones available for this WASA</div>
-              ) : (
-                filteredZones.map((zone) => (
-                  <SelectItem
-                    key={zone.id}
-                    value={zone.id.toString()}
-                    className="whitespace-normal"
-                    title={`${zone.name} - ${zone.cityName}`}
-                  >
-                    {zone.name} - {zone.cityName}
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
-        </div>
+            <SelectValue placeholder={wasaId ? zonePlaceholder : 'Select WASA first'} />
+          </SelectTrigger>
+          <SelectContent className="bg-white border border-gray-200 max-w-[var(--radix-select-trigger-width)] z-[100]" position="popper">
+            {!wasaId ? (
+              <div className="px-2 py-1.5 text-sm text-gray-500">Please select a WASA first</div>
+            ) : filteredZones.length === 0 ? (
+              <div className="px-2 py-1.5 text-sm text-gray-500">No zones available for this WASA</div>
+            ) : (
+              filteredZones.map((zone) => (
+                <SelectItem
+                  key={zone.id}
+                  value={zone.id.toString()}
+                  className="whitespace-normal"
+                  title={`${zone.name} - ${zone.cityName}`}
+                >
+                  {zone.name} - {zone.cityName}
+                </SelectItem>
+              ))
+            )}
+          </SelectContent>
+        </Select>
+      </div>
 
-        {/* Area */}
+      {/* Area */}
+      {showArea && (
         <div className="space-y-2 min-w-0">
           <Label className="text-sm font-medium text-gray-700">
             {areaLabel} {requiredIndicator}
@@ -291,7 +292,7 @@ export function HierarchicalLocationSelector({
             </SelectContent>
           </Select>
         </div>
-      </div>
+      )}
     </div>
   );
 }

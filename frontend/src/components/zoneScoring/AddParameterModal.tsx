@@ -6,6 +6,7 @@ import { useState, useMemo } from 'react';
 import type { Area, CreateScoringParamDto, ScoringParam, Zone, Wasa } from '../../types';
 import { initializeScoringParam } from '../../utils/zoneScoringUtils';
 import { ScoringParameterFormFields } from './ScoringParameterFormFields';
+import { HierarchicalLocationSelector } from '../common/HierarchicalLocationSelector';
 
 interface AddParameterModalProps {
   isOpen: boolean;
@@ -36,58 +37,34 @@ export function AddParameterModal({
 }: AddParameterModalProps) {
   const [selectedWasaId, setSelectedWasaId] = useState<string>('');
   const [selectedZoneId, setSelectedZoneId] = useState<string>('');
+  const [selectedAreaId, setSelectedAreaId] = useState<string>('');
 
-  // Filter areas based on selected wasa and zone
-  const filteredAreas = useMemo(() => {
-    let result = areas;
-
-    // Filter by wasa
-    if (selectedWasaId) {
-      result = result.filter(area => {
-        // Use nested zone object from area if available
-        const zone = area.zone || zones.find(z => z.id === area.zoneId);
-        return zone?.wasaId === parseInt(selectedWasaId);
-      });
-    }
-
-    // Filter by zone
-    if (selectedZoneId) {
-      result = result.filter(area => {
-        // Use nested zone object from area if available
-        const zone = area.zone || zones.find(z => z.id === area.zoneId);
-        return zone?.id === parseInt(selectedZoneId);
-      });
-    }
-
-    return result;
-  }, [areas, selectedWasaId, selectedZoneId, zones]);
-
-  // Get zones for selected wasa
-  const zonesForWasa = useMemo(() => {
-    if (!selectedWasaId) return [];
-    return zones.filter(z => z.wasaId === parseInt(selectedWasaId));
-  }, [zones, selectedWasaId]);
+  // Note: zonesForWasa is no longer needed since HierarchicalLocationSelector handles zone filtering internally
 
   const handleClose = () => {
     setNewParam(initializeScoringParam());
     setSelectedWasaId('');
     setSelectedZoneId('');
+    setSelectedAreaId('');
     onClose();
   };
 
   const handleWasaChange = (value: string) => {
-    // Handle placeholder value
-    const wasaId = value === '__all_wasas__' ? '' : value;
-    setSelectedWasaId(wasaId);
+    setSelectedWasaId(value);
     setSelectedZoneId(''); // Reset zone when wasa changes
+    setSelectedAreaId(''); // Reset area when wasa changes
     setNewParam({ ...newParam, areaId: 0 }); // Reset area selection
   };
 
   const handleZoneChange = (value: string) => {
-    // Handle placeholder value
-    const zoneId = value === '__all_zones__' ? '' : value;
-    setSelectedZoneId(zoneId);
+    setSelectedZoneId(value);
+    setSelectedAreaId(''); // Reset area when zone changes
     setNewParam({ ...newParam, areaId: 0 }); // Reset area selection
+  };
+
+  const handleAreaChange = (value: string) => {
+    setSelectedAreaId(value);
+    setNewParam({ ...newParam, areaId: value ? parseInt(value) : 0 });
   };
 
   return (
@@ -99,86 +76,24 @@ export function AddParameterModal({
           </DialogTitle>
         </DialogHeader>
         <div className="py-4 space-y-4">
-          {/* WASA Filter */}
-          {wasas.length > 0 && (
-            <div className="space-y-2 w-full">
-              <Label className="text-sm font-medium text-gray-700">
-                WASA
-              </Label>
-              <Select value={selectedWasaId || '__all_wasas__'} onValueChange={handleWasaChange}>
-                <SelectTrigger className="bg-white border-gray-300 rounded-lg h-11 w-full">
-                  <SelectValue placeholder="Filter by WASA (optional)" />
-                </SelectTrigger>
-                <SelectContent className="bg-white max-h-[300px] overflow-y-auto">
-                  <SelectItem value="__all_wasas__">All WASAs</SelectItem>
-                  {wasas.map((cc) => (
-                    <SelectItem key={cc.id} value={cc.id.toString()} className="hover:bg-gray-100 cursor-pointer">
-                      {cc.name} ({cc.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {/* Zone Filter */}
-          {zones.length > 0 && selectedWasaId && (
-            <div className="space-y-2 w-full">
-              <Label className="text-sm font-medium text-gray-700">
-                Zone
-              </Label>
-              <Select value={selectedZoneId || '__all_zones__'} onValueChange={handleZoneChange} disabled={!selectedWasaId}>
-                <SelectTrigger className="bg-white border-gray-300 rounded-lg h-11 w-full disabled:opacity-50 disabled:cursor-not-allowed">
-                  <SelectValue placeholder={selectedWasaId ? "Filter by zone (optional)" : "Select WASA first"} />
-                </SelectTrigger>
-                <SelectContent className="bg-white max-h-[300px] overflow-y-auto">
-                  <SelectItem value="__all_zones__">All Zones</SelectItem>
-                  {zonesForWasa.map((zone) => (
-                    <SelectItem key={zone.id} value={zone.id.toString()} className="hover:bg-gray-100 cursor-pointer">
-                      {zone.name} - {zone.cityName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {/* Area Selection */}
-          <div className="space-y-2 w-full">
-            <Label className="text-sm font-medium text-gray-700">
-              Area <span className="text-red-500">*</span>
-            </Label>
-            <Select
-              value={newParam.areaId?.toString() || '0'}
-              onValueChange={(value) => setNewParam({ ...newParam, areaId: parseInt(value) })}
-            >
-              <SelectTrigger className="bg-white border-gray-300 rounded-lg h-11 w-full">
-                <SelectValue placeholder="Select an area" />
-              </SelectTrigger>
-              <SelectContent className="bg-white max-h-[300px] overflow-y-auto">
-                {filteredAreas.length === 0 ? (
-                  <SelectItem value="0" disabled>No areas available{selectedWasaId || selectedZoneId ? ' for selected filters' : ''}</SelectItem>
-                ) : (
-                  filteredAreas.map((area) => {
-                    // Use nested zone object if available
-                    const zone = area.zone || zones.find(z => z.id === area.zoneId);
-                    const wasa = zone?.wasaId 
-                      ? wasas.find(w => w.id === zone.wasaId)
-                      : null;
-                    const displayText = zone && wasa 
-                      ? `${area.name} (${zone.name}, ${wasa.name})`
-                      : area.name;
-                    
-                    return (
-                      <SelectItem key={area.id} value={area.id.toString()} className="hover:bg-gray-100 cursor-pointer">
-                        {displayText}
-                      </SelectItem>
-                    );
-                  })
-                )}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* WASA, Zone, and Area Selection */}
+          <HierarchicalLocationSelector
+            wasas={wasas}
+            zones={zones}
+            areas={areas}
+            wasaId={selectedWasaId}
+            zoneId={selectedZoneId}
+            areaId={selectedAreaId}
+            onWasaChange={handleWasaChange}
+            onZoneChange={handleZoneChange}
+            onAreaChange={handleAreaChange}
+            required={true}
+            showArea={true}
+            wasaPlaceholder="Filter by WASA"
+            zonePlaceholder="Filter by zone"
+            areaPlaceholder="Select an area"
+            areaLabel="Area"
+          />
 
           <ScoringParameterFormFields
             values={newParam}

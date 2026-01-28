@@ -9,6 +9,7 @@ import { api } from '../services/api';
 import { useApiMutation, useApiQuery } from '../hooks/useApiQuery';
 import { PageHeader } from '../components/zoneScoring/PageHeader';
 import { ScoringParameterFormFields } from '../components/zoneScoring/ScoringParameterFormFields';
+import { AddParameterModal } from '../components/zoneScoring/AddParameterModal';
 import { initializeScoringParam, calculatePercentages, mapScoringParamsToDto } from '../utils/zoneScoringUtils';
 import { parseScoringParamsCSV, generateCSVTemplate } from '../utils/csvParser';
 import type { CreateZoneScoringRuleSetDto, CreateScoringParamDto, Area, ScoringParam, Zone, Wasa } from '../types';
@@ -46,9 +47,6 @@ export function ZoneScoringCreate() {
   );
   const wasas: Wasa[] = (wasasData ?? []) as Wasa[];
 
-  // State for hierarchical filtering
-  const [filterWasaId, setFilterWasaId] = useState<string>('');
-  const [filterZoneId, setFilterZoneId] = useState<string>('');
 
   const createZoneScoringMutation = useApiMutation(
     (data: CreateZoneScoringRuleSetDto) => api.zoneScoring.create(data),
@@ -86,38 +84,13 @@ export function ZoneScoringCreate() {
     return calculatePercentages(paramsToCalculate);
   }, [scoringParams, newParam, areas]);
 
-  // Filter areas based on selected wasa and zone
-  const filteredAreasForModal = useMemo(() => {
-    let result = areas.filter(area => !scoringParams.some(p => p.areaId === area.id));
+  // Filter areas to exclude already-added ones
+  const availableAreas = useMemo(() => {
+    return areas.filter(area => !scoringParams.some(p => p.areaId === area.id));
+  }, [areas, scoringParams]);
 
-    // Filter by wasa
-    if (filterWasaId) {
-      result = result.filter(area => {
-        // Use nested zone object from area if available
-        const zone = area.zone || zones.find(z => z.id === area.zoneId);
-        return zone?.wasaId === parseInt(filterWasaId);
-      });
-    }
 
-    // Filter by zone
-    if (filterZoneId) {
-      result = result.filter(area => {
-        // Use nested zone object from area if available
-        const zone = area.zone || zones.find(z => z.id === area.zoneId);
-        return zone?.id === parseInt(filterZoneId);
-      });
-    }
-
-    return result;
-  }, [areas, scoringParams, filterWasaId, filterZoneId, zones]);
-
-  // Get zones for selected WASA
-  const zonesForWasa = useMemo(() => {
-    if (!filterWasaId) return [];
-    return zones.filter(z => z.wasaId === parseInt(filterWasaId));
-  }, [zones, filterWasaId]);
-
-  const handleAddParameter = () => {
+  const handleAddParameter = async () => {
     if (!newParam.areaId || newParam.areaId === 0) {
       alert('Please select an area');
       return;
@@ -522,162 +495,21 @@ export function ZoneScoringCreate() {
         </div>
 
         {/* Add Parameter Modal */}
-        {isAddParamModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl border border-gray-200 shadow-lg max-w-2xl max-h-[90vh] overflow-y-auto w-full mx-4">
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold text-gray-900">Add Scoring Parameter</h2>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                    setIsAddParamModalOpen(false);
-                    setNewParam(initializeScoringParam());
-                    setFilterWasaId('');
-                    setFilterZoneId('');
-                  }}
-                  className="h-8 w-8 p-0"
-                >
-                  <X size={20} />
-                </Button>
-              </div>
-              
-              <div className="space-y-4">
-                {/* WASA Filter */}
-                {wasas.length > 0 && (
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700 mb-2 block">
-                      WASA
-                    </Label>
-                    <Select 
-                      value={filterWasaId || '__all_wasas__'} 
-                      onValueChange={(value) => {
-                        const wasaId = value === '__all_wasas__' ? '' : value;
-                        setFilterWasaId(wasaId);
-                        setFilterZoneId(''); // Reset zone when wasa changes
-                        setNewParam({ ...newParam, areaId: 0 }); // Reset area selection
-                      }}
-                    >
-                      <SelectTrigger className="bg-white border-gray-300 rounded-lg h-11">
-                        <SelectValue placeholder="Filter by WASA (optional)" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white">
-                        <SelectItem value="__all_wasas__">All WASAs</SelectItem>
-                        {wasas.map((cc) => (
-                          <SelectItem key={cc.id} value={cc.id.toString()}>
-                            {cc.name} ({cc.code})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
-                {/* Zone Filter */}
-                {zones.length > 0 && filterWasaId && (
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700 mb-2 block">
-                      Zone
-                    </Label>
-                    <Select 
-                      value={filterZoneId || '__all_zones__'} 
-                      onValueChange={(value) => {
-                        const zoneId = value === '__all_zones__' ? '' : value;
-                        setFilterZoneId(zoneId);
-                        setNewParam({ ...newParam, areaId: 0 }); // Reset area selection
-                      }}
-                      disabled={!filterWasaId}
-                    >
-                      <SelectTrigger className="bg-white border-gray-300 rounded-lg h-11 disabled:opacity-50 disabled:cursor-not-allowed">
-                        <SelectValue placeholder={filterWasaId ? "Filter by zone (optional)" : "Select WASA first"} />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white">
-                        <SelectItem value="__all_zones__">All Zones</SelectItem>
-                        {zonesForWasa.map((zone) => (
-                          <SelectItem key={zone.id} value={zone.id.toString()}>
-                            {zone.name} - {zone.cityName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
-                {/* Area Selection */}
-                <div>
-                  <Label className="text-sm font-medium text-gray-700 mb-2 block">
-                    Area <span className="text-red-500">*</span>
-                  </Label>
-                  <Select
-                    value={newParam.areaId?.toString() || '0'}
-                    onValueChange={(value) => setNewParam({ ...newParam, areaId: parseInt(value) })}
-                  >
-                    <SelectTrigger className="bg-white border-gray-300 rounded-lg h-11">
-                      <SelectValue placeholder="Select an area" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white">
-                      {areasLoading ? (
-                        <SelectItem value="0" disabled>Loading areas...</SelectItem>
-                      ) : filteredAreasForModal.length === 0 ? (
-                        <SelectItem value="0" disabled>
-                          {areas.filter(area => !scoringParams.some(p => p.areaId === area.id)).length === 0 
-                            ? 'All areas already added' 
-                            : `No areas available${filterWasaId || filterZoneId ? ' for selected filters' : ''}`}
-                        </SelectItem>
-                      ) : (
-                        filteredAreasForModal.map((area) => {
-                          // Use nested zone object if available
-                          const zone = area.zone || zones.find(z => z.id === area.zoneId);
-                          const wasa = zone?.wasaId 
-                            ? wasas.find(w => w.id === zone.wasaId)
-                            : null;
-                          const displayText = zone && wasa 
-                            ? `${area.name} (${zone.name}, ${wasa.name})`
-                            : area.name;
-                          
-                          return (
-                            <SelectItem key={area.id} value={area.id.toString()}>
-                              {displayText}
-                            </SelectItem>
-                          );
-                        })
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                  <ScoringParameterFormFields
-                    values={newParam}
-                    onChange={(field, value) => setNewParam({ ...newParam, [field]: value })}
-                    calculatedParams={calculatedParams}
-                    showPercentages={true}
-                    showReadOnlyFields={true}
-                  />
-                </div>
-
-                <div className="flex items-center justify-end gap-4 mt-6 pt-4 border-t border-gray-200">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setIsAddParamModalOpen(false);
-                      setNewParam(initializeScoringParam());
-                    }}
-                    className="border-gray-300 text-gray-700 rounded-lg h-10 px-6"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleAddParameter}
-                    className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-10 px-6"
-                  >
-                    Add Parameter
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        <AddParameterModal
+          isOpen={isAddParamModalOpen}
+          onClose={() => {
+            setIsAddParamModalOpen(false);
+            setNewParam(initializeScoringParam());
+          }}
+          newParam={newParam}
+          setNewParam={setNewParam}
+          areas={availableAreas}
+          zones={zones}
+          wasas={wasas}
+          onAdd={handleAddParameter}
+          isPending={false}
+          calculatedParams={calculatedParams}
+        />
       </div>
     </div>
   );
