@@ -15,7 +15,6 @@ export default function CustomerPortalLayout() {
     const path = location.pathname;
     if (path.includes('/dashboard')) return 'customer-dashboard';
     if (path.includes('/billing')) return 'customer-billing';
-    if (path.includes('/analytics')) return 'customer-analytics';
     if (path.includes('/feedback')) return 'customer-feedback';
     return 'customer-dashboard';
   };
@@ -31,7 +30,6 @@ export default function CustomerPortalLayout() {
     const routeMap: Record<string, string> = {
       'customer-dashboard': '/customer/dashboard',
       'customer-billing': '/customer/billing',
-      'customer-analytics': '/customer/analytics',
       'customer-feedback': '/customer/feedback',
     };
 
@@ -42,7 +40,7 @@ export default function CustomerPortalLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-app">
+    <div className="min-h-screen flex">
       {/* Mobile Menu Button */}
       {isMobile && (
         <button
@@ -55,9 +53,9 @@ export default function CustomerPortalLayout() {
       )}
 
       {/* Desktop Sidebar */}
-      <div className="hidden md:block">
+      <aside className="hidden md:block w-[260px] fixed inset-y-0 left-0 bg-white shadow z-20">
         <CustomerPortalSidebar activePage={getActivePage()} onNavigate={handleNavigate} />
-      </div>
+      </aside>
 
       {/* Mobile Sidebar */}
       {isMobile && (
@@ -74,9 +72,9 @@ export default function CustomerPortalLayout() {
       )}
 
       {/* Main Content */}
-      <div className="w-full md:ml-[280px] px-4 md:px-6 py-4 md:py-6">
+      <main className="flex-1 w-full md:ml-[260px] px-4 md:px-6 py-4 md:py-6 overflow-x-hidden min-w-0">
         <Outlet />
-      </div>
+      </main>
     </div>
   );
 }

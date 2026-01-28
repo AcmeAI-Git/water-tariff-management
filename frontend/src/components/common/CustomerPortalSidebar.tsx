@@ -1,4 +1,4 @@
-import { Home, FileText, BarChart3, MessageSquare, LogOut } from "lucide-react";
+import { Home, FileText, MessageSquare, LogOut } from "lucide-react";
 
 interface CustomerPortalSidebarProps {
     activePage: string;
@@ -21,19 +21,14 @@ export function CustomerPortalSidebar({
             icon: FileText,
         },
         {
-            id: "customer-analytics",
-            label: "Usage Analytics",
-            icon: BarChart3,
-        },
-        {
             id: "customer-feedback",
-            label: "Complaints & Feedback",
+            label: "Feedback",
             icon: MessageSquare,
         },
     ];
 
     return (
-        <div className="w-[280px] bg-white h-screen fixed left-0 top-0 flex flex-col border-r border-gray-200">
+        <div className="h-full flex flex-col">
             {/* Header */}
             <div className="px-6 py-6 border-b border-gray-200">
                 <div className="flex items-center gap-3">

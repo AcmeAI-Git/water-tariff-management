@@ -68,43 +68,9 @@ export default function Login() {
   };
 
   const handleDemo = async (role: string) => {
-    // Handle customer portal demo login separately
+    // Customer portal demo: navigate to customer login page
     if (role === 'customer') {
-      try {
-        setDemoLoading('customer');
-        setError('');
-        
-        // Get first active user for demo
-        const users = await api.users.getAll('active');
-        if (users.length === 0) {
-          toast.error('No active users found. Please create a customer first.');
-          setDemoLoading(null);
-          return;
-        }
-
-        const demoUser = users[0];
-        const userPasswords = JSON.parse(localStorage.getItem('userPasswords') || '{}');
-        const demoPassword = userPasswords[demoUser.id] || 'demo123';
-
-        // If no password exists, set a default demo password
-        if (!userPasswords[demoUser.id]) {
-          userPasswords[demoUser.id] = demoPassword;
-          localStorage.setItem('userPasswords', JSON.stringify(userPasswords));
-        }
-
-        // Store authenticated customer user
-        localStorage.setItem('customerUser', JSON.stringify(demoUser));
-        localStorage.setItem('isCustomerAuthenticated', 'true');
-        
-        toast.success('Login successful!');
-        navigate('/customer/dashboard');
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Demo login failed';
-        setError(errorMessage);
-        toast.error(errorMessage);
-      } finally {
-        setDemoLoading(null);
-      }
+      navigate('/customer/login');
       return;
     }
 
