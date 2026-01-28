@@ -56,7 +56,6 @@ export default function Layout({ children }: LayoutProps) {
     const map: Record<string, string> = {
       "customer-admin-customers": "/customer-admin/customers",
       "customer-admin-pending": "/customer-admin/pending",
-      "customer-admin-visualizer": "/customer-admin/visualizer",
       "customer-admin-metrics": "/customer-admin/metrics",
       "customer-admin-billing": "/customer-admin/billing",
     };
@@ -68,7 +67,6 @@ export default function Layout({ children }: LayoutProps) {
   const tariffRouteMap: Record<string, string> = {
     "tariff-config": "/tariff-admin/config",
     "tariff-history": "/tariff-admin/history",
-    "tariff-visualizer": "/tariff-admin/visualizer",
     "zone-scoring": "/tariff-admin/zone-scoring",
     "location-management": "/tariff-admin/location-management",
     "my-metrics": "/tariff-admin/metrics",
@@ -82,7 +80,6 @@ export default function Layout({ children }: LayoutProps) {
         switch (match[1]) {
           case "config": return "tariff-config";
           case "history": return "tariff-history";
-          case "visualizer": return "tariff-visualizer";
           case "metrics": return "my-metrics";
           case "areas": return "location-management";
           default: return "tariff-config";

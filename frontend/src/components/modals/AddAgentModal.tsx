@@ -216,13 +216,13 @@ export function AddAgentModal({ open, onClose, onSave, editMode = false, agent =
                   {showWasa && (
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-gray-700">
-                        City Corporation
+                        WASA
                       </label>
                       <Dropdown 
                         options={wasaOptions} 
                         value={form.wasa || ""} 
                         onChange={v => handleChange("wasa", v)} 
-                        placeholder="Select City Corporation" 
+                        placeholder="Select WASA" 
                         className="w-full" 
                       />
                     </div>

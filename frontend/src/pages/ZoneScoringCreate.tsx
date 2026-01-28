@@ -39,7 +39,7 @@ export function ZoneScoringCreate() {
   );
   const zones: Zone[] = (zonesData ?? []) as Zone[];
 
-  // Fetch city corporations
+  // Fetch WASAs
   const { data: wasasData } = useApiQuery<Wasa[]>(
     ['city-corporations'],
     () => api.wasas.getAll()
@@ -86,11 +86,11 @@ export function ZoneScoringCreate() {
     return calculatePercentages(paramsToCalculate);
   }, [scoringParams, newParam, areas]);
 
-  // Filter areas based on selected city corporation and zone
+  // Filter areas based on selected wasa and zone
   const filteredAreasForModal = useMemo(() => {
     let result = areas.filter(area => !scoringParams.some(p => p.areaId === area.id));
 
-    // Filter by city corporation
+    // Filter by wasa
     if (filterCityCorpId) {
       result = result.filter(area => {
         // Use nested zone object from area if available
@@ -544,26 +544,26 @@ export function ZoneScoringCreate() {
               </div>
               
               <div className="space-y-4">
-                {/* City Corporation Filter */}
+                {/* WASA Filter */}
                 {wasas.length > 0 && (
                   <div>
                     <Label className="text-sm font-medium text-gray-700 mb-2 block">
-                      City Corporation
+                      WASA
                     </Label>
                     <Select 
                       value={filterCityCorpId || '__all_city_corps__'} 
                       onValueChange={(value) => {
                         const cityCorpId = value === '__all_city_corps__' ? '' : value;
                         setFilterCityCorpId(cityCorpId);
-                        setFilterZoneId(''); // Reset zone when city corp changes
+                        setFilterZoneId(''); // Reset zone when wasa changes
                         setNewParam({ ...newParam, areaId: 0 }); // Reset area selection
                       }}
                     >
                       <SelectTrigger className="bg-white border-gray-300 rounded-lg h-11">
-                        <SelectValue placeholder="Filter by city corporation (optional)" />
+                        <SelectValue placeholder="Filter by WASA (optional)" />
                       </SelectTrigger>
                       <SelectContent className="bg-white">
-                        <SelectItem value="__all_city_corps__">All City Corporations</SelectItem>
+                        <SelectItem value="__all_city_corps__">All WASAs</SelectItem>
                         {wasas.map((cc) => (
                           <SelectItem key={cc.id} value={cc.id.toString()}>
                             {cc.name} ({cc.code})

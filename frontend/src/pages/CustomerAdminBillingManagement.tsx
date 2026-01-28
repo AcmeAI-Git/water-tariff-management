@@ -15,18 +15,32 @@ export function CustomerAdminBillingManagement() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedBill, setSelectedBill] = useState<any>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [billToMarkPaid, setBillToMarkPaid] = useState<any>(null);
+  const [isMarkPaidDialogOpen, setIsMarkPaidDialogOpen] = useState(false);
 
-  // Fetch water bills
+  // Fetch water bills (bills already include nested user data)
   const { data: waterBills = [], isLoading: billsLoading } = useApiQuery(
     ['water-bills'],
     () => api.waterBills.getAll()
   );
 
-  // Fetch users for customer names
-  const { data: users = [], isLoading: usersLoading } = useApiQuery(
-    ['users'],
-    () => api.users.getAll()
+  // Fetch meters to get meter numbers (water-bills API doesn't include meterNo)
+  const { data: meters = [], isLoading: metersLoading } = useApiQuery(
+    ['meters'],
+    () => api.meters.getAll()
   );
+
+  // Create a map of user account to meter number
+  const meterMap = useMemo(() => {
+    const map: Record<string, number | string> = {};
+    meters.forEach((meter: any) => {
+      const account = meter.account || meter.userAccount;
+      if (account && meter.meterNo != null) {
+        map[account] = meter.meterNo;
+      }
+    });
+    return map;
+  }, [meters]);
 
   // Mark as paid mutation
   const markPaidMutation = useApiMutation(
@@ -37,15 +51,6 @@ export function CustomerAdminBillingManagement() {
       invalidateQueries: [['water-bills']],
     }
   );
-
-  // Create a map of userId to user for quick lookup
-  const userMap = useMemo(() => {
-    const map: Record<number, any> = {};
-    users.forEach((user) => {
-      map[user.id] = user;
-    });
-    return map;
-  }, [users]);
 
   // Filter and search bills
   const filteredBills = useMemo(() => {
@@ -60,10 +65,13 @@ export function CustomerAdminBillingManagement() {
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter((b) => {
-        const user = userMap[b.userId];
-        if (!user) return false;
-        const nameMatch = user.fullName?.toLowerCase().includes(query);
-        const meterMatch = user.meterNo?.toLowerCase().includes(query);
+        // Use nested user object from bill, or fallback to userAccount/userId
+        const user = b.user || {};
+        const name = String(user.name || user.fullName || '');
+        const userAccount = b.userAccount || b.user?.account || b.user?.id?.toString();
+        const meterNo = userAccount ? (meterMap[userAccount]?.toString() || '') : '';
+        const nameMatch = name.toLowerCase().includes(query);
+        const meterMatch = meterNo.toLowerCase().includes(query);
         return nameMatch || meterMatch;
       });
     }
@@ -74,16 +82,27 @@ export function CustomerAdminBillingManagement() {
       const dateB = b.billMonth ? new Date(b.billMonth).getTime() : 0;
       return dateB - dateA;
     });
-  }, [waterBills, statusFilter, searchQuery, userMap]);
+  }, [waterBills, statusFilter, searchQuery, meterMap]);
 
-  const handleMarkAsPaid = async (billId: number) => {
-    if (window.confirm('Are you sure you want to mark this bill as paid?')) {
-      try {
-        await markPaidMutation.mutateAsync(billId);
-      } catch (error) {
-        console.error('Failed to mark bill as paid:', error);
-      }
+  const handleMarkAsPaidClick = (bill: any) => {
+    setBillToMarkPaid(bill);
+    setIsMarkPaidDialogOpen(true);
+  };
+
+  const handleMarkAsPaidConfirm = async () => {
+    if (!billToMarkPaid) return;
+    try {
+      await markPaidMutation.mutateAsync(billToMarkPaid.id);
+      setIsMarkPaidDialogOpen(false);
+      setBillToMarkPaid(null);
+    } catch (error) {
+      console.error('Failed to mark bill as paid:', error);
     }
+  };
+
+  const handleMarkAsPaidCancel = () => {
+    setIsMarkPaidDialogOpen(false);
+    setBillToMarkPaid(null);
   };
 
   const handleViewDetails = (bill: any) => {
@@ -91,7 +110,7 @@ export function CustomerAdminBillingManagement() {
     setIsDetailDialogOpen(true);
   };
 
-  if (billsLoading || usersLoading) {
+  if (billsLoading || metersLoading) {
     return (
       <div className="min-h-screen bg-app flex items-center justify-center">
         <LoadingSpinner />
@@ -149,18 +168,25 @@ export function CustomerAdminBillingManagement() {
                   <TableHead>Bill Month</TableHead>
                   <TableHead>Total Bill</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead className="text-right" style={{ paddingRight: '2rem' }}>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredBills.map((bill) => {
-                  const user = userMap[bill.userId];
+                  // Use nested user object from bill
+                  const user = bill.user || {};
+                  const customerName = String(user.name || user.fullName || 'Unknown');
+                  // Get meter number from meterMap since water-bills API doesn't include it
+                  const userAccount = bill.userAccount || user.account || user.id?.toString();
+                  const meterNo = userAccount 
+                    ? (meterMap[userAccount]?.toString() || (user.waterStatus === 'Non-Metered' ? 'N/A' : 'N/A'))
+                    : (user.waterStatus === 'Non-Metered' ? 'N/A' : 'N/A');
                   return (
                     <TableRow key={bill.id}>
                       <TableCell className="font-medium">
-                        {user?.fullName || 'Unknown'}
+                        {customerName}
                       </TableCell>
-                      <TableCell>{user?.meterNo || 'N/A'}</TableCell>
+                      <TableCell>{meterNo}</TableCell>
                       <TableCell>
                         {bill.billMonth
                           ? format(new Date(bill.billMonth), 'MMM yyyy')
@@ -182,8 +208,19 @@ export function CustomerAdminBillingManagement() {
                           {bill.status || 'Unpaid'}
                         </span>
                       </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
+                      <TableCell className="text-right align-middle" style={{ paddingRight: '2rem' }}>
+                        <div className="inline-flex items-center justify-end gap-2 ml-auto">
+                          {bill.status !== 'Paid' && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleMarkAsPaidClick(bill)}
+                              disabled={markPaidMutation.isPending}
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                            >
+                              <CheckCircle2 size={16} className="mr-1" />
+                              Mark Paid
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             variant="outline"
@@ -193,17 +230,6 @@ export function CustomerAdminBillingManagement() {
                             <Eye size={16} className="mr-1" />
                             View
                           </Button>
-                          {bill.status !== 'Paid' && (
-                            <Button
-                              size="sm"
-                              onClick={() => handleMarkAsPaid(bill.id)}
-                              disabled={markPaidMutation.isPending}
-                              className="bg-green-600 hover:bg-green-700 text-white"
-                            >
-                              <CheckCircle2 size={16} className="mr-1" />
-                              Mark Paid
-                            </Button>
-                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -220,7 +246,7 @@ export function CustomerAdminBillingManagement() {
 
         {/* Bill Details Dialog */}
         <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-          <DialogContent className="sm:max-w-[600px] bg-white">
+          <DialogContent className="sm:max-w-[600px] bg-white max-h-[90vh] overflow-hidden flex flex-col">
             <DialogHeader>
               <DialogTitle className="text-xl font-semibold text-gray-900">Bill Details</DialogTitle>
               <DialogDescription className="text-sm text-gray-600">
@@ -228,18 +254,23 @@ export function CustomerAdminBillingManagement() {
               </DialogDescription>
             </DialogHeader>
             {selectedBill && (
-              <div className="space-y-4 py-4">
+              <div className="space-y-4 py-4 overflow-y-auto flex-1">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-600">Customer</p>
                     <p className="font-medium text-gray-900">
-                      {userMap[selectedBill.userId]?.fullName || 'Unknown'}
+                      {selectedBill.user?.name || selectedBill.user?.fullName || 'Unknown'}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Meter Number</p>
                     <p className="font-medium text-gray-900">
-                      {userMap[selectedBill.userId]?.meterNo || 'N/A'}
+                      {(() => {
+                        const userAccount = selectedBill.userAccount || selectedBill.user?.account || selectedBill.user?.id?.toString();
+                        return userAccount 
+                          ? (meterMap[userAccount]?.toString() || (selectedBill.user?.waterStatus === 'Non-Metered' ? 'N/A' : 'N/A'))
+                          : (selectedBill.user?.waterStatus === 'Non-Metered' ? 'N/A' : 'N/A');
+                      })()}
                     </p>
                   </div>
                   <div>
@@ -278,15 +309,225 @@ export function CustomerAdminBillingManagement() {
                         : 'N/A'}
                     </p>
                   </div>
+                  {selectedBill.updatedAt && (
+                    <div>
+                      <p className="text-sm text-gray-600">Updated At</p>
+                      <p className="font-medium text-gray-900">
+                        {format(new Date(selectedBill.updatedAt), 'MMM dd, yyyy')}
+                      </p>
+                    </div>
+                  )}
+                  {selectedBill.tariffPlanId && (
+                    <div>
+                      <p className="text-sm text-gray-600">Tariff Plan ID</p>
+                      <p className="font-medium text-gray-900">
+                        {selectedBill.tariffPlanId}
+                      </p>
+                    </div>
+                  )}
+                  {selectedBill.tariffPlan && (
+                    <div>
+                      <p className="text-sm text-gray-600">Tariff Plan</p>
+                      <p className="font-medium text-gray-900">
+                        {(selectedBill.tariffPlan as any)?.name || 'N/A'}
+                      </p>
+                    </div>
+                  )}
+                  {selectedBill.consumptionId && (
+                    <div>
+                      <p className="text-sm text-gray-600">Consumption ID</p>
+                      <p className="font-medium text-gray-900">
+                        {selectedBill.consumptionId}
+                      </p>
+                    </div>
+                  )}
+                  {selectedBill.userId && (
+                    <div>
+                      <p className="text-sm text-gray-600">User ID</p>
+                      <p className="font-medium text-gray-900">
+                        {selectedBill.userId}
+                      </p>
+                    </div>
+                  )}
+                  {selectedBill.breakdown && (() => {
+                    const breakdown = selectedBill.breakdown as any;
+                    const zoneScore = breakdown.zoneScore;
+                    return zoneScore != null ? (
+                      <div>
+                        <p className="text-sm text-gray-600">Zone Score</p>
+                        <p className="font-medium text-gray-900">
+                          {Number(zoneScore).toFixed(2)}
+                        </p>
+                      </div>
+                    ) : null;
+                  })()}
                 </div>
-                {selectedBill.breakdown && (
-                  <div>
-                    <p className="text-sm text-gray-600 mb-2">Bill Breakdown</p>
-                    <pre className="bg-gray-50 p-4 rounded-lg text-xs overflow-auto">
-                      {JSON.stringify(selectedBill.breakdown, null, 2)}
-                    </pre>
+                {selectedBill.consumption && (
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <p className="text-sm font-semibold text-gray-900 mb-3">Consumption Details</p>
+                    <div className="bg-gray-50 rounded-lg p-4 space-y-2.5">
+                      {selectedBill.consumption.currentReading != null && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Current Reading</span>
+                          <span className="font-medium text-gray-900">
+                            {Number(selectedBill.consumption.currentReading).toFixed(2)} m³
+                          </span>
+                        </div>
+                      )}
+                      {selectedBill.consumption.previousReading != null && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Previous Reading</span>
+                          <span className="font-medium text-gray-900">
+                            {Number(selectedBill.consumption.previousReading).toFixed(2)} m³
+                          </span>
+                        </div>
+                      )}
+                      {selectedBill.consumption.consumption != null && (
+                        <div className="flex justify-between text-sm pt-2 border-t border-gray-200">
+                          <span className="text-gray-600 font-semibold">Consumption</span>
+                          <span className="font-semibold text-gray-900">
+                            {Number(selectedBill.consumption.consumption).toFixed(2)} m³
+                          </span>
+                        </div>
+                      )}
+                      {selectedBill.consumption.billMonth && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Bill Month</span>
+                          <span className="font-medium text-gray-900">
+                            {format(new Date(selectedBill.consumption.billMonth), 'MMMM yyyy')}
+                          </span>
+                        </div>
+                      )}
+                      {selectedBill.consumption.createdAt && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Reading Date</span>
+                          <span className="font-medium text-gray-900">
+                            {format(new Date(selectedBill.consumption.createdAt), 'MMM dd, yyyy')}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
+                {selectedBill.breakdown && (
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <p className="text-sm font-semibold text-gray-900 mb-3">Bill Calculation Breakdown</p>
+                    {(() => {
+                      const breakdown = selectedBill.breakdown as any;
+                      // Get values directly from breakdown object (from API)
+                      const consumption = breakdown.consumption || selectedBill.consumption?.consumption || 0;
+                      const baseRate = breakdown.baseRate;
+                      const zoneScore = breakdown.zoneScore;
+                      const policy = breakdown.policy || 'UNKNOWN';
+                      const preTaxTotal = breakdown.preTaxTotal;
+                      const taxRate = breakdown.taxRate;
+                      const taxAmount = breakdown.taxAmount;
+                      const total = breakdown.total || selectedBill.totalBill || 0;
+
+                      return (
+                        <div className="bg-gray-50 rounded-lg p-4 space-y-2.5">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Water Consumption</span>
+                            <span className="font-medium text-gray-900">{consumption.toFixed(2)} m³</span>
+                          </div>
+                          {policy && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Policy</span>
+                              <span className="font-medium text-gray-900">{policy.replace('_', ' ')}</span>
+                            </div>
+                          )}
+                          {baseRate != null && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Base Rate</span>
+                              <span className="font-medium text-gray-900">৳{Number(baseRate).toFixed(2)}</span>
+                            </div>
+                          )}
+                          {zoneScore != null && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Zone Score</span>
+                              <span className="font-medium text-gray-900">{Number(zoneScore).toFixed(2)}</span>
+                            </div>
+                          )}
+                          {preTaxTotal != null && (
+                            <div className="pt-2 border-t border-gray-200">
+                              <div className="flex justify-between text-sm">
+                                <span className="text-gray-600">Pre-tax Amount</span>
+                                <span className="font-semibold text-gray-900">৳{Number(preTaxTotal).toFixed(2)}</span>
+                              </div>
+                            </div>
+                          )}
+                          {taxRate != null && taxAmount != null && taxRate > 0 && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Tax ({(Number(taxRate) * 100).toFixed(1)}%)</span>
+                              <span className="font-medium text-gray-900">৳{Number(taxAmount).toFixed(2)}</span>
+                            </div>
+                          )}
+                          <div className="pt-2 border-t-2 border-gray-300">
+                            <div className="flex justify-between">
+                              <span className="text-sm font-semibold text-gray-900">Total Bill</span>
+                              <span className="text-lg font-bold text-gray-900">৳{Number(total).toFixed(2)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Mark Paid Confirmation Dialog */}
+        <Dialog open={isMarkPaidDialogOpen} onOpenChange={setIsMarkPaidDialogOpen}>
+          <DialogContent className="sm:max-w-[500px] bg-white">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold text-gray-900">Mark Bill as Paid</DialogTitle>
+              <DialogDescription className="text-sm text-gray-600">
+                Are you sure you want to mark this bill as paid?
+              </DialogDescription>
+            </DialogHeader>
+            {billToMarkPaid && (
+              <div className="space-y-4 py-4">
+                <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Customer:</span>
+                    <span className="text-sm font-medium text-gray-900">
+                      {billToMarkPaid.user?.name || billToMarkPaid.user?.fullName || 'Unknown'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Bill Month:</span>
+                    <span className="text-sm font-medium text-gray-900">
+                      {billToMarkPaid.billMonth
+                        ? format(new Date(billToMarkPaid.billMonth), 'MMMM yyyy')
+                        : 'N/A'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Amount:</span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      ৳{billToMarkPaid.totalBill ? Number(billToMarkPaid.totalBill).toFixed(2) : '0.00'}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-3 pt-2">
+                  <Button
+                    variant="outline"
+                    onClick={handleMarkAsPaidCancel}
+                    disabled={markPaidMutation.isPending}
+                    className="border-gray-300"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleMarkAsPaidConfirm}
+                    disabled={markPaidMutation.isPending}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    {markPaidMutation.isPending ? 'Marking...' : 'Mark as Paid'}
+                  </Button>
+                </div>
               </div>
             )}
           </DialogContent>

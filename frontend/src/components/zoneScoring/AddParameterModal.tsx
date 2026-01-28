@@ -37,11 +37,11 @@ export function AddParameterModal({
   const [selectedCityCorpId, setSelectedCityCorpId] = useState<string>('');
   const [selectedZoneId, setSelectedZoneId] = useState<string>('');
 
-  // Filter areas based on selected city corporation and zone
+  // Filter areas based on selected wasa and zone
   const filteredAreas = useMemo(() => {
     let result = areas;
 
-    // Filter by city corporation
+    // Filter by wasa
     if (selectedCityCorpId) {
       result = result.filter(area => {
         // Use nested zone object from area if available
@@ -62,7 +62,7 @@ export function AddParameterModal({
     return result;
   }, [areas, selectedCityCorpId, selectedZoneId, zones]);
 
-  // Get zones for selected city corporation
+  // Get zones for selected wasa
   const zonesForCityCorp = useMemo(() => {
     if (!selectedCityCorpId) return [];
     return zones.filter(z => z.wasaId === parseInt(selectedCityCorpId));
@@ -79,7 +79,7 @@ export function AddParameterModal({
     // Handle placeholder value
     const cityCorpId = value === '__all_city_corps__' ? '' : value;
     setSelectedCityCorpId(cityCorpId);
-    setSelectedZoneId(''); // Reset zone when city corp changes
+    setSelectedZoneId(''); // Reset zone when wasa changes
     setNewParam({ ...newParam, areaId: 0 }); // Reset area selection
   };
 
@@ -99,18 +99,18 @@ export function AddParameterModal({
           </DialogTitle>
         </DialogHeader>
         <div className="py-4 space-y-4">
-          {/* City Corporation Filter */}
+          {/* WASA Filter */}
           {wasas.length > 0 && (
             <div className="space-y-2 w-full">
               <Label className="text-sm font-medium text-gray-700">
-                City Corporation
+                WASA
               </Label>
               <Select value={selectedCityCorpId || '__all_city_corps__'} onValueChange={handleCityCorpChange}>
                 <SelectTrigger className="bg-white border-gray-300 rounded-lg h-11 w-full">
-                  <SelectValue placeholder="Filter by city corporation (optional)" />
+                  <SelectValue placeholder="Filter by WASA (optional)" />
                 </SelectTrigger>
                 <SelectContent className="bg-white max-h-[300px] overflow-y-auto">
-                  <SelectItem value="__all_city_corps__">All City Corporations</SelectItem>
+                  <SelectItem value="__all_city_corps__">All WASAs</SelectItem>
                   {wasas.map((cc) => (
                     <SelectItem key={cc.id} value={cc.id.toString()} className="hover:bg-gray-100 cursor-pointer">
                       {cc.name} ({cc.code})

@@ -60,6 +60,12 @@ import type {
   TariffCategorySettings,
   CreateTariffCategorySettingsDto,
   UpdateTariffCategorySettingsDto,
+  TariffPolicy,
+  CreateTariffPolicyDto,
+  UpdateTariffPolicyDto,
+  TariffThresholdSlab,
+  CreateTariffThresholdSlabDto,
+  UpdateTariffThresholdSlabDto,
 } from "../types";
 
 // ==================== ADMINS ====================
@@ -623,6 +629,61 @@ export const tariffCategorySettingsApi = {
   },
 };
 
+// ==================== TARIFF POLICY ====================
+export const tariffPolicyApi = {
+  getAll: (): Promise<TariffPolicy[]> => {
+    return fetchService.get<TariffPolicy[]>("/tariff-policy");
+  },
+
+  getActive: (): Promise<TariffPolicy> => {
+    return fetchService.get<TariffPolicy>("/tariff-policy/active");
+  },
+
+  getById: (id: number): Promise<TariffPolicy> => {
+    return fetchService.get<TariffPolicy>(`/tariff-policy/${id}`);
+  },
+
+  create: (data: CreateTariffPolicyDto): Promise<TariffPolicy> => {
+    return fetchService.post<TariffPolicy>("/tariff-policy", data);
+  },
+
+  update: (id: number, data: UpdateTariffPolicyDto): Promise<TariffPolicy> => {
+    return fetchService.put<TariffPolicy>(`/tariff-policy/${id}`, data);
+  },
+
+  delete: (id: number): Promise<void> => {
+    return fetchService.delete<void>(`/tariff-policy/${id}`);
+  },
+
+  activate: (id: number): Promise<TariffPolicy> => {
+    return fetchService.patch<TariffPolicy>(`/tariff-policy/${id}/activate`, {});
+  },
+};
+
+// ==================== TARIFF THRESHOLD SLABS ====================
+export const tariffThresholdSlabsApi = {
+  getAll: (isActive?: boolean): Promise<TariffThresholdSlab[]> => {
+    const query = isActive !== undefined ? `?isActive=${isActive}` : "";
+    return fetchService.get<TariffThresholdSlab[]>(`/tariff-threshold-slabs${query}`);
+  },
+
+  getById: (id: number): Promise<TariffThresholdSlab> => {
+    return fetchService.get<TariffThresholdSlab>(`/tariff-threshold-slabs/${id}`);
+  },
+
+  create: (data: CreateTariffThresholdSlabDto): Promise<TariffThresholdSlab> => {
+    return fetchService.post<TariffThresholdSlab>("/tariff-threshold-slabs", data);
+  },
+
+  update: (id: number, data: UpdateTariffThresholdSlabDto): Promise<TariffThresholdSlab> => {
+    return fetchService.put<TariffThresholdSlab>(`/tariff-threshold-slabs/${id}`, data);
+  },
+
+  delete: (id: number): Promise<void> => {
+    return fetchService.delete<void>(`/tariff-threshold-slabs/${id}`);
+  },
+};
+
 // Export all APIs as a single object for convenience
 export const api = {
   admins: adminsApi,
@@ -643,6 +704,8 @@ export const api = {
   meters: metersApi,
   tariffCategory: tariffCategoryApi,
   tariffCategorySettings: tariffCategorySettingsApi,
+  tariffPolicy: tariffPolicyApi,
+  tariffThresholdSlabs: tariffThresholdSlabsApi,
 };
 
 export default api;

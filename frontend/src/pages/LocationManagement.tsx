@@ -949,10 +949,10 @@ export function LocationManagement() {
                     }}
                   >
                     <SelectTrigger className="w-full border-gray-300 rounded-lg h-11 bg-white min-w-0 [&>*:first-child]:truncate [&>*:first-child]:min-w-0">
-                      <SelectValue placeholder="Filter by City Corp" />
+                      <SelectValue placeholder="Filter by WASA" />
                     </SelectTrigger>
                     <SelectContent className="bg-white border border-gray-200">
-                      <SelectItem value="all">All City Corporations</SelectItem>
+                      <SelectItem value="all">All WASAs</SelectItem>
                       {wasas.map(cc => (
                         <SelectItem key={cc.id} value={cc.id.toString()}>
                           {cc.name} ({cc.code})
@@ -1101,15 +1101,15 @@ export function LocationManagement() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="create-zone-city-corp" className="text-sm font-medium text-gray-700">
-                      City Corporation <span className="text-red-500">*</span>
+                      WASA <span className="text-red-500">*</span>
                     </Label>
                     <Select value={createZoneWasaId} onValueChange={setCreateZoneWasaId}>
                       <SelectTrigger className="w-full border-gray-300 rounded-lg h-11 bg-white">
-                        <SelectValue placeholder="Select city corporation" />
+                        <SelectValue placeholder="Select WASA" />
                       </SelectTrigger>
                       <SelectContent className="bg-white border border-gray-200">
                         {wasas.length === 0 ? (
-                          <div className="px-2 py-1.5 text-sm text-gray-500">No city corporations available</div>
+                          <div className="px-2 py-1.5 text-sm text-gray-500">No WASAs available</div>
                         ) : (
                           wasas.map(cc => (
                             <SelectItem key={cc.id} value={cc.id.toString()}>
@@ -1201,15 +1201,15 @@ export function LocationManagement() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="edit-zone-city-corp" className="text-sm font-medium text-gray-700">
-                      City Corporation <span className="text-red-500">*</span>
+                      WASA <span className="text-red-500">*</span>
                     </Label>
                     <Select value={editZoneWasaId} onValueChange={setEditZoneWasaId}>
                       <SelectTrigger className="w-full border-gray-300 rounded-lg h-11 bg-white">
-                        <SelectValue placeholder="Select city corporation" />
+                        <SelectValue placeholder="Select WASA" />
                       </SelectTrigger>
                       <SelectContent className="bg-white border border-gray-200">
                         {wasas.length === 0 ? (
-                          <div className="px-2 py-1.5 text-sm text-gray-500">No city corporations available</div>
+                          <div className="px-2 py-1.5 text-sm text-gray-500">No WASAs available</div>
                         ) : (
                           wasas.map(cc => (
                             <SelectItem key={cc.id} value={cc.id.toString()}>

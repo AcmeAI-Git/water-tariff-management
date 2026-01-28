@@ -366,14 +366,29 @@ export interface ApproveConsumptionDto {
 // Water Bill Types
 export interface WaterBill {
   id: number;
-  userId: number;
-  tariffPlanId: number;
+  userId?: number;
+  userAccount?: string; // UUID string from backend
+  tariffPlanId?: number;
   consumptionId: number;
   totalBill: number;
   breakdown?: unknown;
   billMonth: string;
   status: string;
   createdAt?: string;
+  // Nested relations from backend
+  consumption?: {
+    id: number;
+    billMonth: string;
+    currentReading?: number;
+    previousReading?: number;
+    consumption?: number;
+    [key: string]: unknown;
+  };
+  user?: {
+    account?: string;
+    id?: number;
+    [key: string]: unknown;
+  };
 }
 
 export interface CreateWaterBillDto {
@@ -594,11 +609,11 @@ export interface TariffCategory {
   lowerRange?: number;
   upperRange?: number;
   rangeDescription?: string;
+  tariffRate: number;
+  tubewellTariff: number;
   isBaseCategory: boolean;
   isActive: boolean;
   settingsId: number;
-  wasaTariff?: number;
-  tubewellTariff?: number;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -669,4 +684,45 @@ export interface UpdateTariffCategorySettingsDto {
   belowBaseDecreasePercent?: number;
   commercialIncreasePercent?: number;
   governmentIncreasePercent?: number;
+}
+
+// Tariff Policy Types
+export interface TariffPolicy {
+  id: number;
+  tariffType: "AREA_BASED" | "FIXED" | "THRESHOLD";
+  isActive: boolean;
+}
+
+export interface CreateTariffPolicyDto {
+  tariffType: "AREA_BASED" | "FIXED" | "THRESHOLD";
+}
+
+export interface UpdateTariffPolicyDto {
+  tariffType?: "AREA_BASED" | "FIXED" | "THRESHOLD";
+}
+
+// Tariff Threshold Slab Types
+export interface TariffThresholdSlab {
+  id: number;
+  lowerLimit: number;
+  upperLimit: number | null;
+  rate: number;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+export interface CreateTariffThresholdSlabDto {
+  lowerLimit: number;
+  upperLimit?: number | null;
+  rate: number;
+  sortOrder?: number;
+  isActive?: boolean;
+}
+
+export interface UpdateTariffThresholdSlabDto {
+  lowerLimit?: number;
+  upperLimit?: number | null;
+  rate?: number;
+  sortOrder?: number;
+  isActive?: boolean;
 }

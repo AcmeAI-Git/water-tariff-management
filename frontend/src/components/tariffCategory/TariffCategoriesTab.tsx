@@ -156,10 +156,9 @@ export function TariffCategoriesTab({ settingsId }: TariffCategoriesTabProps) {
     setSettingBaseCategoryId(category.id);
 
     try {
-      // Simply set this category as base
+      // Set this category as base
       // The backend should handle unsetting other base categories automatically
-      // If the backend prevents unsetting base categories directly, it likely
-      // handles the logic when setting a new one as base
+      // and recalculate tariffs for other Domestic categories based on settings
       await api.tariffCategory.update(category.id, { isBaseCategory: true });
       
       // Manually invalidate queries after update
@@ -336,9 +335,11 @@ export function TariffCategoriesTab({ settingsId }: TariffCategoriesTabProps) {
                   {/* Categories Table */}
                   <Table className="table-fixed w-full">
                     <colgroup>
-                      <col style={{ width: '100px' }} />
+                      <col style={{ width: '80px' }} />
+                      <col style={{ width: '180px' }} />
                       <col style={{ width: '200px' }} />
-                      <col style={{ width: '220px' }} />
+                      <col style={{ width: '140px' }} />
+                      <col style={{ width: '140px' }} />
                       <col style={{ width: '280px' }} />
                     </colgroup>
                     <TableHeader>
@@ -346,6 +347,8 @@ export function TariffCategoriesTab({ settingsId }: TariffCategoriesTabProps) {
                         <TableHead className="text-sm font-semibold text-gray-700 py-2">SL No</TableHead>
                         <TableHead className="text-sm font-semibold text-gray-700 py-2">Name</TableHead>
                         <TableHead className="text-sm font-semibold text-gray-700 py-2">Range</TableHead>
+                        <TableHead className="text-sm font-semibold text-gray-700 py-2 text-right">Tariff Rate</TableHead>
+                        <TableHead className="text-sm font-semibold text-gray-700 py-2 text-right">Tubewell Tariff</TableHead>
                         <TableHead className="text-sm font-semibold text-gray-700 text-center py-2">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -368,6 +371,16 @@ export function TariffCategoriesTab({ settingsId }: TariffCategoriesTabProps) {
                               </div>
                             </TableCell>
                             <TableCell className="text-sm text-gray-600">{formatRange(category)}</TableCell>
+                            <TableCell className="text-sm text-gray-600 text-right">
+                              {category.tariffRate !== undefined && category.tariffRate !== null 
+                                ? `${category.tariffRate.toFixed(2)} BDT` 
+                                : 'N/A'}
+                            </TableCell>
+                            <TableCell className="text-sm text-gray-600 text-right">
+                              {category.tubewellTariff !== undefined && category.tubewellTariff !== null 
+                                ? `${category.tubewellTariff.toFixed(2)} BDT` 
+                                : 'N/A'}
+                            </TableCell>
                             <TableCell className="text-center align-middle">
                               <div className="flex items-center justify-center gap-2">
                                 {/* Active/Base indicators - before Edit button */}
@@ -484,6 +497,7 @@ export function TariffCategoriesTab({ settingsId }: TariffCategoriesTabProps) {
           initialData={editingCategory}
           mode="edit"
           settings={allSettings}
+          defaultSettingsId={settingsId}
         />
       )}
     </div>

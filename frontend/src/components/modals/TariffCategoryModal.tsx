@@ -70,8 +70,11 @@ export function TariffCategoryModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Use defaultSettingsId if provided (auto mode from ruleset context), otherwise use formData
+    const finalSettingsId = defaultSettingsId || parseInt(formData.settingsId);
+
     // Validate required fields
-    if (!formData.slNo || !formData.name || !formData.settingsId) {
+    if (!formData.slNo || !formData.name || !finalSettingsId) {
       return;
     }
 
@@ -79,7 +82,7 @@ export function TariffCategoryModal({
       slNo: parseInt(formData.slNo),
       category: formData.category,
       name: formData.name.trim(),
-      settingsId: parseInt(formData.settingsId),
+      settingsId: finalSettingsId,
       ...(formData.lowerRange && { lowerRange: parseFloat(formData.lowerRange) }),
       ...(formData.upperRange && { upperRange: parseFloat(formData.upperRange) }),
       ...(formData.rangeDescription && { rangeDescription: formData.rangeDescription.trim() }),
@@ -91,9 +94,9 @@ export function TariffCategoryModal({
   const isFormValid = 
     formData.slNo.trim() !== '' &&
     formData.name.trim() !== '' &&
-    formData.settingsId.trim() !== '' &&
+    (defaultSettingsId || formData.settingsId.trim() !== '') &&
     !isNaN(parseInt(formData.slNo)) &&
-    !isNaN(parseInt(formData.settingsId));
+    (defaultSettingsId || !isNaN(parseInt(formData.settingsId)));
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -158,21 +161,24 @@ export function TariffCategoryModal({
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="settingsId" className="text-sm font-medium text-gray-700">
-                Settings *
-              </Label>
-              <Dropdown
-                options={settings.map(s => ({
-                  value: s.id.toString(),
-                  label: `Settings #${s.id} ${s.isActive ? '(Active)' : ''}`,
-                }))}
-                value={formData.settingsId}
-                onChange={(value) => handleInputChange('settingsId', value)}
-                placeholder="Select settings"
-                className="bg-gray-50 border-gray-300"
-              />
-            </div>
+            {/* Hide settings dropdown when defaultSettingsId is provided (auto mode from ruleset context) */}
+            {!defaultSettingsId && (
+              <div className="space-y-2">
+                <Label htmlFor="settingsId" className="text-sm font-medium text-gray-700">
+                  Settings *
+                </Label>
+                <Dropdown
+                  options={settings.map(s => ({
+                    value: s.id.toString(),
+                    label: `Settings #${s.id} ${s.isActive ? '(Active)' : ''}`,
+                  }))}
+                  value={formData.settingsId}
+                  onChange={(value) => handleInputChange('settingsId', value)}
+                  placeholder="Select settings"
+                  className="bg-gray-50 border-gray-300"
+                />
+              </div>
+            )}
           </div>
 
           {/* Range Fields */}

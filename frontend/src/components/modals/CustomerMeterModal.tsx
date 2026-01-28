@@ -5,6 +5,7 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Dropdown } from '../ui/Dropdown';
 import { HierarchicalLocationSelector } from '../common/HierarchicalLocationSelector';
+import { Download, Upload } from 'lucide-react';
 import type { Wasa, Zone, Area } from '../../types';
 
 export interface CustomerMeterFormData {
@@ -39,6 +40,12 @@ interface CustomerMeterModalProps {
   zones: Zone[];
   areas: Area[];
   mode?: 'add' | 'edit';
+  // CSV bulk import props
+  onDownloadTemplate?: () => void;
+  onCSVUpload?: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  csvFileInputRef?: React.RefObject<HTMLInputElement | null>;
+  isParsingCSV?: boolean;
+  showBulkImport?: boolean;
 }
 
 export function CustomerMeterModal({
@@ -53,6 +60,11 @@ export function CustomerMeterModal({
   zones,
   areas,
   mode = 'add',
+  onDownloadTemplate,
+  onCSVUpload,
+  csvFileInputRef,
+  isParsingCSV = false,
+  showBulkImport = false,
 }: CustomerMeterModalProps) {
   const handleInputChange = (field: keyof CustomerMeterFormData, value: string) => {
     onFormDataChange(field, value);
@@ -86,6 +98,45 @@ export function CustomerMeterModal({
         
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto space-y-4 px-4 sm:px-6 py-4 min-h-0">
+          {/* Bulk Import Section - Only show in add mode */}
+          {mode === 'add' && showBulkImport && onDownloadTemplate && onCSVUpload && csvFileInputRef && (
+            <div className="space-y-3 pb-4 border-b border-gray-200">
+              <h3 className="text-base font-semibold text-gray-900">Bulk Import</h3>
+              <p className="text-sm text-gray-600">
+                Import multiple customers at once using a CSV file
+              </p>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onDownloadTemplate}
+                  className="border-gray-300 text-gray-700 rounded-lg h-10 px-4 flex items-center justify-center gap-2 bg-white hover:bg-gray-50"
+                >
+                  <Download size={16} />
+                  Download Template
+                </Button>
+                <input
+                  ref={csvFileInputRef}
+                  type="file"
+                  accept=".csv"
+                  onChange={onCSVUpload}
+                  className="hidden"
+                  id="csv-upload-input-modal"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => csvFileInputRef.current?.click()}
+                  disabled={areas.length === 0 || isParsingCSV}
+                  className="border-gray-300 text-gray-700 rounded-lg h-10 px-4 flex items-center justify-center gap-2 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Upload size={16} />
+                  {isParsingCSV ? 'Parsing...' : 'Upload CSV'}
+                </Button>
+              </div>
+            </div>
+          )}
+          
           {/* Customer Information Section */}
           <div className="space-y-4">
             <h3 className="text-base font-semibold text-gray-900">Customer Information</h3>

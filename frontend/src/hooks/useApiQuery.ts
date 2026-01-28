@@ -81,6 +81,22 @@ export function useApiMutation<TData = unknown, TVariables = void, TError = Erro
         errorMessage = error.message;
       }
       
+      // Check for foreign key constraint errors and provide user-friendly message
+      const lowerMessage = errorMessage.toLowerCase();
+      if (
+        lowerMessage.includes('foreign key') ||
+        lowerMessage.includes('constraint') ||
+        lowerMessage.includes('violates foreign key') ||
+        lowerMessage.includes('referenced')
+      ) {
+        // Check if it's related to consumption
+        if (lowerMessage.includes('consumption')) {
+          errorMessage = 'Cannot delete: This customer has consumption records. Please deactivate the customer instead.';
+        } else {
+          errorMessage = 'Cannot delete: This record is referenced by other data. Please check related records first.';
+        }
+      }
+      
       // Log full error details for debugging
       console.error('API Mutation Error:', {
         message: errorMessage,

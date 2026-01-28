@@ -8,17 +8,29 @@ import { Input } from '../components/ui/input';
 import { Dropdown } from '../components/ui/Dropdown';
 import { Button } from '../components/ui/button';
 import { Search, X } from 'lucide-react';
-import type { TariffPlan, ZoneScoringRuleSet, Admin } from '../types';
+import type { TariffPolicy, TariffThresholdSlab, TariffCategorySettings, ZoneScoringRuleSet, Admin } from '../types';
 
 export function TariffAdminTariffHistory() {
   const [ruleTypeFilter, setRuleTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   
-  // Fetch all tariff plans
-  const { data: tariffPlans = [], isLoading: tariffPlansLoading } = useApiQuery<TariffPlan[]>(
-    ['tariff-plans'],
-    () => api.tariffPlans.getAll()
+  // Fetch all tariff policies
+  const { data: tariffPolicies = [], isLoading: policiesLoading } = useApiQuery<TariffPolicy[]>(
+    ['tariff-policy'],
+    () => api.tariffPolicy.getAll()
+  );
+
+  // Fetch all threshold slabs
+  const { data: thresholdSlabs = [], isLoading: slabsLoading } = useApiQuery<TariffThresholdSlab[]>(
+    ['tariff-threshold-slabs'],
+    () => api.tariffThresholdSlabs.getAll()
+  );
+
+  // Fetch all category settings
+  const { data: categorySettings = [], isLoading: settingsLoading } = useApiQuery<TariffCategorySettings[]>(
+    ['tariff-category-settings'],
+    () => api.tariffCategorySettings.getAll()
   );
 
   // Fetch all zone scoring rulesets
@@ -33,51 +45,82 @@ export function TariffAdminTariffHistory() {
     () => api.admins.getAll()
   );
 
-  // Map tariff plans and zone scoring to history records
+  // Map tariff policies, threshold slabs, category settings, and zone scoring to history records
   const historyRecords = useMemo(() => {
     const records: any[] = [];
     
-    // Add tariff plans
-    tariffPlans.forEach((plan) => {
-      const creator = (admins as Admin[]).find((a) => a.id === plan.createdBy);
-      const createdBy = creator?.fullName || (plan.createdBy ? `Admin #${plan.createdBy}` : 'N/A');
-      const createdAt = plan.createdAt || '';
+    // Add tariff policies
+    tariffPolicies.forEach((policy) => {
+      const policyWithCreator = policy as TariffPolicy & { createdBy?: number; created_by?: number; createdAt?: string };
+      const creatorId = policyWithCreator.createdBy || policyWithCreator.created_by;
+      const creator = creatorId ? (admins as Admin[]).find((a) => a.id === creatorId) : null;
+      const createdBy = creator?.fullName || (creatorId ? `Admin #${creatorId}` : 'System');
+      const createdAt = policyWithCreator.createdAt || '';
       
-      // Add plan-level record
+      const policyTypeLabel = policy.tariffType === 'AREA_BASED' ? 'Area Based' :
+                              policy.tariffType === 'FIXED' ? 'Fixed' :
+                              policy.tariffType === 'THRESHOLD' ? 'Threshold' : policy.tariffType;
+      
       records.push({
-        id: plan.id,
-        ruleType: 'Tariff Plan',
-        details: plan.name,
-        newValue: plan.description || 'N/A',
-        effectiveFrom: plan.effectiveFrom,
-        effectiveTo: plan.effectiveTo || null,
-        status: plan.effectiveTo ? 'Expired' : 'Active',
-        approvalStatus: (plan as any).approvalStatus?.name || 'Unknown',
+        id: `policy-${policy.id}`,
+        ruleType: 'Tariff Policy',
+        details: `Policy #${policy.id} - ${policyTypeLabel}`,
+        newValue: policyTypeLabel,
+        effectiveFrom: createdAt,
+        effectiveTo: null,
+        status: policy.isActive ? 'Active' : 'Inactive',
+        approvalStatus: policy.isActive ? 'Active' : 'Inactive',
         createdBy,
         createdAt,
       });
+    });
 
-      // Add slab records
-      if (plan.slabs && plan.slabs.length > 0) {
-        plan.slabs.forEach((slab) => {
-          const range = slab.maxConsumption 
-            ? `${slab.minConsumption}-${slab.maxConsumption} m³`
-            : `${slab.minConsumption}+ m³`;
-          
-          records.push({
-            id: `${plan.id}-slab-${slab.id}`,
-            ruleType: 'Tariff Slab',
-            details: range,
-            newValue: `৳${slab.ratePerUnit.toFixed(2)}/m³`,
-            effectiveFrom: plan.effectiveFrom,
-            effectiveTo: plan.effectiveTo || null,
-            status: plan.effectiveTo ? 'Expired' : 'Active',
-            approvalStatus: (plan as any).approvalStatus?.name || 'Unknown',
-            createdBy,
-            createdAt,
-          });
-        });
-      }
+    // Add threshold slabs
+    thresholdSlabs.forEach((slab) => {
+      const slabWithCreator = slab as TariffThresholdSlab & { createdBy?: number; created_by?: number; createdAt?: string };
+      const creatorId = slabWithCreator.createdBy || slabWithCreator.created_by;
+      const creator = creatorId ? (admins as Admin[]).find((a) => a.id === creatorId) : null;
+      const createdBy = creator?.fullName || (creatorId ? `Admin #${creatorId}` : 'System');
+      const createdAt = slabWithCreator.createdAt || '';
+      
+      const range = slab.upperLimit !== null
+        ? `${slab.lowerLimit}-${slab.upperLimit} m³`
+        : `${slab.lowerLimit}+ m³`;
+      
+      records.push({
+        id: `threshold-slab-${slab.id}`,
+        ruleType: 'Threshold Slab',
+        details: range,
+        newValue: `৳${slab.rate.toFixed(2)}/m³`,
+        effectiveFrom: createdAt,
+        effectiveTo: null,
+        status: slab.isActive ? 'Active' : 'Inactive',
+        approvalStatus: slab.isActive ? 'Active' : 'Inactive',
+        createdBy,
+        createdAt,
+      });
+    });
+
+    // Add category settings
+    categorySettings.forEach((settings) => {
+      const settingsWithCreator = settings as TariffCategorySettings & { createdBy?: number; created_by?: number };
+      const creatorId = settingsWithCreator.createdBy || settingsWithCreator.created_by;
+      const creator = creatorId ? (admins as Admin[]).find((a) => a.id === creatorId) : null;
+      const createdBy = creator?.fullName || (creatorId ? `Admin #${creatorId}` : 'System');
+      const createdAt = settings.createdAt || '';
+      
+      records.push({
+        id: `category-settings-${settings.id}`,
+        ruleType: 'Category Settings',
+        details: `Settings #${settings.id}`,
+        newValue: `Base Rate: ৳${settings.baseRate.toFixed(2)}, Current Tariff: ৳${settings.currentTariff.toFixed(2)}`,
+        effectiveFrom: createdAt,
+        effectiveTo: null,
+        status: settings.isActive ? 'Active' : 'Inactive',
+        approvalStatus: settings.isActive ? 'Active' : 'Inactive',
+        createdBy,
+        createdAt,
+      });
     });
 
     // Add zone scoring rulesets
@@ -105,11 +148,11 @@ export function TariffAdminTariffHistory() {
 
     return records.sort((a, b) => {
       // Sort by created date if available, otherwise by effective from
-      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : new Date(a.effectiveFrom).getTime();
-      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : new Date(b.effectiveFrom).getTime();
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : (a.effectiveFrom ? new Date(a.effectiveFrom).getTime() : 0);
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : (b.effectiveFrom ? new Date(b.effectiveFrom).getTime() : 0);
       return dateB - dateA; // Most recent first
     });
-  }, [tariffPlans, zoneScoringData, admins]);
+  }, [tariffPolicies, thresholdSlabs, categorySettings, zoneScoringData, admins]);
 
   // Apply filters
   const filteredRecords = useMemo(() => {
@@ -155,14 +198,18 @@ export function TariffAdminTariffHistory() {
     switch (status) {
       case 'Active':
         return 'bg-green-100 text-green-700';
-      case 'Expired':
+      case 'Inactive':
         return 'bg-gray-100 text-gray-700';
+      case 'Pending':
+        return 'bg-yellow-100 text-yellow-700';
+      case 'Rejected':
+        return 'bg-red-100 text-red-700';
       default:
         return 'bg-gray-100 text-gray-700';
     }
   };
 
-  if (tariffPlansLoading || zoneScoringLoading || adminsLoading) {
+  if (policiesLoading || slabsLoading || settingsLoading || zoneScoringLoading || adminsLoading) {
     return (
       <div className="min-h-screen bg-[#f8f9fb] flex items-center justify-center">
         <LoadingSpinner />
@@ -176,7 +223,7 @@ export function TariffAdminTariffHistory() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-[28px] font-semibold text-gray-900 mb-1">Tariff History</h1>
-          <p className="text-sm text-gray-500">View all tariff plan changes and their effective periods</p>
+          <p className="text-sm text-gray-500">View all tariff policy changes, threshold slabs, category settings, and zone scoring rules</p>
         </div>
 
         {/* Filters */}
@@ -198,8 +245,9 @@ export function TariffAdminTariffHistory() {
             <Dropdown
               options={[
                 { value: 'all', label: 'All Rule Types' },
-                { value: 'Tariff Plan', label: 'Tariff Plan' },
-                { value: 'Tariff Slab', label: 'Tariff Slab' },
+                { value: 'Tariff Policy', label: 'Tariff Policy' },
+                { value: 'Threshold Slab', label: 'Threshold Slab' },
+                { value: 'Category Settings', label: 'Category Settings' },
                 { value: 'Zone Scoring', label: 'Zone Scoring' }
               ]}
               value={ruleTypeFilter}
@@ -215,7 +263,9 @@ export function TariffAdminTariffHistory() {
               options={[
                 { value: 'all', label: 'All Status' },
                 { value: 'Active', label: 'Active' },
-                { value: 'Expired', label: 'Expired' }
+                { value: 'Inactive', label: 'Inactive' },
+                { value: 'Pending', label: 'Pending' },
+                { value: 'Rejected', label: 'Rejected' }
               ]}
               value={statusFilter}
               onChange={setStatusFilter}

@@ -1,6 +1,5 @@
 import {
     Gauge,
-    BarChart3,
     TrendingUp,
     FileCheck,
     Clock,
@@ -27,11 +26,6 @@ export function MeterReaderSidebar({
             id: "meter-reader-submitted",
             label: "Submission History",
             icon: FileCheck,
-        },
-        {
-            id: "meter-reader-visualizer",
-            label: "Tariff Visualizer",
-            icon: BarChart3,
         },
         { id: "meter-reader-metrics", label: "My Metrics", icon: TrendingUp },
     ];
