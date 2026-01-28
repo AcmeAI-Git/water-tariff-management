@@ -43,7 +43,7 @@ interface CustomerMeterModalProps {
   // CSV bulk import props
   onDownloadTemplate?: () => void;
   onCSVUpload?: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  csvFileInputRef?: React.RefObject<HTMLInputElement>;
+  csvFileInputRef?: React.RefObject<HTMLInputElement | null>;
   isParsingCSV?: boolean;
   showBulkImport?: boolean;
 }

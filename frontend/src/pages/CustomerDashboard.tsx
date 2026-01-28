@@ -15,7 +15,7 @@ import { api } from '../services/api';
 import { useApiQuery } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { format } from 'date-fns';
-import type { User } from '../types';
+import type { User, WaterBill } from '../types';
 
 function getCustomerUser(): User | null {
   try {
@@ -39,12 +39,6 @@ export default function CustomerDashboard() {
     { enabled: !!userAccount }
   );
 
-  const { data: allConsumption = [], isLoading: consumptionLoading } = useApiQuery(
-    ['consumption'],
-    () => api.consumption.getAll(),
-    { enabled: !!userAccount }
-  );
-
   const bills = useMemo(() => {
     if (!userAccount) return [];
     return allBills
@@ -61,19 +55,26 @@ export default function CustomerDashboard() {
       });
   }, [allBills, userAccount]);
 
+  // Extract consumption data from bills (each bill has nested consumption object)
   const consumptions = useMemo(() => {
     if (!userAccount) return [];
-    return allConsumption
-      .filter((c: { userAccount?: string; account?: string | number; userId?: number }) => {
-        const consAccount = c.userAccount || c.account || c.userId;
-        return String(consAccount) === String(userAccount);
-      })
+    return bills
+      .filter((bill): bill is WaterBill & { consumption: NonNullable<WaterBill['consumption']> } => 
+        !!bill.consumption && !!bill.consumption.id && !!bill.consumption.billMonth
+      )
+      .map((bill) => ({
+        id: bill.consumption.id,
+        billMonth: bill.consumption.billMonth,
+        currentReading: bill.consumption.currentReading,
+        previousReading: bill.consumption.previousReading,
+        consumption: bill.consumption.consumption,
+      }))
       .sort((a, b) => {
         const tA = a.billMonth ? new Date(a.billMonth).getTime() : 0;
         const tB = b.billMonth ? new Date(b.billMonth).getTime() : 0;
         return tA - tB; // Sort ascending for chart
       });
-  }, [allConsumption, userAccount]);
+  }, [bills, userAccount]);
 
   // Group consumption by month for chart
   const monthlyData = useMemo(() => {
@@ -133,7 +134,7 @@ export default function CustomerDashboard() {
     return null;
   }
 
-  if (billsLoading || consumptionLoading) {
+  if (billsLoading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <LoadingSpinner />
@@ -233,7 +234,7 @@ export default function CustomerDashboard() {
                       {c.previousReading != null ? Number(c.previousReading).toFixed(2) : '—'}
                     </TableCell>
                     <TableCell className="text-xs md:text-sm">
-                      {c.consumption != null ? Math.max(0, Number(c.consumption)).toFixed(2) : '—'}
+                      {c.consumption != null ? Number(c.consumption).toFixed(2) : '—'}
                     </TableCell>
                   </TableRow>
                 ))}

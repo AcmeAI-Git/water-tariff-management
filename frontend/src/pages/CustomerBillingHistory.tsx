@@ -7,12 +7,11 @@ import {
   TableHeader,
   TableRow,
 } from '../components/ui/table';
-import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Dropdown } from '../components/ui/Dropdown';
-import { Search, CheckCircle2 } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { api } from '../services/api';
-import { useApiQuery, useApiMutation } from '../hooks/useApiQuery';
+import { useApiQuery } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { format } from 'date-fns';
 import type { User } from '../types';
@@ -40,14 +39,6 @@ export default function CustomerBillingHistory() {
     { enabled: !!userAccount }
   );
 
-  const markPaid = useApiMutation(
-    (id: number) => api.waterBills.markPaid(id),
-    {
-      successMessage: 'Bill marked as paid',
-      errorMessage: 'Failed to mark bill as paid',
-      invalidateQueries: [['water-bills']],
-    }
-  );
 
   const bills = useMemo(() => {
     if (!userAccount) return [];
@@ -78,14 +69,6 @@ export default function CustomerBillingHistory() {
     });
   }, [allBills, userAccount, statusFilter, search]);
 
-  const handleMarkPaid = async (id: number) => {
-    if (!window.confirm('Mark this bill as paid?')) return;
-    try {
-      await markPaid.mutateAsync(id);
-    } catch {
-      // toast from hook
-    }
-  };
 
   if (!userAccount) return null;
 
@@ -144,7 +127,6 @@ export default function CustomerBillingHistory() {
                   <TableHead className="text-xs md:text-sm">Month</TableHead>
                   <TableHead className="text-xs md:text-sm">Amount</TableHead>
                   <TableHead className="text-xs md:text-sm">Status</TableHead>
-                  <TableHead className="text-xs md:text-sm w-[140px]">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -168,20 +150,6 @@ export default function CustomerBillingHistory() {
                       >
                         {bill.status || 'Unpaid'}
                       </span>
-                    </TableCell>
-                    <TableCell>
-                      {bill.status !== 'Paid' && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleMarkPaid(bill.id)}
-                          disabled={markPaid.isPending}
-                          className="text-green-600 hover:text-green-700 hover:bg-green-50 text-xs"
-                        >
-                          <CheckCircle2 size={16} className="mr-1" />
-                          Mark paid
-                        </Button>
-                      )}
                     </TableCell>
                   </TableRow>
                 ))}

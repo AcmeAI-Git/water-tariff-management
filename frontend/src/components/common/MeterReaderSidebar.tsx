@@ -1,6 +1,5 @@
 import {
     Gauge,
-    BarChart3,
     TrendingUp,
     FileCheck,
     Clock,

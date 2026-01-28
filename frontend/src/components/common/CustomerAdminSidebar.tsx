@@ -16,16 +16,16 @@ export function CustomerAdminSidebar({
             icon: Users,
         },
         {
+            id: "customer-admin-billing",
+            label: "Billing Management",
+            icon: FileText,
+        },
+        {
             id: "customer-admin-pending",
             label: "Submission History",
             icon: Clock,
         },
         { id: "customer-admin-metrics", label: "My Metrics", icon: BarChart3 },
-        {
-            id: "customer-admin-billing",
-            label: "Billing Management",
-            icon: FileText,
-        },
     ];
 
     return (

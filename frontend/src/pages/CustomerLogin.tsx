@@ -44,7 +44,7 @@ export default function CustomerLogin() {
         
         // Then match by either meter ID or inspection code
         const userMeterId = String(user.meterNo || '').trim();
-        const userInspCode = String(user.inspCode || '').trim();
+        const userInspCode = String((user as any).inspCode || '').trim();
         
         return userMeterId === searchIdentifier || userInspCode === searchIdentifier;
       });
@@ -60,7 +60,7 @@ export default function CustomerLogin() {
         ...matchingCustomer,
         // Preserve account UUID as-is (critical for matching bills)
         account: matchingCustomer.account || matchingCustomer.id?.toString() || '',
-        id: matchingCustomer.id || (matchingCustomer.account ? Number(String(matchingCustomer.account).replace(/-/g, '').substring(0, 8), 16) : 1),
+        id: matchingCustomer.id || (matchingCustomer.account ? parseInt(String(matchingCustomer.account).replace(/-/g, '').substring(0, 8), 16) : 1),
         fullName: matchingCustomer.fullName || matchingCustomer.name || 'Customer',
         name: matchingCustomer.name || matchingCustomer.fullName || 'Customer',
         email: matchingCustomer.email || '',
@@ -71,7 +71,7 @@ export default function CustomerLogin() {
         installDate: matchingCustomer.installDate || '',
         zoneId: matchingCustomer.zoneId || 0,
         wardId: matchingCustomer.wardId || 0,
-        status: matchingCustomer.status || matchingCustomer.activeStatus || 'Active',
+        status: matchingCustomer.status || (matchingCustomer as any).activeStatus || 'Active',
       };
 
       // Store authenticated customer user

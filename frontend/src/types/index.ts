@@ -366,14 +366,29 @@ export interface ApproveConsumptionDto {
 // Water Bill Types
 export interface WaterBill {
   id: number;
-  userId: number;
-  tariffPlanId: number;
+  userId?: number;
+  userAccount?: string; // UUID string from backend
+  tariffPlanId?: number;
   consumptionId: number;
   totalBill: number;
   breakdown?: unknown;
   billMonth: string;
   status: string;
   createdAt?: string;
+  // Nested relations from backend
+  consumption?: {
+    id: number;
+    billMonth: string;
+    currentReading?: number;
+    previousReading?: number;
+    consumption?: number;
+    [key: string]: unknown;
+  };
+  user?: {
+    account?: string;
+    id?: number;
+    [key: string]: unknown;
+  };
 }
 
 export interface CreateWaterBillDto {

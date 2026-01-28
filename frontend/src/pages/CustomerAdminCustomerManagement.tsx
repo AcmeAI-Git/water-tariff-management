@@ -3,7 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Input } from '../components/ui/input';
 import { Dropdown } from '../components/ui/Dropdown';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
-import { Plus, Edit, Search, X, Upload, Download, Trash2 } from 'lucide-react';
+import { Plus, Edit, Search, X, Download, Trash2 } from 'lucide-react';
 import { useState, useMemo, useRef } from 'react';
 import { api } from '../services/api';
 import { useApiQuery, useApiMutation, useAdminId } from '../hooks/useApiQuery';
@@ -789,7 +789,8 @@ export function CustomerAdminCustomerManagement() {
       setDeleteConfirmModalOpen(false);
       setCustomerToDelete(null);
     } catch (error) {
-      // Error is handled by mutation's errorMessage
+      // Error is handled by mutation hook with improved foreign key error messages
+      // Keep modal open so user can see the error and try deactivating instead
     }
   };
 
