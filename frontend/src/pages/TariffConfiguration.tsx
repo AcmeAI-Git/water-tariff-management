@@ -5,15 +5,25 @@ import { useApiQuery, useApiMutation } from '../hooks/useApiQuery';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { Button } from '../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
+import { Label } from '../components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
 import { Plus, Edit, Trash2, CheckCircle } from 'lucide-react';
 import { PageHeader } from '../components/zoneScoring/PageHeader';
 import { EmptyState } from '../components/zoneScoring/EmptyState';
 import { DeleteConfirmationDialog } from '../components/zoneScoring/DeleteConfirmationDialog';
 import { TariffCategorySettingsModal } from '../components/modals/TariffCategorySettingsModal';
-import type { 
-  TariffCategorySettings, 
-  CreateTariffCategorySettingsDto, 
-  UpdateTariffCategorySettingsDto 
+import { ThresholdSlabsSection } from '../components/tariff/ThresholdSlabsSection';
+import type {
+  TariffCategorySettings,
+  CreateTariffCategorySettingsDto,
+  UpdateTariffCategorySettingsDto,
+  TariffPolicy,
 } from '../types';
 
 export function TariffConfiguration() {
@@ -35,6 +45,49 @@ export function TariffConfiguration() {
     ['tariff-category'],
     () => api.tariffCategory.getAll()
   );
+
+  // Tariff policy: all policies and active one
+  const { data: allPolicies = [] } = useApiQuery<TariffPolicy[]>(
+    ['tariff-policy'],
+    () => api.tariffPolicy.getAll()
+  );
+  const { data: activePolicy } = useApiQuery<TariffPolicy>(
+    ['tariff-policy', 'active'],
+    () => api.tariffPolicy.getActive()
+  );
+  const activatePolicyMutation = useApiMutation(
+    (id: number) => api.tariffPolicy.activate(id),
+    {
+      successMessage: 'Tariff policy activated successfully',
+      errorMessage: 'Failed to activate tariff policy',
+      invalidateQueries: [['tariff-policy', 'active']], // Only invalidate active, not all policies
+    }
+  );
+
+  const getPolicyTypeLabel = (type: string) => {
+    switch (type) {
+      case 'AREA_BASED':
+        return 'Area Based';
+      case 'FIXED':
+        return 'Fixed';
+      case 'THRESHOLD':
+        return 'Threshold';
+      default:
+        return type;
+    }
+  };
+  const getPolicyTypeDescription = (type: string) => {
+    switch (type) {
+      case 'AREA_BASED':
+        return 'Billing based on area/zones';
+      case 'FIXED':
+        return 'Fixed rate billing';
+      case 'THRESHOLD':
+        return 'Billing based on consumption slabs';
+      default:
+        return '';
+    }
+  };
 
   // Calculate category count per settingsId
   const categoryCounts = useMemo(() => {
@@ -172,7 +225,11 @@ export function TariffConfiguration() {
                 </TableHeader>
                 <TableBody>
                   {sortedSettings.map((setting) => (
-                    <TableRow key={setting.id} className="border-gray-100">
+                    <TableRow 
+                      key={setting.id} 
+                      className="border-gray-100 cursor-pointer hover:bg-gray-50"
+                      onClick={() => navigate(`/tariff-admin/config/${setting.id}`)}
+                    >
                       <TableCell className="text-sm font-medium text-gray-900 text-center whitespace-nowrap">
                         {setting.id}
                       </TableCell>
@@ -190,7 +247,10 @@ export function TariffConfiguration() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleSetActive(setting.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSetActive(setting.id);
+                              }}
                               disabled={setSettingsActiveMutation.isPending}
                               className="border-green-300 text-green-700 rounded-lg h-8 px-3 bg-white hover:bg-green-50 inline-flex items-center justify-center gap-1.5 disabled:opacity-50 whitespace-nowrap w-[135px]"
                               title="Set as Active"
@@ -203,7 +263,10 @@ export function TariffConfiguration() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => navigate(`/tariff-admin/config/${setting.id}`)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/tariff-admin/config/${setting.id}`);
+                            }}
                             className="border-gray-300 text-gray-700 rounded-lg h-8 w-8 p-0 bg-white hover:bg-gray-50 inline-flex items-center justify-center"
                             title="View/Edit"
                           >
@@ -213,7 +276,10 @@ export function TariffConfiguration() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleDelete(setting)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(setting);
+                            }}
                             className="border-red-300 text-red-700 rounded-lg h-8 w-8 p-0 bg-white hover:bg-red-50 inline-flex items-center justify-center"
                             title="Delete"
                           >
@@ -228,6 +294,41 @@ export function TariffConfiguration() {
             </div>
           </div>
         )}
+
+        {/* Tariff Policy dropdown */}
+        <div className="mt-10">
+          <Label className="text-lg font-semibold text-gray-900 block mb-3">
+            Tariff Policy
+          </Label>
+          <p className="text-sm text-gray-600 mb-3">Set active tariff policy</p>
+          <Select
+            value={activePolicy?.id?.toString() ?? ''}
+            onValueChange={(value) => {
+              const id = parseInt(value, 10);
+              if (!isNaN(id)) activatePolicyMutation.mutate(id);
+            }}
+            disabled={activatePolicyMutation.isPending}
+          >
+            <SelectTrigger className="w-full bg-white border-gray-300">
+              <SelectValue placeholder="Select tariff policy" />
+            </SelectTrigger>
+            <SelectContent>
+              {allPolicies.map((policy) => (
+                <SelectItem key={policy.id} value={policy.id.toString()}>
+                  {`${getPolicyTypeLabel(policy.tariffType)} — ${getPolicyTypeDescription(policy.tariffType)}`}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Threshold Slabs section – active only when THRESHOLD policy is selected */}
+        <div className="mt-10">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Threshold Slabs</h2>
+          </div>
+          <ThresholdSlabsSection disabled={activePolicy?.tariffType !== 'THRESHOLD'} />
+        </div>
 
         {/* Create Modal */}
         <TariffCategorySettingsModal

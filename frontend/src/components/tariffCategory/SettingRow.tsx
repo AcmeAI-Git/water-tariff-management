@@ -410,6 +410,7 @@ export function SettingRow({
         }}
         isSubmitting={false}
         settings={allSettings}
+        defaultSettingsId={setting.id}
       />
 
       {/* Edit Category Modal */}
@@ -431,6 +432,7 @@ export function SettingRow({
           initialData={editingCategory}
           mode="edit"
           settings={allSettings}
+          defaultSettingsId={setting.id}
         />
       )}
     </>
