@@ -3,6 +3,8 @@ import { useMemo } from 'react';
 import { api } from '../services/api';
 import { useApiQuery } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import { MetricCard } from '../components/common/MetricCard';
+import { MetricStatsCard } from '../components/common/MetricStatsCard';
 
 export function CustomerAdminMetrics() {
   // Fetch users (customers)
@@ -77,50 +79,35 @@ export function CustomerAdminMetrics() {
           <p className="text-sm text-gray-500">Track your customer registration performance</p>
         </div>
 
-        {/* Stats - Text-based */}
-        <div className="mb-8">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Overview</h3>
-          
-          <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
-            <div className="px-6 py-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Customers Registered This Month</p>
-                  <p className="text-2xl font-semibold text-gray-900 mt-1">{customersThisMonth}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="px-6 py-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Registrations Pending Approval</p>
-                  <p className="text-2xl font-semibold text-gray-900 mt-1">{pendingCount}</p>
-                </div>
-                <div className="text-right">
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
-                    Awaiting review
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="px-6 py-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Total Customers in Ward</p>
-                  <p className="text-2xl font-semibold text-gray-900 mt-1">{totalCustomers}</p>
-                </div>
-              </div>
-            </div>
-          </div>
+        {/* Stats - metric cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <MetricCard
+            label="Customers This Month"
+            value={customersThisMonth}
+            subtitle="Registered this month"
+            variant="blue"
+          />
+          <MetricCard
+            label="Pending Approval"
+            value={pendingCount}
+            subtitle="Awaiting review"
+            variant="orange"
+            animationDelay={0.05}
+          />
+          <MetricCard
+            label="Total Customers"
+            value={totalCustomers}
+            subtitle="In ward"
+            variant="green"
+            animationDelay={0.1}
+          />
         </div>
 
         {/* Chart */}
         <div className="mb-8">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Daily Registrations (Last 30 Days)</h3>
           
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="bg-white border-2 border-gray-200 rounded-xl p-6 hover:border-gray-300 hover:shadow-md transition-all duration-300">
             <ResponsiveContainer width="100%" height={400}>
               <BarChart data={dailyData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
@@ -155,28 +142,17 @@ export function CustomerAdminMetrics() {
           </div>
         </div>
 
-        {/* Additional Insights */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Key Insights</h3>
-          
-          <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
-            <div className="px-6 py-4">
-              <p className="text-sm font-medium text-gray-900 mb-1">Peak Registration Day</p>
-              <p className="text-sm text-gray-600">
-                {peakDay.date} with {peakDay.registrations} registrations
-              </p>
-            </div>
-            
-            <div className="px-6 py-4">
-              <p className="text-sm font-medium text-gray-900 mb-1">Average Daily Registrations</p>
-              <p className="text-sm text-gray-600">{avgDailyRegistrations} customers per day</p>
-            </div>
-
-            <div className="px-6 py-4">
-              <p className="text-sm font-medium text-gray-900 mb-1">Total Registrations</p>
-              <p className="text-sm text-gray-600">{totalCustomers} customers registered</p>
-            </div>
-          </div>
+        {/* Key Insights */}
+        <div className="mt-8">
+          <MetricStatsCard
+            title="Key Insights"
+            variant="purple"
+            items={[
+              { label: "Peak Registration Day", value: `${peakDay.date} — ${peakDay.registrations} registrations` },
+              { label: "Average Daily Registrations", value: `${avgDailyRegistrations} per day` },
+              { label: "Total Registrations", value: totalCustomers },
+            ]}
+          />
         </div>
       </div>
     </div>

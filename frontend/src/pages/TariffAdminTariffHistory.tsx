@@ -87,11 +87,14 @@ export function TariffAdminTariffHistory() {
         ? `${slab.lowerLimit}-${slab.upperLimit} m³`
         : `${slab.lowerLimit}+ m³`;
       
+      // Ensure rate is a number before calling toFixed
+      const rate = typeof slab.rate === 'number' ? slab.rate : Number(slab.rate) || 0;
+      
       records.push({
         id: `threshold-slab-${slab.id}`,
         ruleType: 'Threshold Slab',
         details: range,
-        newValue: `৳${slab.rate.toFixed(2)}/m³`,
+        newValue: `৳${rate.toFixed(2)}/m³`,
         effectiveFrom: createdAt,
         effectiveTo: null,
         status: slab.isActive ? 'Active' : 'Inactive',

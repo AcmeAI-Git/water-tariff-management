@@ -1,52 +1,77 @@
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { api } from '../services/api';
 import { useApiQuery, useAdminId } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import { MetricCard } from '../components/common/MetricCard';
+import type { TariffPolicy, TariffThresholdSlab, TariffCategorySettings } from '../types';
+
+// Backend may return createdAt on policy/slab even if not in base type
+type PolicyWithDate = TariffPolicy & { createdAt?: string };
+type SlabWithDate = TariffThresholdSlab & { createdAt?: string };
 
 export function TariffAdminMyMetrics() {
   const adminId = useAdminId();
 
-  // Fetch tariff plans
-  const { data: tariffPlans = [], isLoading: plansLoading } = useApiQuery(
-    ['tariff-plans'],
-    () => api.tariffPlans.getAll()
+  // Use same APIs as Tariff History: tariff-policy, tariff-threshold-slabs, tariff-category-settings
+  const { data: tariffPolicies = [], isLoading: policiesLoading } = useApiQuery<TariffPolicy[]>(
+    ['tariff-policy'],
+    () => api.tariffPolicy.getAll()
   );
 
-  // Fetch approval requests
-  const { data: approvalRequests = [], isLoading: approvalsLoading } = useApiQuery(
-    ['approval-requests'],
-    () => api.approvalRequests.getAll()
+  const { data: thresholdSlabs = [], isLoading: slabsLoading } = useApiQuery<TariffThresholdSlab[]>(
+    ['tariff-threshold-slabs'],
+    () => api.tariffThresholdSlabs.getAll()
   );
 
-  // Filter to current admin's submissions
-  const myPendingSubmissions = useMemo(() => {
-    if (!adminId) return [];
-    return approvalRequests.filter((req) => 
-      req.requestedBy === adminId && 
-      (!req.reviewedBy || req.reviewedBy === null)
-    );
-  }, [approvalRequests, adminId]);
+  const { data: categorySettings = [], isLoading: settingsLoading } = useApiQuery<TariffCategorySettings[]>(
+    ['tariff-category-settings'],
+    () => api.tariffCategorySettings.getAll()
+  );
 
-  // Calculate active rules (active tariff plans)
-  const activePlans = tariffPlans.filter((plan) => {
-    if (plan.effectiveTo) {
-      return new Date(plan.effectiveTo) > new Date();
-    }
-    return true;
+  // Optional: approval-requests can 500 on backend (e.g. schema/approvalStatus). Don't block page or toast.
+  const { data: approvalRequests } = useQuery({
+    queryKey: ['approval-requests'],
+    queryFn: () => api.approvalRequests.getAll(),
+    retry: false,
+    staleTime: 60_000,
   });
 
-  // Prepare tariff changes data
+  const safeApprovalRequests = Array.isArray(approvalRequests) ? approvalRequests : [];
+
+  // Filter to current admin's pending submissions
+  const myPendingSubmissions = useMemo(() => {
+    if (!adminId) return [];
+    return safeApprovalRequests.filter(
+      (req: { requestedBy?: number; reviewedBy?: number | null }) =>
+        req.requestedBy === adminId && (req.reviewedBy == null || req.reviewedBy === null)
+    );
+  }, [safeApprovalRequests, adminId]);
+
+  const activeSlabs = useMemo(
+    () => thresholdSlabs.filter((s) => s.isActive),
+    [thresholdSlabs]
+  );
+
+  // Tariff changes over time: group policies, slabs, and category settings by month (using createdAt when present)
   const tariffChangesData = useMemo(() => {
     const changesByMonth: Record<string, number> = {};
-    
-    tariffPlans.forEach((plan) => {
-      if (plan.createdAt) {
-        const date = new Date(plan.createdAt);
+
+    const addDate = (dateStr: string | undefined) => {
+      if (!dateStr) return;
+      try {
+        const date = new Date(dateStr);
         const monthKey = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
         changesByMonth[monthKey] = (changesByMonth[monthKey] || 0) + 1;
+      } catch {
+        // skip invalid dates
       }
-    });
+    };
+
+    (tariffPolicies as PolicyWithDate[]).forEach((p) => addDate(p.createdAt));
+    (thresholdSlabs as SlabWithDate[]).forEach((s) => addDate(s.createdAt));
+    categorySettings.forEach((s) => addDate(s.createdAt));
 
     return Object.entries(changesByMonth)
       .map(([month, changes]) => ({ month, changes }))
@@ -55,45 +80,25 @@ export function TariffAdminMyMetrics() {
         const dateB = new Date(b.month);
         return dateA.getTime() - dateB.getTime();
       })
-      .slice(-10); // Last 10 months
-  }, [tariffPlans]);
+      .slice(-10);
+  }, [tariffPolicies, thresholdSlabs, categorySettings]);
 
-  // Prepare residential and commercial tariff data from active plans
-  const residentialTariffData = useMemo(() => {
-    const residentialPlan = activePlans.find((plan) => 
-      plan.name.toLowerCase().includes('residential')
-    );
-    
-    if (!residentialPlan?.slabs) return [];
-    
-    return residentialPlan.slabs
-      .sort((a, b) => a.slabOrder - b.slabOrder)
+  // Threshold slab structure for chart (active slabs: range + rate)
+  const thresholdSlabChartData = useMemo(() => {
+    return activeSlabs
+      .sort((a, b) => a.sortOrder - b.sortOrder)
       .map((slab) => ({
-        range: slab.maxConsumption 
-          ? `${slab.minConsumption}-${slab.maxConsumption} m³`
-          : `${slab.minConsumption}+ m³`,
-        rate: parseFloat(slab.ratePerUnit.toString()),
+        range:
+          slab.upperLimit != null
+            ? `${slab.lowerLimit}-${slab.upperLimit} m³`
+            : `${slab.lowerLimit}+ m³`,
+        rate: slab.rate,
       }));
-  }, [activePlans]);
+  }, [activeSlabs]);
 
-  const commercialTariffData = useMemo(() => {
-    const commercialPlan = activePlans.find((plan) => 
-      plan.name.toLowerCase().includes('commercial')
-    );
-    
-    if (!commercialPlan?.slabs) return [];
-    
-    return commercialPlan.slabs
-      .sort((a, b) => a.slabOrder - b.slabOrder)
-      .map((slab) => ({
-        range: slab.maxConsumption 
-          ? `${slab.minConsumption}-${slab.maxConsumption} m³`
-          : `${slab.minConsumption}+ m³`,
-        rate: parseFloat(slab.ratePerUnit.toString()),
-      }));
-  }, [activePlans]);
+  const isLoading = policiesLoading || slabsLoading || settingsLoading;
 
-  if (plansLoading || approvalsLoading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-[#f8f9fb] flex items-center justify-center">
         <LoadingSpinner />
@@ -101,140 +106,133 @@ export function TariffAdminMyMetrics() {
     );
   }
 
-  const totalActiveRules = activePlans.reduce((sum, plan) => 
-    sum + (plan.slabs?.length || 0), 0
-  );
-
   return (
     <div className="min-h-screen bg-[#f8f9fb]">
       <div className="px-4 md:px-8 py-4 md:py-6">
-        {/* Header - centered on mobile to avoid hamburger overlap */}
         <div className="mb-8 text-center md:text-left">
           <h1 className="text-[28px] font-semibold text-gray-900 mb-1">My Monthly Metrics</h1>
-          <p className="text-sm text-gray-500">Track your tariff management performance and system overview</p>
+          <p className="text-sm text-gray-500">
+            Track your tariff management performance and system overview
+          </p>
         </div>
 
-        {/* Stats Section */}
+        {/* Key Metrics - metric cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <MetricCard
+            label="My Submissions Pending"
+            value={myPendingSubmissions.length}
+            variant="blue"
+          />
+          <MetricCard
+            label="Active Threshold Slabs"
+            value={activeSlabs.length}
+            variant="green"
+            animationDelay={0.05}
+          />
+          <MetricCard
+            label="Tariff Policies"
+            value={tariffPolicies.length}
+            variant="purple"
+            animationDelay={0.1}
+          />
+          <MetricCard
+            label="Category Settings"
+            value={categorySettings.length}
+            variant="orange"
+            animationDelay={0.15}
+          />
+        </div>
+
+        {/* Tariff Changes Over Time */}
         <div className="mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Key Metrics</h2>
-          <div className="grid grid-cols-3 gap-6">
-            <div className="space-y-1">
-              <p className="text-sm text-gray-500">My Submissions Pending Approval</p>
-              <p className="text-[32px] font-semibold text-gray-900">{myPendingSubmissions.length}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm text-gray-500">Total Active Rules</p>
-              <p className="text-[32px] font-semibold text-gray-900">{totalActiveRules}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm text-gray-500">Total Plans Created</p>
-              <p className="text-[32px] font-semibold text-gray-900">{tariffPlans.length}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div className="border-t border-gray-200 mb-8"></div>
-
-        {/* Chart Section */}
-        <div>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Tariff Changes Over Time</h2>
-          <div className="bg-white rounded-xl border border-gray-200 p-6 mb-8">
-            <ResponsiveContainer width="100%" height={400}>
-              <LineChart data={tariffChangesData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis 
-                  dataKey="month" 
-                  tick={{ fontSize: 12 }}
-                  stroke="#6b7280"
-                />
-                <YAxis 
-                  tick={{ fontSize: 12 }}
-                  stroke="#6b7280"
-                  label={{ value: 'Number of Changes', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
-                />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '8px' }}
-                  formatter={(value) => [`${value} changes`, 'Tariff Edits']}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="changes" 
-                  stroke="#4C6EF5" 
-                  strokeWidth={3}
-                  dot={{ fill: '#4C6EF5', r: 5 }}
-                  activeDot={{ r: 7 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+          <div className="bg-white border-2 border-gray-200 rounded-xl p-6 hover:border-gray-300 hover:shadow-md transition-all duration-300 mb-8">
+            {tariffChangesData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart data={tariffChangesData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis
+                    dataKey="month"
+                    tick={{ fontSize: 12 }}
+                    stroke="#6b7280"
+                  />
+                  <YAxis
+                    tick={{ fontSize: 12 }}
+                    stroke="#6b7280"
+                    label={{
+                      value: 'Number of Changes',
+                      angle: -90,
+                      position: 'insideLeft',
+                      style: { fontSize: 12 },
+                    }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'white',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                    }}
+                    formatter={(value: number) => [`${value} changes`, 'Tariff Edits']}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="changes"
+                    stroke="#4C6EF5"
+                    strokeWidth={3}
+                    dot={{ fill: '#4C6EF5', r: 5 }}
+                    activeDot={{ r: 7 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-sm text-gray-500 text-center py-12">
+                No tariff change history yet. Changes to policies, slabs, or category settings will appear here.
+              </p>
+            )}
           </div>
         </div>
 
-        {/* Tariff Structure Overview */}
-        {residentialTariffData.length > 0 || commercialTariffData.length > 0 ? (
+        {/* Current threshold slab structure */}
+        {thresholdSlabChartData.length > 0 ? (
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Current Tariff Structure Overview</h2>
-            
-            {/* Charts Grid */}
-            <div className="grid grid-cols-2 gap-6 mb-6">
-              {/* Residential Tariff Structure */}
-              {residentialTariffData.length > 0 && (
-                <div className="bg-white rounded-xl border border-gray-200 p-6">
-                  <h3 className="text-base font-semibold text-gray-900 mb-1">Residential Tariff Structure</h3>
-                  <p className="text-sm text-gray-500 mb-4">Current base rates by consumption range</p>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={residentialTariffData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                      <XAxis 
-                        dataKey="range" 
-                        tick={{ fontSize: 12 }}
-                        stroke="#6b7280"
-                      />
-                      <YAxis 
-                        tick={{ fontSize: 12 }}
-                        stroke="#6b7280"
-                        label={{ value: 'Rate (BDT/m³)', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
-                      />
-                      <Tooltip 
-                        contentStyle={{ backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '8px' }}
-                      />
-                      <Bar dataKey="rate" fill="#4C6EF5" radius={[8, 8, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-
-              {/* Commercial Tariff Structure */}
-              {commercialTariffData.length > 0 && (
-                <div className="bg-white rounded-xl border border-gray-200 p-6">
-                  <h3 className="text-base font-semibold text-gray-900 mb-1">Commercial Tariff Structure</h3>
-                  <p className="text-sm text-gray-500 mb-4">Current base rates by consumption range</p>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={commercialTariffData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                      <XAxis 
-                        dataKey="range" 
-                        tick={{ fontSize: 12 }}
-                        stroke="#6b7280"
-                      />
-                      <YAxis 
-                        tick={{ fontSize: 12 }}
-                        stroke="#6b7280"
-                        label={{ value: 'Rate (BDT/m³)', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
-                      />
-                      <Tooltip 
-                        contentStyle={{ backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '8px' }}
-                      />
-                      <Bar dataKey="rate" fill="#10b981" radius={[8, 8, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+              Current Threshold Slab Structure
+            </h2>
+            <div className="bg-white border-2 border-gray-200 rounded-xl p-6 hover:border-blue-300 hover:shadow-md transition-all duration-300">
+              <p className="text-sm text-gray-500 mb-4">
+                Active slab rates by consumption range (m³)
+              </p>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={thresholdSlabChartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis dataKey="range" tick={{ fontSize: 12 }} stroke="#6b7280" />
+                  <YAxis
+                    tick={{ fontSize: 12 }}
+                    stroke="#6b7280"
+                    label={{
+                      value: 'Rate (BDT/m³)',
+                      angle: -90,
+                      position: 'insideLeft',
+                      style: { fontSize: 12 },
+                    }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'white',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                    }}
+                  />
+                  <Bar dataKey="rate" fill="#4C6EF5" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </div>
         ) : (
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <p className="text-sm text-gray-500 text-center">No active tariff plans found</p>
+          <div className="bg-white border-2 border-gray-200 rounded-xl p-6 hover:border-gray-300 transition-all duration-300">
+            <p className="text-sm text-gray-500 text-center">
+              No active threshold slabs. Configure slabs in Tariff Configuration.
+            </p>
           </div>
         )}
       </div>

@@ -20,6 +20,9 @@ import { useState, useEffect, useMemo } from "react";
 import { api } from "../services/api";
 import { useApiQuery } from "../hooks/useApiQuery";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
+import { MetricHeroCard } from "../components/common/MetricHeroCard";
+import { MetricCard } from "../components/common/MetricCard";
+import { MetricStatsCard } from "../components/common/MetricStatsCard";
 
 export default function AdminDashboard() {
     const [animatedConsumers, setAnimatedConsumers] = useState(0);
@@ -364,196 +367,72 @@ export default function AdminDashboard() {
 
                 {/* Key Metrics - Clean Design */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                    {/* Total Consumers */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5 }}
-                        className="bg-white border-2 border-gray-200 rounded-xl p-8 hover:border-blue-300 hover:shadow-lg transition-all duration-300"
-                    >
-                        <div className="text-center">
-                            <div className="text-sm text-gray-500 uppercase tracking-wide mb-3 font-medium">
-                                Total Consumers
-                            </div>
-                            <div className="text-5xl md:text-6xl font-bold text-gray-900 mb-2">
-                                {animatedConsumers.toLocaleString()}
-                            </div>
-                            <div className="text-sm text-gray-600">
-                                {totalConsumers} registered • {userStats.active} active ({userStats.activePercentage}%)
-                            </div>
-                        </div>
-                    </motion.div>
-
-                    {/* Avg Consumption */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, delay: 0.1 }}
-                        className="bg-white border-2 border-gray-200 rounded-xl p-8 hover:border-green-300 hover:shadow-lg transition-all duration-300"
-                    >
-                        <div className="text-center">
-                            <div className="text-sm text-gray-500 uppercase tracking-wide mb-3 font-medium">
-                                Average Consumption
-                            </div>
-                            <div className="flex items-baseline justify-center gap-2 mb-2">
-                                <span className="text-5xl md:text-6xl font-bold text-gray-900">
-                                    {animatedConsumption}
-                                </span>
-                                <span className="text-2xl text-gray-600 font-medium">
-                                    m³
-                                </span>
-                            </div>
-                            <div className="text-sm text-gray-600">
-                                Per household • {consumptions.length} records
-                            </div>
-                        </div>
-                    </motion.div>
+                    <MetricHeroCard
+                        label="Total Consumers"
+                        value={animatedConsumers.toLocaleString()}
+                        subtitle={`${totalConsumers} registered • ${userStats.active} active (${userStats.activePercentage}%)`}
+                        variant="blue"
+                    />
+                    <MetricHeroCard
+                        label="Average Consumption"
+                        value={
+                            <span className="flex items-baseline justify-center gap-2">
+                                <span>{animatedConsumption}</span>
+                                <span className="text-2xl text-gray-600 font-medium">m³</span>
+                            </span>
+                        }
+                        subtitle={`Per household • ${consumptions.length} records`}
+                        variant="green"
+                        animationDelay={0.1}
+                    />
                 </div>
 
                 {/* Metrics Grid - Centered Cards */}
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4 md:gap-6 mb-8">
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.3 }}
-                        className="bg-white border-2 border-blue-200 rounded-xl p-6 hover:border-blue-400 hover:shadow-md transition-all duration-300"
-                    >
-                        <div className="text-center">
-                            <div className="text-xs text-gray-600 mb-2 font-medium">Zones</div>
-                            <div className="text-3xl md:text-4xl font-bold text-gray-900 mb-1">{totalZones}</div>
-                            <div className="text-xs text-gray-500">Active zones</div>
-                        </div>
-                    </motion.div>
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.3, delay: 0.05 }}
-                        className="bg-white border-2 border-green-200 rounded-xl p-6 hover:border-green-400 hover:shadow-md transition-all duration-300"
-                    >
-                        <div className="text-center">
-                            <div className="text-xs text-gray-600 mb-2 font-medium">Meters</div>
-                            <div className="text-3xl md:text-4xl font-bold text-gray-900 mb-1">{totalMeters}</div>
-                            <div className="text-xs text-gray-500">Registered</div>
-                        </div>
-                    </motion.div>
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.3, delay: 0.1 }}
-                        className="bg-white border-2 border-purple-200 rounded-xl p-6 hover:border-purple-400 hover:shadow-md transition-all duration-300"
-                    >
-                        <div className="text-center">
-                            <div className="text-xs text-gray-600 mb-2 font-medium">Tariff Settings</div>
-                            <div className="text-3xl md:text-4xl font-bold text-gray-900 mb-1">{totalTariffSettings}</div>
-                            <div className="text-xs text-gray-500">Category settings</div>
-                        </div>
-                    </motion.div>
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.3, delay: 0.15 }}
-                        className="bg-white border-2 border-orange-200 rounded-xl p-6 hover:border-orange-400 hover:shadow-md transition-all duration-300"
-                    >
-                        <div className="text-center">
-                            <div className="text-xs text-gray-600 mb-2 font-medium">Categories</div>
-                            <div className="text-3xl md:text-4xl font-bold text-gray-900 mb-1">{totalTariffCategories}</div>
-                            <div className="text-xs text-gray-500">Active</div>
-                        </div>
-                    </motion.div>
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.3, delay: 0.2 }}
-                        className="bg-white border-2 border-cyan-200 rounded-xl p-6 hover:border-cyan-400 hover:shadow-md transition-all duration-300"
-                    >
-                        <div className="text-center">
-                            <div className="text-xs text-gray-600 mb-2 font-medium">WASAs</div>
-                            <div className="text-3xl md:text-4xl font-bold text-gray-900 mb-1">{totalWasas}</div>
-                            <div className="text-xs text-gray-500">Authorities</div>
-                        </div>
-                    </motion.div>
+                    <MetricCard label="Zones" value={totalZones} variant="blue" />
+                    <MetricCard label="Meters" value={totalMeters} variant="green" animationDelay={0.05} />
+                    <MetricCard label="Tariff Settings" value={totalTariffSettings} variant="purple" animationDelay={0.1} />
+                    <MetricCard label="Tariff Categories" value={totalTariffCategories} variant="orange" animationDelay={0.15} />
+                    <MetricCard label="WASAs" value={totalWasas} variant="cyan" animationDelay={0.2} />
                 </div>
 
                 {/* Activity & Stats Section */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    {/* This Month's Activity */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4 }}
-                        className="bg-white border-2 border-gray-200 rounded-xl p-6 md:p-8 hover:border-blue-300 hover:shadow-md transition-all duration-300"
-                    >
-                        <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-6 text-center">This Month</h3>
-                        <div className="space-y-5">
-                            <div className="text-center pb-4 border-b border-gray-200">
-                                <div className="text-xs text-gray-500 mb-1">New Consumers</div>
-                                <div className="text-2xl md:text-3xl font-bold text-gray-900">{newConsumersThisMonth}</div>
-                            </div>
-                            <div className="text-center pb-4 border-b border-gray-200">
-                                <div className="text-xs text-gray-500 mb-1">Consumption Entries</div>
-                                <div className="text-2xl md:text-3xl font-bold text-gray-900">{consumptionEntriesThisMonth}</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-xs text-gray-500 mb-1">Bills Generated</div>
-                                <div className="text-2xl md:text-3xl font-bold text-gray-900">
-                                    {waterBills.filter(bill => {
-                                        const billDate = new Date(bill.billMonth);
-                                        const currentMonth = new Date().getMonth();
-                                        const currentYear = new Date().getFullYear();
-                                        return billDate.getMonth() === currentMonth && billDate.getFullYear() === currentYear;
-                                    }).length}
-                                </div>
-                            </div>
-                        </div>
-                    </motion.div>
-
-                    {/* Bill Status */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4, delay: 0.1 }}
-                        className="bg-white border-2 border-gray-200 rounded-xl p-6 md:p-8 hover:border-green-300 hover:shadow-md transition-all duration-300"
-                    >
-                        <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-6 text-center">Bill Status</h3>
-                        <div className="space-y-5">
-                            <div className="text-center pb-4 border-b border-gray-200">
-                                <div className="text-xs text-gray-500 mb-1">Paid</div>
-                                <div className="text-2xl md:text-3xl font-bold text-green-600">{billStats.paid}</div>
-                            </div>
-                            <div className="text-center pb-4 border-b border-gray-200">
-                                <div className="text-xs text-gray-500 mb-1">Unpaid</div>
-                                <div className="text-2xl md:text-3xl font-bold text-amber-600">{billStats.unpaid}</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-xs text-gray-500 mb-1">Collection Rate</div>
-                                <div className="text-2xl md:text-3xl font-bold text-gray-900">{billStats.collectionRate}%</div>
-                            </div>
-                        </div>
-                    </motion.div>
-
-                    {/* System Overview */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4, delay: 0.2 }}
-                        className="bg-white border-2 border-gray-200 rounded-xl p-6 md:p-8 hover:border-purple-300 hover:shadow-md transition-all duration-300"
-                    >
-                        <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-6 text-center">Overview</h3>
-                        <div className="space-y-5">
-                            <div className="text-center pb-4 border-b border-gray-200">
-                                <div className="text-xs text-gray-500 mb-1">Total Bills</div>
-                                <div className="text-2xl md:text-3xl font-bold text-gray-900">{billStats.total}</div>
-                            </div>
-                            <div className="text-center pb-4 border-b border-gray-200">
-                                <div className="text-xs text-gray-500 mb-1">Avg Bill Amount</div>
-                                <div className="text-2xl md:text-3xl font-bold text-gray-900">৳{billStats.avgBillAmount.toFixed(0)}</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-xs text-gray-500 mb-1">Consumption Records</div>
-                                <div className="text-2xl md:text-3xl font-bold text-gray-900">{consumptions.length}</div>
-                            </div>
-                        </div>
-                    </motion.div>
+                    <MetricStatsCard
+                        title="This Month"
+                        variant="blue"
+                        items={[
+                            { label: "New Consumers", value: newConsumersThisMonth },
+                            { label: "Consumption Entries", value: consumptionEntriesThisMonth },
+                            {
+                                label: "Bills Generated",
+                                value: waterBills.filter(bill => {
+                                    const billDate = new Date(bill.billMonth);
+                                    return billDate.getMonth() === new Date().getMonth() && billDate.getFullYear() === new Date().getFullYear();
+                                }).length,
+                            },
+                        ]}
+                    />
+                    <MetricStatsCard
+                        title="Bill Status"
+                        variant="green"
+                        animationDelay={0.1}
+                        items={[
+                            { label: "Paid", value: billStats.paid, valueClassName: "text-green-600" },
+                            { label: "Unpaid", value: billStats.unpaid, valueClassName: "text-amber-600" },
+                            { label: "Collection Rate", value: `${billStats.collectionRate}%` },
+                        ]}
+                    />
+                    <MetricStatsCard
+                        title="Overview"
+                        variant="purple"
+                        animationDelay={0.2}
+                        items={[
+                            { label: "Total Bills", value: billStats.total },
+                            { label: "Avg Bill Amount", value: `৳${billStats.avgBillAmount.toFixed(0)}` },
+                            { label: "Consumption Records", value: consumptions.length },
+                        ]}
+                    />
                 </div>
 
                 {/* Charts Section */}
