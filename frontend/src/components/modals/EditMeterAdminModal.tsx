@@ -11,7 +11,7 @@ interface MeterAdmin {
   phone: string;
   role: string;
   zone?: string;
-  ward?: string;
+  area?: string;
 }
 
 interface EditMeterAdminModalProps {
@@ -20,17 +20,17 @@ interface EditMeterAdminModalProps {
   onSave: (admin: MeterAdmin) => void;
   admin: MeterAdmin | null;
   zoneOptions?: Array<{ value: string; label: string }>; // Zone options from API
-  wardOptions?: Array<{ value: string; label: string }>; // Ward options from API
+  areaOptions?: Array<{ value: string; label: string }>; // Area options from API
 }
 
-export function EditMeterAdminModal({ open, onClose, onSave, admin, zoneOptions = [], wardOptions = [] }: EditMeterAdminModalProps) {
+export function EditMeterAdminModal({ open, onClose, onSave, admin, zoneOptions = [], areaOptions = [] }: EditMeterAdminModalProps) {
   const [form, setForm] = useState<MeterAdmin>({
     name: "",
     email: "",
     phone: "",
     role: "Meter Admin",
     zone: "",
-    ward: "",
+    area: "",
   });
 
   // Update form when admin prop changes
@@ -72,8 +72,8 @@ export function EditMeterAdminModal({ open, onClose, onSave, admin, zoneOptions 
               <Dropdown options={zoneOptions} value={form.zone || ""} onChange={v => handleChange("zone", v)} placeholder="Select zone" className="w-full" />
             </div>
             <div className="w-1/2">
-              <Label className="text-sm">Ward</Label>
-              <Dropdown options={wardOptions} value={form.ward || ""} onChange={v => handleChange("ward", v)} placeholder="Select ward" className="w-full" />
+              <Label className="text-sm">Area</Label>
+              <Dropdown options={areaOptions} value={form.area || ""} onChange={v => handleChange("area", v)} placeholder="Select area" className="w-full" />
             </div>
           </div>
           <div>

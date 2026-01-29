@@ -159,20 +159,68 @@ export default function Layout({ children }: LayoutProps) {
     navigate(path);
   };
 
-  const renderSidebar = () => {
+  /** When provided (e.g. on mobile), called after any sidebar navigation so the sheet can close. */
+  const renderSidebar = (closeOnNavigate?: () => void) => {
+    const close = closeOnNavigate ?? (() => {});
     if (isMeterAdmin) {
-      return <MeterReaderSidebar activePage={"meter-reader-" + meterActive} onNavigate={handleMeterNavigate} />;
-    } else if (isCustomerAdmin) {
-      return <CustomerAdminSidebar activePage={customerActive ? `customer-admin-${customerActive}` : "customer-admin-customers"} onNavigate={handleCustomerNavigate} />;
-    } else if (isTariffAdmin) {
-      return <TariffAdminSidebar currentPage={tariffActive} onNavigate={handleTariffNavigate} onLogout={handleTariffLogout} />;
-    } else if (isApprovalAdmin) {
-      return <ApprovalAdminSidebar activePage={approvalActive} />;
-    } else if (isGeneralInfoAdmin) {
-      return <GeneralAdminSidebar activePage={generalInfoActive} />;
-    } else {
-      return <Sidebar activePage={superAdminActive} onNavigate={handleSuperAdminNavigate} />;
+      return (
+        <MeterReaderSidebar
+          activePage={"meter-reader-" + meterActive}
+          onNavigate={(id) => {
+            handleMeterNavigate(id);
+            close();
+          }}
+        />
+      );
     }
+    if (isCustomerAdmin) {
+      return (
+        <CustomerAdminSidebar
+          activePage={customerActive ? `customer-admin-${customerActive}` : "customer-admin-customers"}
+          onNavigate={(id) => {
+            handleCustomerNavigate(id);
+            close();
+          }}
+        />
+      );
+    }
+    if (isTariffAdmin) {
+      return (
+        <TariffAdminSidebar
+          currentPage={tariffActive}
+          onNavigate={(id) => {
+            handleTariffNavigate(id);
+            close();
+          }}
+          onLogout={handleTariffLogout}
+        />
+      );
+    }
+    if (isApprovalAdmin) {
+      return (
+        <ApprovalAdminSidebar
+          activePage={approvalActive}
+          onNavigate={closeOnNavigate ? () => close() : undefined}
+        />
+      );
+    }
+    if (isGeneralInfoAdmin) {
+      return (
+        <GeneralAdminSidebar
+          activePage={generalInfoActive}
+          onNavigate={closeOnNavigate ? () => close() : undefined}
+        />
+      );
+    }
+    return (
+      <Sidebar
+        activePage={superAdminActive}
+        onNavigate={(id) => {
+          handleSuperAdminNavigate(id);
+          close();
+        }}
+      />
+    );
   };
 
   return (
@@ -193,12 +241,12 @@ export default function Layout({ children }: LayoutProps) {
         {renderSidebar()}
       </aside>
 
-      {/* Mobile Sidebar */}
+      {/* Mobile Sidebar — close when a tab is selected */}
       {isMobile && (
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-          <SheetContent side="left" className="w-[280px] p-0">
-            <div className="h-full overflow-y-auto">
-              {renderSidebar()}
+          <SheetContent side="left" className="w-[280px] p-0 bg-white">
+            <div className="h-full overflow-y-auto bg-white">
+              {renderSidebar(() => setMobileMenuOpen(false))}
             </div>
           </SheetContent>
         </Sheet>

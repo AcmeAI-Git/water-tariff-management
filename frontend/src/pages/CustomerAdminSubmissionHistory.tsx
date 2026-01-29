@@ -190,23 +190,23 @@ export function CustomerAdminSubmissionHistory() {
     <div className="min-h-screen bg-[#f8f9fb]">
       <div className="px-4 md:px-8 py-4 md:py-6">
         {/* Header with inline stats - centered on mobile to avoid hamburger overlap */}
-        <div className="mb-8">
+        <div className="mb-6 md:mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 items-center text-center md:text-left">
             <div>
-              <h1 className="text-[28px] font-semibold text-gray-900 mb-1">Customer History</h1>
-              <p className="text-sm text-gray-500">View history of all registered customers</p>
+              <h1 className="text-xl md:text-[28px] font-semibold text-gray-900 mb-1">Customer History</h1>
+              <p className="text-xs md:text-sm text-gray-500">View history of all registered customers</p>
             </div>
-            <div className="flex items-center gap-6 text-sm">
+            <div className="flex items-center gap-4 md:gap-6 text-sm flex-wrap justify-center md:justify-start">
               <div className="flex items-center gap-2">
                 <span className="text-gray-600">Total:</span>
                 <span className="font-semibold text-gray-900">{totalCount}</span>
               </div>
-              <span className="text-gray-300">|</span>
+              <span className="text-gray-300 hidden sm:inline">|</span>
               <div className="flex items-center gap-2">
                 <span className="text-gray-600">Active:</span>
                 <span className="font-semibold text-green-600">{activeCount}</span>
               </div>
-              <span className="text-gray-300">|</span>
+              <span className="text-gray-300 hidden sm:inline">|</span>
               <div className="flex items-center gap-2">
                 <span className="text-gray-600">Inactive:</span>
                 <span className="font-semibold text-red-600">{inactiveCount}</span>
@@ -216,21 +216,21 @@ export function CustomerAdminSubmissionHistory() {
         </div>
 
         {/* Filters */}
-        <div className="mb-6 flex items-center gap-3">
+        <div className="mb-6 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3">
           {/* Search Bar */}
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <div className="relative flex-1 min-w-0 w-full sm:max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 shrink-0" size={18} />
             <Input
               type="text"
               placeholder="Search by name, meter no, phone, address..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-white border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
+              className="pl-10 w-full min-w-0 bg-white border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
             />
           </div>
 
           {/* Status Filter */}
-          <div className="w-48">
+          <div className="w-full sm:w-48 min-w-0">
             <Dropdown
               options={[
                 { value: 'all', label: 'All Status' },
@@ -240,7 +240,7 @@ export function CustomerAdminSubmissionHistory() {
               value={statusFilter}
               onChange={setStatusFilter}
               placeholder="Filter by Status"
-              className="bg-white border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
+              className="bg-white border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500 w-full"
             />
           </div>
 
@@ -249,7 +249,7 @@ export function CustomerAdminSubmissionHistory() {
             <Button
               variant="outline"
               onClick={clearFilters}
-              className="h-11 px-4 border-gray-300 hover:bg-gray-50"
+              className="h-11 px-4 border-gray-300 hover:bg-gray-50 w-full sm:w-auto shrink-0"
             >
               <X size={16} className="mr-2" />
               Clear Filters
@@ -259,42 +259,46 @@ export function CustomerAdminSubmissionHistory() {
 
         {/* Submission History Table */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-gray-200 bg-gray-50">
-                <TableHead className="text-sm font-semibold text-gray-700">Customer ID</TableHead>
-                <TableHead className="text-sm font-semibold text-gray-700">Name</TableHead>
-                <TableHead className="text-sm font-semibold text-gray-700">Meter No</TableHead>
-                <TableHead className="text-sm font-semibold text-gray-700">Phone</TableHead>
-                <TableHead className="text-sm font-semibold text-gray-700">Address</TableHead>
-                <TableHead className="text-sm font-semibold text-gray-700">Created Date</TableHead>
-                <TableHead className="text-sm font-semibold text-gray-700">Created By</TableHead>
-                <TableHead className="text-sm font-semibold text-gray-700">Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredSubmissions.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center text-gray-500 py-8">
-                    No customers found. Add customers from the Customer Management page.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredSubmissions.map((submission) => (
-                  <TableRow key={submission.id || submission.requestId} className="border-gray-100">
-                    <TableCell className="text-sm text-gray-600 font-mono">{submission.requestId}</TableCell>
-                    <TableCell className="text-sm text-gray-900 font-medium">{submission.name || submission.fullName}</TableCell>
-                    <TableCell className="text-sm text-gray-600 font-mono">{submission.meterNo}</TableCell>
-                    <TableCell className="text-sm text-gray-600">{submission.phone}</TableCell>
-                    <TableCell className="text-sm text-gray-600">{submission.address}</TableCell>
-                    <TableCell className="text-sm text-gray-600">{submission.submission}</TableCell>
-                    <TableCell className="text-sm text-gray-600">{submission.createdBy}</TableCell>
-                    <TableCell>{getStatusBadge(submission.status)}</TableCell>
+          <div className="overflow-x-auto -mx-4 md:mx-0">
+            <div className="inline-block min-w-full align-middle px-4 md:px-0">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-gray-200 bg-gray-50">
+                    <TableHead className="text-sm font-semibold text-gray-700 min-w-[100px] hidden sm:table-cell">Customer ID</TableHead>
+                    <TableHead className="text-sm font-semibold text-gray-700 min-w-[120px]">Name</TableHead>
+                    <TableHead className="text-sm font-semibold text-gray-700 min-w-[90px] hidden md:table-cell">Meter No</TableHead>
+                    <TableHead className="text-sm font-semibold text-gray-700 min-w-[100px] hidden lg:table-cell">Phone</TableHead>
+                    <TableHead className="text-sm font-semibold text-gray-700 min-w-[140px] hidden lg:table-cell">Address</TableHead>
+                    <TableHead className="text-sm font-semibold text-gray-700 min-w-[120px]">Created Date</TableHead>
+                    <TableHead className="text-sm font-semibold text-gray-700 min-w-[100px] hidden md:table-cell">Created By</TableHead>
+                    <TableHead className="text-sm font-semibold text-gray-700 min-w-[90px]">Status</TableHead>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredSubmissions.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center text-gray-500 py-8">
+                        No customers found. Add customers from the Customer Management page.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredSubmissions.map((submission) => (
+                      <TableRow key={submission.id || submission.requestId} className="border-gray-100">
+                        <TableCell className="text-sm text-gray-600 font-mono hidden sm:table-cell">{submission.requestId}</TableCell>
+                        <TableCell className="text-sm text-gray-900 font-medium">{submission.name || submission.fullName}</TableCell>
+                        <TableCell className="text-sm text-gray-600 font-mono hidden md:table-cell whitespace-nowrap">{submission.meterNo}</TableCell>
+                        <TableCell className="text-sm text-gray-600 hidden lg:table-cell whitespace-nowrap">{submission.phone}</TableCell>
+                        <TableCell className="text-sm text-gray-600 hidden lg:table-cell max-w-[200px] truncate" title={submission.address}>{submission.address}</TableCell>
+                        <TableCell className="text-sm text-gray-600 whitespace-nowrap">{submission.submission}</TableCell>
+                        <TableCell className="text-sm text-gray-600 hidden md:table-cell max-w-[120px] truncate" title={submission.createdBy}>{submission.createdBy}</TableCell>
+                        <TableCell>{getStatusBadge(submission.status)}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
         </div>
       </div>
     </div>

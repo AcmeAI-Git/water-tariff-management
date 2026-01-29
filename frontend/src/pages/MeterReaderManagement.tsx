@@ -26,7 +26,6 @@ interface Agent {
     confirm?: string;
     wasa?: string;
     zone?: string;
-    ward?: string;
     role: string;
 }
 

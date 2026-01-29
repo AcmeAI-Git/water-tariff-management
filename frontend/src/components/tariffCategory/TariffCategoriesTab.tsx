@@ -333,25 +333,19 @@ export function TariffCategoriesTab({ settingsId }: TariffCategoriesTabProps) {
                   </div>
 
                   {/* Categories Table */}
-                  <Table className="table-fixed w-full">
-                    <colgroup>
-                      <col style={{ width: '80px' }} />
-                      <col style={{ width: '180px' }} />
-                      <col style={{ width: '200px' }} />
-                      <col style={{ width: '140px' }} />
-                      <col style={{ width: '140px' }} />
-                      <col style={{ width: '280px' }} />
-                    </colgroup>
-                    <TableHeader>
-                      <TableRow className="border-gray-200 bg-gray-50">
-                        <TableHead className="text-sm font-semibold text-gray-700 py-2">SL No</TableHead>
-                        <TableHead className="text-sm font-semibold text-gray-700 py-2">Name</TableHead>
-                        <TableHead className="text-sm font-semibold text-gray-700 py-2">Range</TableHead>
-                        <TableHead className="text-sm font-semibold text-gray-700 py-2 text-right">Tariff Rate</TableHead>
-                        <TableHead className="text-sm font-semibold text-gray-700 py-2 text-right">Tubewell Tariff</TableHead>
-                        <TableHead className="text-sm font-semibold text-gray-700 text-center py-2">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
+                  <div className="overflow-x-auto -mx-4 md:mx-0">
+                    <div className="inline-block min-w-full align-middle px-4 md:px-6">
+                      <Table className="w-full min-w-[640px]">
+                        <TableHeader>
+                          <TableRow className="border-gray-200 bg-gray-50">
+                            <TableHead className="text-sm font-semibold text-gray-700 py-2 min-w-[60px]">SL No</TableHead>
+                            <TableHead className="text-sm font-semibold text-gray-700 py-2 min-w-[120px]">Name</TableHead>
+                            <TableHead className="text-sm font-semibold text-gray-700 py-2 min-w-[100px] hidden sm:table-cell">Range</TableHead>
+                            <TableHead className="text-sm font-semibold text-gray-700 py-2 text-right min-w-[100px]">Tariff Rate</TableHead>
+                            <TableHead className="text-sm font-semibold text-gray-700 py-2 text-right min-w-[100px] hidden sm:table-cell">Tubewell Tariff</TableHead>
+                            <TableHead className="text-sm font-semibold text-gray-700 text-center py-2 min-w-[200px]">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
                     <TableBody>
                       {typeCategories.map((category) => {
                         const baseCategoriesForType = getBaseCategories(categoryType);
@@ -370,22 +364,22 @@ export function TariffCategoriesTab({ settingsId }: TariffCategoriesTabProps) {
                                 )}
                               </div>
                             </TableCell>
-                            <TableCell className="text-sm text-gray-600">{formatRange(category)}</TableCell>
-                            <TableCell className="text-sm text-gray-600 text-right">
+                            <TableCell className="text-sm text-gray-600 hidden sm:table-cell">{formatRange(category)}</TableCell>
+                            <TableCell className="text-sm text-gray-600 text-right whitespace-nowrap">
                               {category.tariffRate !== undefined && category.tariffRate !== null 
                                 ? `${category.tariffRate.toFixed(2)} BDT` 
                                 : 'N/A'}
                             </TableCell>
-                            <TableCell className="text-sm text-gray-600 text-right">
+                            <TableCell className="text-sm text-gray-600 text-right whitespace-nowrap hidden sm:table-cell">
                               {category.tubewellTariff !== undefined && category.tubewellTariff !== null 
                                 ? `${category.tubewellTariff.toFixed(2)} BDT` 
                                 : 'N/A'}
                             </TableCell>
                             <TableCell className="text-center align-middle">
-                              <div className="flex items-center justify-center gap-2">
+                              <div className="flex items-center justify-center gap-1 md:gap-2 flex-wrap">
                                 {/* Active/Base indicators - before Edit button */}
                                 {category.isActive && (
-                                  <span className="text-xs text-gray-700 bg-gray-100 rounded-md px-2.5 py-1 whitespace-nowrap inline-flex items-center justify-center h-8 font-medium w-[135px]">
+                                  <span className="text-xs text-gray-700 bg-gray-100 rounded-md px-2.5 py-1 whitespace-nowrap inline-flex items-center justify-center h-8 font-medium min-w-[70px] md:w-[135px]">
                                     Active
                                   </span>
                                 )}
@@ -421,11 +415,11 @@ export function TariffCategoriesTab({ settingsId }: TariffCategoriesTabProps) {
                                     size="sm"
                                     onClick={() => handleSetActive(category)}
                                     disabled={setActiveMutation.isPending}
-                                    className="border-green-300 text-green-700 rounded-lg h-8 px-3 bg-white hover:bg-green-50 inline-flex items-center justify-center gap-1.5 disabled:opacity-50 whitespace-nowrap w-[135px]"
+                                    className="border-green-300 text-green-700 rounded-lg h-8 px-2 md:px-3 bg-white hover:bg-green-50 inline-flex items-center justify-center gap-1 disabled:opacity-50 whitespace-nowrap min-w-[32px] md:w-[135px]"
                                     title="Set as Active"
                                   >
                                     <CheckCircle size={14} />
-                                    Set as Active
+                                    <span className="hidden sm:inline">Set as Active</span>
                                   </Button>
                                 )}
                                 
@@ -456,6 +450,8 @@ export function TariffCategoriesTab({ settingsId }: TariffCategoriesTabProps) {
                       })}
                     </TableBody>
                   </Table>
+                    </div>
+                  </div>
                 </div>
               );
             })}

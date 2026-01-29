@@ -81,18 +81,9 @@ export default function AdminDashboard() {
     const totalTariffCategories = tariffCategories.length;
     const totalWasas = wasas.length;
     
-    // Calculate new consumers this month
-    const newConsumersThisMonth = useMemo(() => {
-        const currentMonth = new Date().getMonth();
-        const currentYear = new Date().getFullYear();
-        return users.filter(user => {
-            if (!user.createdAt) return false;
-            const createdDate = new Date(user.createdAt);
-            return createdDate.getMonth() === currentMonth && createdDate.getFullYear() === currentYear;
-        }).length;
-    }, [users]);
+    // GET /users does not return createdAt, so we cannot show "new consumers this month"
 
-    // Calculate consumption entries this month
+    // Calculate consumption entries this month (consumption API returns createdAt)
     const consumptionEntriesThisMonth = useMemo(() => {
         const currentMonth = new Date().getMonth();
         const currentYear = new Date().getFullYear();
@@ -301,7 +292,6 @@ export default function AdminDashboard() {
   </div>
   <div class="card">
     <h2>This month</h2>
-    <div class="row"><span class="label">New Consumers</span><span class="value">${newConsumersThisMonth}</span></div>
     <div class="row"><span class="label">Consumption Entries</span><span class="value">${consumptionEntriesThisMonth}</span></div>
     <div class="row"><span class="label">Bills Generated</span><span class="value">${billsThisMonth}</span></div>
   </div>
@@ -402,7 +392,6 @@ export default function AdminDashboard() {
                         title="This Month"
                         variant="blue"
                         items={[
-                            { label: "New Consumers", value: newConsumersThisMonth },
                             { label: "Consumption Entries", value: consumptionEntriesThisMonth },
                             {
                                 label: "Bills Generated",

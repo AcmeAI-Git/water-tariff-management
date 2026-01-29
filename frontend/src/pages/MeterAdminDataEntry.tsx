@@ -397,20 +397,20 @@ export function MeterAdminDataEntry() {
           {/* Search */}
           <div className="mb-6 md:mb-8">
             <p className="text-xs md:text-sm font-semibold text-gray-700 mb-3">Search Customer</p>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex-1">
+            <div className="flex flex-col sm:flex-row gap-3 w-full">
+              <div className="flex-1 min-w-0">
                 <Input
                   id="search"
                   placeholder="Enter Meter No. or Name"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500 h-11"
+                  className="w-full min-w-0 bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500 h-11"
                 />
               </div>
               <Button 
                 onClick={handleSearch}
-                className="bg-primary hover:bg-primary-600 text-white rounded-lg h-11 px-6 flex items-center gap-2"
+                className="bg-primary hover:bg-primary-600 text-white rounded-lg h-11 px-4 sm:px-6 flex items-center justify-center gap-2 w-full sm:w-auto shrink-0"
               >
                 <Search size={18} />
                 Search
@@ -431,7 +431,7 @@ export function MeterAdminDataEntry() {
               const userZone = zones.find(z => z.id === verifiedUser.zoneId || (userArea?.zoneId));
               
               return (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Basic Information */}
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-gray-700">Full Name</Label>
@@ -469,7 +469,7 @@ export function MeterAdminDataEntry() {
                     />
                   </div>
 
-                  <div className="space-y-2 col-span-2">
+                  <div className="space-y-2 sm:col-span-2">
                     <Label className="text-sm font-medium text-gray-700">Address</Label>
                     <Input
                       value={verifiedUser.address || '-'}
@@ -618,7 +618,7 @@ export function MeterAdminDataEntry() {
 
                   {/* Previous Reading */}
                   {previousReading > 0 && (
-                    <div className="space-y-2 col-span-2">
+                    <div className="space-y-2 sm:col-span-2">
                       <Label className="text-sm font-medium text-gray-700">Previous Reading (m³)</Label>
                       <Input
                         value={previousReading.toFixed(2)}
@@ -645,7 +645,7 @@ export function MeterAdminDataEntry() {
           <div>
             <p className="text-sm font-semibold text-gray-700 mb-3">New Reading Details</p>
             
-            <div className="grid grid-cols-3 gap-4 items-end">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 items-end">
               <div className="space-y-2">
                 <Label htmlFor="reading" className="text-sm font-medium text-gray-700">
                   Current Reading (m³) *
@@ -658,7 +658,7 @@ export function MeterAdminDataEntry() {
                   value={currentReading}
                   onChange={(e) => setCurrentReading(e.target.value)}
                   disabled={!verifiedUser || createConsumptionMutation.isPending || updateConsumptionMutation.isPending}
-                  className={`rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500 ${
+                  className={`w-full min-w-0 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500 ${
                     verifiedUser 
                       ? 'bg-gray-50 border-gray-300' 
                       : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
@@ -676,7 +676,7 @@ export function MeterAdminDataEntry() {
                   value={billMonth}
                   onChange={(e) => setBillMonth(e.target.value)}
                   disabled={!verifiedUser || createConsumptionMutation.isPending || updateConsumptionMutation.isPending}
-                  className={`rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500 ${
+                  className={`w-full min-w-0 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500 ${
                     verifiedUser 
                       ? 'bg-gray-50 border-gray-300' 
                       : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
@@ -684,18 +684,18 @@ export function MeterAdminDataEntry() {
                 />
               </div>
 
-              <div>
+              <div className="sm:col-span-2 md:col-span-1">
                 <Button 
                   onClick={handleSubmit}
                   disabled={!verifiedUser || !currentReading || !billMonth || createConsumptionMutation.isPending || updateConsumptionMutation.isPending}
-                  className={`w-full rounded-lg h-[42px] flex items-center justify-center gap-2 ${
+                  className={`w-full rounded-lg h-11 flex items-center justify-center gap-2 ${
                     verifiedUser && currentReading && billMonth && !createConsumptionMutation.isPending && !updateConsumptionMutation.isPending
                       ? 'bg-primary hover:bg-primary-600 text-white'
                       : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                   }`}
                 >
                   <Plus size={18} />
-                  {createConsumptionMutation.isPending || updateConsumptionMutation.isPending ? 'Submitting...' : 'Submit Reading'}
+                  <span className="truncate">{createConsumptionMutation.isPending || updateConsumptionMutation.isPending ? 'Submitting...' : 'Submit Reading'}</span>
                 </Button>
               </div>
             </div>
@@ -742,18 +742,18 @@ export function MeterAdminDataEntry() {
               setPreviousReadingForModal(0);
             }
           }}>
-            <DialogContent className="max-w-2xl bg-white">
-              <DialogHeader>
-                <DialogTitle>{modalTitle}</DialogTitle>
-                <DialogDescription>
+            <DialogContent className="max-w-2xl bg-white max-h-[90vh] flex flex-col overflow-hidden p-4 sm:p-6 w-[calc(100%-2rem)]">
+              <DialogHeader className="shrink-0">
+                <DialogTitle className="text-lg sm:text-xl">{modalTitle}</DialogTitle>
+                <DialogDescription className="text-sm">
                   {modalDescription}
                 </DialogDescription>
               </DialogHeader>
-            <div className="space-y-4 py-4">
+            <div className="overflow-y-auto overflow-x-hidden min-h-0 flex-1 space-y-4 py-4 pr-2">
               <div>
                 <p className="text-sm font-medium text-gray-700 mb-2">Existing Reading:</p>
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-2 text-sm">
-                  <div className="flex justify-between">
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                     <span className="text-gray-600">Current Reading:</span>
                     <span className="font-medium text-gray-900">
                       {typeof existingApprovedConsumption.currentReading === 'number' 
@@ -761,7 +761,7 @@ export function MeterAdminDataEntry() {
                         : Number(existingApprovedConsumption.currentReading || 0).toFixed(2)} m³
                     </span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                     <span className="text-gray-600">Previous Reading:</span>
                     <span className="font-medium text-gray-900">
                       {existingApprovedConsumption.previousReading 
@@ -771,7 +771,7 @@ export function MeterAdminDataEntry() {
                         : 'N/A'} m³
                     </span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                     <span className="text-gray-600">Consumption:</span>
                     <span className="font-medium text-gray-900">
                       {existingApprovedConsumption.consumption 
@@ -781,13 +781,13 @@ export function MeterAdminDataEntry() {
                         : 'N/A'} m³
                     </span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                     <span className="text-gray-600">Bill Month:</span>
                     <span className="font-medium text-gray-900">
                       {new Date(existingApprovedConsumption.billMonth).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
                     </span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                     <span className="text-gray-600">Status:</span>
                     <span className={`font-medium ${
                       isPending ? 'text-yellow-700' : 
@@ -798,7 +798,7 @@ export function MeterAdminDataEntry() {
                     </span>
                   </div>
                   {existingApprovedConsumption.approvedBy && (
-                    <div className="flex justify-between">
+                    <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                       <span className="text-gray-600">Approved By:</span>
                       <span className="font-medium text-gray-900">Admin #{existingApprovedConsumption.approvedBy}</span>
                     </div>
@@ -808,17 +808,17 @@ export function MeterAdminDataEntry() {
               <div>
                 <p className="text-sm font-medium text-gray-700 mb-2">New Reading:</p>
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2 text-sm">
-                  <div className="flex justify-between">
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                     <span className="text-gray-600">Current Reading:</span>
                     <span className="font-medium text-blue-900">{currentReading} m³</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                     <span className="text-gray-600">Previous Reading:</span>
                     <span className="font-medium text-blue-900">
                       {previousReadingForModal > 0 ? previousReadingForModal.toFixed(2) : 'N/A'} m³
                     </span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                     <span className="text-gray-600">Calculated Consumption:</span>
                     <span className="font-medium text-blue-900">
                       {previousReadingForModal > 0 && currentReading 
@@ -826,7 +826,7 @@ export function MeterAdminDataEntry() {
                         : 'N/A'} m³
                     </span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                     <span className="text-gray-600">Bill Month:</span>
                     <span className="font-medium text-blue-900">{billMonth}</span>
                   </div>
@@ -854,13 +854,14 @@ export function MeterAdminDataEntry() {
                 </p>
               </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="shrink-0 gap-2 pt-2 flex-col-reverse sm:flex-row">
               <Button
                 variant="outline"
                 onClick={() => {
                   setShowReplaceModal(false);
                   setExistingApprovedConsumption(null);
                 }}
+                className="w-full sm:w-auto"
               >
                 Cancel
               </Button>
@@ -883,7 +884,7 @@ export function MeterAdminDataEntry() {
                   }
                 }}
                 disabled={updateConsumptionMutation.isPending || !existingApprovedConsumption}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto"
               >
                 {updateConsumptionMutation.isPending ? 'Updating...' : 'Update Reading'}
               </Button>

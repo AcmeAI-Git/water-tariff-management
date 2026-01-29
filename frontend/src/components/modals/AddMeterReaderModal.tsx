@@ -11,7 +11,7 @@ interface MeterReader {
   password: string;
   confirm: string;
   zone: string;
-  ward: string;
+  area: string;
 }
 
 interface AddMeterReaderModalProps {
@@ -19,10 +19,10 @@ interface AddMeterReaderModalProps {
   onClose: () => void;
   onSave: (reader: MeterReader) => void;
   zoneOptions?: Array<{ value: string; label: string }>; // Zone options from API
-  wardOptions?: Array<{ value: string; label: string }>; // Ward options from API
+  areaOptions?: Array<{ value: string; label: string }>; // Area options from API
 }
 
-export function AddMeterReaderModal({ open, onClose, onSave, zoneOptions = [], wardOptions = [] }: AddMeterReaderModalProps) {
+export function AddMeterReaderModal({ open, onClose, onSave, zoneOptions = [], areaOptions = [] }: AddMeterReaderModalProps) {
   const [form, setForm] = useState<MeterReader>({
     name: "",
     phone: "",
@@ -30,7 +30,7 @@ export function AddMeterReaderModal({ open, onClose, onSave, zoneOptions = [], w
     password: "",
     confirm: "",
     zone: "",
-    ward: "",
+    area: "",
   });
 
   const handleChange = (field: keyof MeterReader, value: string) => {
@@ -55,7 +55,7 @@ export function AddMeterReaderModal({ open, onClose, onSave, zoneOptions = [], w
           <Input placeholder="Phone Number" value={form.phone} onChange={e => handleChange("phone", e.target.value)} />
           <div className="flex gap-2">
             <Dropdown options={zoneOptions} value={form.zone} onChange={v => handleChange("zone", v)} placeholder="Select zone" className="w-1/2" />
-            <Dropdown options={wardOptions} value={form.ward} onChange={v => handleChange("ward", v)} placeholder="Select ward" className="w-1/2" />
+            <Dropdown options={areaOptions} value={form.area} onChange={v => handleChange("area", v)} placeholder="Select area" className="w-1/2" />
           </div>
           <Input placeholder="Email Address" value={form.email} onChange={e => handleChange("email", e.target.value)} />
           <Input type="password" placeholder="Password" value={form.password} onChange={e => handleChange("password", e.target.value)} />

@@ -296,84 +296,84 @@ export function TariffConfiguration() {
                   />
                 ) : (
                   <div className="bg-white rounded-xl border border-gray-200 overflow-hidden w-full">
-                    <div className="overflow-x-auto w-full">
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="border-gray-200 bg-gray-50">
-                            <TableHead className="text-sm font-semibold text-gray-700 text-center whitespace-nowrap">Settings ID</TableHead>
-                            <TableHead className="text-sm font-semibold text-gray-700 text-center whitespace-nowrap">Categories</TableHead>
-                            <TableHead className="text-sm font-semibold text-gray-700 text-center whitespace-nowrap">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {sortedSettings.map((setting) => (
-                            <TableRow 
-                              key={setting.id} 
-                              className="border-gray-100 cursor-pointer hover:bg-gray-50"
-                              onClick={() => navigate(`/tariff-admin/config/${setting.id}`)}
-                            >
-                              <TableCell className="text-sm font-medium text-gray-900 text-center whitespace-nowrap">
-                                {setting.id}
-                              </TableCell>
-                              <TableCell className="text-sm text-gray-600 text-center whitespace-nowrap">
-                                {categoryCounts[setting.id] || 0}
-                              </TableCell>
-                              <TableCell className="text-center align-middle">
-                                <div className="flex items-center justify-center gap-2">
-                                  {setting.isActive && (
-                                    <span className="text-xs text-gray-700 bg-gray-100 rounded-md px-2.5 py-1 whitespace-nowrap inline-flex items-center justify-center h-8 font-medium w-[135px]">
-                                      Active
-                                    </span>
-                                  )}
-                                  {!setting.isActive && (
+                    <div className="overflow-x-auto -mx-4 md:mx-0 w-full">
+                      <div className="inline-block min-w-full align-middle px-4 md:px-0">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="border-gray-200 bg-gray-50">
+                              <TableHead className="text-sm font-semibold text-gray-700 text-center whitespace-nowrap min-w-[100px]">Settings ID</TableHead>
+                              <TableHead className="text-sm font-semibold text-gray-700 text-center whitespace-nowrap min-w-[100px]">Categories</TableHead>
+                              <TableHead className="text-sm font-semibold text-gray-700 text-right whitespace-nowrap min-w-[140px]">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {sortedSettings.map((setting) => (
+                              <TableRow 
+                                key={setting.id} 
+                                className="border-gray-100 cursor-pointer hover:bg-gray-50"
+                                onClick={() => navigate(`/tariff-admin/config/${setting.id}`)}
+                              >
+                                <TableCell className="text-sm font-medium text-gray-900 text-center whitespace-nowrap">
+                                  {setting.id}
+                                </TableCell>
+                                <TableCell className="text-sm text-gray-600 text-center whitespace-nowrap">
+                                  {categoryCounts[setting.id] || 0}
+                                </TableCell>
+                                <TableCell className="text-right align-middle">
+                                  <div className="flex items-center justify-end gap-1 md:gap-2 flex-wrap">
+                                    {setting.isActive && (
+                                      <span className="text-xs text-gray-700 bg-gray-100 rounded-md px-2.5 py-1 whitespace-nowrap inline-flex items-center justify-center h-8 font-medium min-w-[80px] md:w-[135px]">
+                                        Active
+                                      </span>
+                                    )}
+                                    {!setting.isActive && (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleSetActive(setting.id);
+                                        }}
+                                        disabled={setSettingsActiveMutation.isPending || !isAreaBased}
+                                        className="border-green-300 text-green-700 rounded-lg h-8 px-2 md:px-3 bg-white hover:bg-green-50 inline-flex items-center justify-center gap-1 disabled:opacity-50 whitespace-nowrap min-w-[32px] md:w-[135px]"
+                                        title="Set as Active"
+                                      >
+                                        <CheckCircle size={14} />
+                                        <span className="hidden sm:inline">Set as Active</span>
+                                      </Button>
+                                    )}
                                     <Button
                                       variant="outline"
                                       size="sm"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        handleSetActive(setting.id);
+                                        navigate(`/tariff-admin/config/${setting.id}`);
                                       }}
-                                      disabled={setSettingsActiveMutation.isPending || !isAreaBased}
-                                      className="border-green-300 text-green-700 rounded-lg h-8 px-3 bg-white hover:bg-green-50 inline-flex items-center justify-center gap-1.5 disabled:opacity-50 whitespace-nowrap w-[135px]"
-                                      title="Set as Active"
+                                      className="border-gray-300 text-gray-700 rounded-lg h-8 w-8 p-0 bg-white hover:bg-gray-50 inline-flex items-center justify-center"
+                                      title="View/Edit"
                                     >
-                                      <CheckCircle size={14} />
-                                      Set as Active
+                                      <Edit size={14} />
                                     </Button>
-                                  )}
-                                  {/* Edit button */}
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      navigate(`/tariff-admin/config/${setting.id}`);
-                                    }}
-                                    className="border-gray-300 text-gray-700 rounded-lg h-8 w-8 p-0 bg-white hover:bg-gray-50 inline-flex items-center justify-center"
-                                    title="View/Edit"
-                                  >
-                                    <Edit size={14} />
-                                  </Button>
-                                  {/* Delete button */}
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDelete(setting);
-                                    }}
-                                    disabled={!isAreaBased}
-                                    className="border-red-300 text-red-700 rounded-lg h-8 w-8 p-0 bg-white hover:bg-red-50 inline-flex items-center justify-center disabled:opacity-50"
-                                    title="Delete"
-                                  >
-                                    <Trash2 size={14} />
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDelete(setting);
+                                      }}
+                                      disabled={!isAreaBased}
+                                      className="border-red-300 text-red-700 rounded-lg h-8 w-8 p-0 bg-white hover:bg-red-50 inline-flex items-center justify-center disabled:opacity-50"
+                                      title="Delete"
+                                    >
+                                      <Trash2 size={14} />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
                     </div>
                   </div>
                 )}

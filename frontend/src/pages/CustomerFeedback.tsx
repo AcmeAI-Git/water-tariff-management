@@ -71,15 +71,16 @@ export default function CustomerFeedback() {
   };
 
   return (
-    <div>
-      {/* Header */}
-      <div className="mb-6 md:mb-8">
-        <h1 className="text-xl md:text-2xl font-semibold text-gray-900 mb-1">Feedback</h1>
-        <p className="text-sm text-gray-500">Share your feedback or report an issue</p>
-      </div>
+    <div className="min-h-screen bg-app">
+      <div className="px-4 md:px-8 py-4 md:py-6">
+        {/* Header - centered on mobile to avoid hamburger overlap */}
+        <div className="mb-6 md:mb-8 text-center md:text-left">
+          <h1 className="text-xl md:text-2xl font-semibold text-gray-900 mb-1">Feedback</h1>
+          <p className="text-sm text-gray-500">Share your feedback or report an issue</p>
+        </div>
 
-      {/* Feedback Form */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6">
+        {/* Feedback Form - Admin-style card */}
+        <div className="bg-white border-2 border-gray-200 rounded-xl p-6 md:p-8 hover:border-gray-300 hover:shadow-md transition-all duration-300">
         <div className="flex items-center gap-3 mb-6">
           <div className="p-3 bg-primary/10 rounded-lg">
             <MessageSquare className="text-primary" size={24} />
@@ -137,6 +138,7 @@ export default function CustomerFeedback() {
             <Send size={18} className="mr-2" />
             Send Feedback
           </Button>
+        </div>
         </div>
       </div>
     </div>

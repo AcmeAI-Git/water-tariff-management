@@ -9,9 +9,10 @@ import {
   TableHeader,
   TableRow,
 } from '../components/ui/table';
-import { Droplet, ArrowRight, TrendingUp, TrendingDown } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { api } from '../services/api';
+import { MetricCard } from '../components/common/MetricCard';
 import { useApiQuery } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { format } from 'date-fns';
@@ -127,7 +128,6 @@ export default function CustomerDashboard() {
 
 
   const recentConsumptions = consumptions.slice(-5).reverse(); // Last 5, newest first
-  const recentBills = bills.slice(0, 5);
 
   if (!userAccount) {
     navigate('/login', { replace: true });
@@ -143,60 +143,51 @@ export default function CustomerDashboard() {
   }
 
   return (
-    <div>
-      <div className="mb-6 md:mb-8">
-        <h1 className="text-xl md:text-2xl font-semibold text-gray-900 mb-1">
-          Welcome, {customer?.fullName || customer?.name || 'Customer'}
-        </h1>
-        <p className="text-sm text-gray-500">
-          Overview of your water usage and bills
-        </p>
-      </div>
-
-      {/* Analytics Stats Cards */}
-      {monthlyData.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8">
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200 p-5 md:p-6">
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex-1">
-                <p className="text-xs font-medium text-blue-700 uppercase tracking-wide mb-1">Average</p>
-                <p className="text-2xl md:text-3xl font-bold text-blue-900">{analyticsStats.average}</p>
-                <p className="text-sm text-blue-600 mt-1">m³/month</p>
-              </div>
-              <div className="p-2 bg-blue-200/50 rounded-lg">
-                <Droplet className="text-blue-700" size={20} />
-              </div>
-            </div>
-          </div>
-          <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-xl border border-red-200 p-5 md:p-6">
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex-1">
-                <p className="text-xs font-medium text-red-700 uppercase tracking-wide mb-1">Peak</p>
-                <p className="text-2xl md:text-3xl font-bold text-red-900">{analyticsStats.highest.value}</p>
-                <p className="text-sm text-red-600 mt-1">{analyticsStats.highest.month}</p>
-              </div>
-              <div className="p-2 bg-red-200/50 rounded-lg">
-                <TrendingUp className="text-red-700" size={20} />
-              </div>
-            </div>
-          </div>
-          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200 p-5 md:p-6">
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex-1">
-                <p className="text-xs font-medium text-green-700 uppercase tracking-wide mb-1">Lowest</p>
-                <p className="text-2xl md:text-3xl font-bold text-green-900">{analyticsStats.lowest.value}</p>
-                <p className="text-sm text-green-600 mt-1">{analyticsStats.lowest.month}</p>
-              </div>
-              <div className="p-2 bg-green-200/50 rounded-lg">
-                <TrendingDown className="text-green-700" size={20} />
-              </div>
-            </div>
-          </div>
+    <div className="min-h-screen bg-app">
+      <div className="px-4 md:px-8 py-4 md:py-6">
+        {/* Header - centered on mobile to avoid hamburger overlap */}
+        <div className="mb-6 md:mb-8 text-center md:text-left">
+          <h1 className="text-xl md:text-2xl font-semibold text-gray-900 mb-1">
+            Welcome, {customer?.fullName || customer?.name || 'Customer'}
+          </h1>
+          <p className="text-sm text-gray-500">
+            Overview of your water usage and bills
+          </p>
         </div>
-      )}
 
-      {/* Recent Usage */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 mb-6">
+        {/* Analytics Stats - all MetricCard for consistent styling */}
+        {monthlyData.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <MetricCard
+              label="Average consumption"
+              value={
+                <span className="flex items-baseline justify-center gap-2">
+                  <span>{analyticsStats.average}</span>
+                  <span className="text-xl text-gray-600 font-medium">m³</span>
+                </span>
+              }
+              subtitle="Per month"
+              variant="blue"
+            />
+            <MetricCard
+              label="Peak"
+              value={analyticsStats.highest.value}
+              subtitle={analyticsStats.highest.month}
+              variant="green"
+              animationDelay={0.05}
+            />
+            <MetricCard
+              label="Lowest"
+              value={analyticsStats.lowest.value}
+              subtitle={analyticsStats.lowest.month}
+              variant="green"
+              animationDelay={0.1}
+            />
+          </div>
+        )}
+
+        {/* Recent Usage - Admin-style card */}
+        <div className="bg-white border-2 border-gray-200 rounded-xl p-6 md:p-8 hover:border-gray-300 hover:shadow-md transition-all duration-300 mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
           <h2 className="text-base md:text-lg font-semibold text-gray-900">
             Recent usage
@@ -246,70 +237,13 @@ export default function CustomerDashboard() {
         )}
       </div>
 
-      {/* Recent Bills */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-          <h2 className="text-base md:text-lg font-semibold text-gray-900">
-            Recent bills
-          </h2>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/customer/billing')}
-            className="text-primary hover:text-primary/80"
-          >
-            View all <ArrowRight size={16} className="ml-1" />
-          </Button>
-        </div>
-        {recentBills.length > 0 ? (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-xs md:text-sm">Month</TableHead>
-                  <TableHead className="text-xs md:text-sm">Amount</TableHead>
-                  <TableHead className="text-xs md:text-sm">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {recentBills.map((bill) => (
-                  <TableRow key={bill.id}>
-                    <TableCell className="text-xs md:text-sm">
-                      {bill.billMonth ? format(new Date(bill.billMonth), 'MMM yyyy') : '—'}
-                    </TableCell>
-                    <TableCell className="text-xs md:text-sm font-medium">
-                      ৳{bill.totalBill != null ? Number(bill.totalBill).toFixed(2) : '0.00'}
-                    </TableCell>
-                    <TableCell>
-                      <span
-                        className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-                          bill.status === 'Paid'
-                            ? 'bg-green-100 text-green-800'
-                            : bill.status === 'Overdue'
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-amber-100 text-amber-800'
-                        }`}
-                      >
-                        {bill.status || 'Unpaid'}
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        ) : (
-          <p className="text-gray-500 text-center py-8 text-sm">No bills yet</p>
-        )}
-      </div>
-
-      {/* Consumption Trends Chart */}
-      {monthlyData.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 mt-6">
-          <h2 className="text-base md:text-lg font-semibold text-gray-900 mb-4">
-            Consumption Trends (Last 12 Months)
-          </h2>
-          <ResponsiveContainer width="100%" height={300}>
+        {/* Consumption Trends Chart - Admin-style card */}
+        {monthlyData.length > 0 && (
+          <div className="bg-white border-2 border-gray-200 rounded-xl p-6 md:p-8 hover:border-gray-300 hover:shadow-md transition-all duration-300 mt-6">
+            <h2 className="text-base md:text-lg font-semibold text-gray-900 mb-4">
+              Consumption Trends (Last 12 Months)
+            </h2>
+            <ResponsiveContainer width="100%" height={300}>
             <LineChart data={monthlyData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
               <XAxis 
@@ -338,9 +272,10 @@ export default function CustomerDashboard() {
                 dot={{ fill: '#4C6EF5', r: 4 }}
               />
             </LineChart>
-          </ResponsiveContainer>
+            </ResponsiveContainer>
+          </div>
+        )}
         </div>
-      )}
     </div>
   );
 }

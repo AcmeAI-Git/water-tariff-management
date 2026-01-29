@@ -432,92 +432,94 @@ export function ThresholdSlabsSection({ disabled = false }: ThresholdSlabsSectio
       </div>
 
       <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Order</TableHead>
-              <TableHead>Lower Limit (L)</TableHead>
-              <TableHead>Upper Limit (L)</TableHead>
-              <TableHead>Rate (per 1000L)</TableHead>
-              <TableHead className="text-sm font-semibold text-gray-700 text-center whitespace-nowrap">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {slabsLoading ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-gray-500">
-                  Loading...
-                </TableCell>
-              </TableRow>
-            ) : filteredSlabs.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="py-10">
-                  <div className="flex flex-col items-center justify-center gap-2 text-amber-700">
-                    <AlertTriangle className="h-5 w-5" />
-                    <div className="text-sm font-medium">No threshold slabs found</div>
-                    <div className="text-xs text-amber-700/80">
-                      Create slabs to enable threshold-based billing.
-                    </div>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredSlabs.map((slab) => (
-                <TableRow key={slab.id}>
-                  <TableCell className="font-medium">
-                    {slab.sortOrder}
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    {slab.lowerLimit.toLocaleString()}
-                  </TableCell>
-                  <TableCell>
-                    {slab.upperLimit && slab.upperLimit < UNLIMITED_UPPER_LIMIT
-                      ? slab.upperLimit.toLocaleString()
-                      : '∞'}
-                  </TableCell>
-                  <TableCell>৳{slab.rate.toLocaleString()}</TableCell>
-                  <TableCell className="text-center align-middle">
-                    <div className="flex items-center justify-center gap-2">
-                      {slab.isActive && (
-                        <span className="text-xs text-gray-700 bg-gray-100 rounded-md px-2.5 py-1 whitespace-nowrap inline-flex items-center justify-center h-8 font-medium w-[135px]">
-                          Active
-                        </span>
-                      )}
-                      {!slab.isActive && (
-                        <span className="text-xs text-gray-500 bg-gray-50 rounded-md px-2.5 py-1 whitespace-nowrap inline-flex items-center justify-center h-8 font-medium w-[135px] border border-gray-200">
-                          Inactive
-                        </span>
-                      )}
-                      {/* Edit button */}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(slab)}
-                        className="border-gray-300 text-gray-700 rounded-lg h-8 w-8 p-0 bg-white hover:bg-gray-50 inline-flex items-center justify-center"
-                        title="Edit"
-                      >
-                        <Edit size={14} />
-                      </Button>
-                      {/* Delete button */}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSlabToDelete(slab);
-                          setDeleteDialogOpen(true);
-                        }}
-                        className="border-red-300 text-red-700 rounded-lg h-8 w-8 p-0 bg-white hover:bg-red-50 inline-flex items-center justify-center"
-                        title="Delete"
-                      >
-                        <Trash2 size={14} />
-                      </Button>
-                    </div>
-                  </TableCell>
+        <div className="overflow-x-auto -mx-4 md:mx-0">
+          <div className="inline-block min-w-full align-middle px-4 md:px-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-[70px] whitespace-nowrap">Order</TableHead>
+                  <TableHead className="min-w-[110px] whitespace-nowrap">Lower Limit (L)</TableHead>
+                  <TableHead className="min-w-[110px] whitespace-nowrap">Upper Limit (L)</TableHead>
+                  <TableHead className="min-w-[100px] whitespace-nowrap">Rate (per 1000L)</TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-700 text-center whitespace-nowrap min-w-[140px]">Actions</TableHead>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              </TableHeader>
+              <TableBody>
+                {slabsLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                      Loading...
+                    </TableCell>
+                  </TableRow>
+                ) : filteredSlabs.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="py-10">
+                      <div className="flex flex-col items-center justify-center gap-2 text-amber-700">
+                        <AlertTriangle className="h-5 w-5" />
+                        <div className="text-sm font-medium">No threshold slabs found</div>
+                        <div className="text-xs text-amber-700/80">
+                          Create slabs to enable threshold-based billing.
+                        </div>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredSlabs.map((slab) => (
+                    <TableRow key={slab.id}>
+                      <TableCell className="font-medium whitespace-nowrap">
+                        {slab.sortOrder}
+                      </TableCell>
+                      <TableCell className="font-medium whitespace-nowrap">
+                        {slab.lowerLimit.toLocaleString()}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {slab.upperLimit && slab.upperLimit < UNLIMITED_UPPER_LIMIT
+                          ? slab.upperLimit.toLocaleString()
+                          : '∞'}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">৳{slab.rate.toLocaleString()}</TableCell>
+                      <TableCell className="text-center align-middle">
+                        <div className="flex items-center justify-center gap-1 md:gap-2 flex-wrap">
+                          {slab.isActive && (
+                            <span className="text-xs text-gray-700 bg-gray-100 rounded-md px-2.5 py-1 whitespace-nowrap inline-flex items-center justify-center h-8 font-medium min-w-[70px] md:w-[135px]">
+                              Active
+                            </span>
+                          )}
+                          {!slab.isActive && (
+                            <span className="text-xs text-gray-500 bg-gray-50 rounded-md px-2.5 py-1 whitespace-nowrap inline-flex items-center justify-center h-8 font-medium min-w-[70px] md:w-[135px] border border-gray-200">
+                              Inactive
+                            </span>
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEdit(slab)}
+                            className="border-gray-300 text-gray-700 rounded-lg h-8 w-8 p-0 bg-white hover:bg-gray-50 inline-flex items-center justify-center"
+                            title="Edit"
+                          >
+                            <Edit size={14} />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSlabToDelete(slab);
+                              setDeleteDialogOpen(true);
+                            }}
+                            className="border-red-300 text-red-700 rounded-lg h-8 w-8 p-0 bg-white hover:bg-red-50 inline-flex items-center justify-center"
+                            title="Delete"
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
       </div>
 
       {/* Create Modal */}

@@ -10,8 +10,6 @@ interface Agent {
   email: string;
   phone?: string;
   role: string;
-  zone?: string;
-  ward?: string;
 }
 
 interface EditAgentModalProps {
@@ -27,8 +25,6 @@ export function EditAgentModal({ open, onClose, onSave, agent }: EditAgentModalP
     email: "",
     phone: "",
     role: "TariffAdmin",
-    zone: "",
-    ward: "",
   });
 
   const handleChange = (field: keyof Agent, value: string) => {

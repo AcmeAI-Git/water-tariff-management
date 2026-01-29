@@ -219,28 +219,28 @@ export function MeterAdminSubmittedReadings() {
     <div className="min-h-screen bg-app">
       <div className="px-4 md:px-8 py-4 md:py-6">
         {/* Header with inline stats - centered on mobile to avoid hamburger overlap */}
-        <div className="mb-8">
+        <div className="mb-6 md:mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 items-center text-center md:text-left">
             <div>
-              <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">Reading History</h1>
-              <p className="text-sm text-gray-500">View history of all meter readings you have created</p>
+              <h1 className="text-xl md:text-[1.75rem] font-semibold text-gray-900 mb-1">Reading History</h1>
+              <p className="text-xs md:text-sm text-gray-500">View history of all meter readings you have created</p>
             </div>
-            <div className="flex items-center gap-6 text-sm">
+            <div className="flex items-center gap-4 md:gap-6 text-sm flex-wrap justify-center md:justify-start">
               <div className="flex items-center gap-2">
                 <span className="text-gray-600">Total:</span>
                 <span className="font-semibold text-gray-900">{filteredReadings.length}</span>
               </div>
-              <span className="text-gray-300">|</span>
+              <span className="text-gray-300 hidden sm:inline">|</span>
               <div className="flex items-center gap-2">
                 <span className="text-gray-600">Approved:</span>
                 <span className="font-semibold text-green-600">{filteredReadings.filter(r => r.status === 'Approved').length}</span>
               </div>
-              <span className="text-gray-300">|</span>
+              <span className="text-gray-300 hidden sm:inline">|</span>
               <div className="flex items-center gap-2">
                 <span className="text-gray-600">Pending:</span>
                 <span className="font-semibold text-yellow-600">{filteredReadings.filter(r => r.status === 'Pending').length}</span>
               </div>
-              <span className="text-gray-300">|</span>
+              <span className="text-gray-300 hidden sm:inline">|</span>
               <div className="flex items-center gap-2">
                 <span className="text-gray-600">Rejected:</span>
                 <span className="font-semibold text-red-600">{filteredReadings.filter(r => r.status === 'Rejected').length}</span>
@@ -250,21 +250,21 @@ export function MeterAdminSubmittedReadings() {
         </div>
 
         {/* Filters */}
-        <div className="mb-6 flex items-center gap-3">
+        <div className="mb-6 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3">
           {/* Search Bar */}
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <div className="relative flex-1 min-w-0 w-full sm:max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 shrink-0" size={18} />
             <Input
               type="text"
               placeholder="Search by name, meter no, reading ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-white border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
+              className="pl-10 w-full min-w-0 bg-white border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
             />
           </div>
 
           {/* Status Filter */}
-          <div className="w-48">
+          <div className="w-full sm:w-48 min-w-0">
             <Dropdown
               options={[
                 { value: 'all', label: 'All Status' },
@@ -275,13 +275,13 @@ export function MeterAdminSubmittedReadings() {
               value={statusFilter}
               onChange={setStatusFilter}
               placeholder="Filter by Status"
-              className="bg-white border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
+              className="bg-white border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500 w-full"
             />
           </div>
 
           {/* Month Filter */}
           {uniqueMonths.length > 0 && (
-            <div className="w-48">
+            <div className="w-full sm:w-48 min-w-0">
               <Dropdown
                 options={[
                   { value: 'all', label: 'All Months' },
@@ -290,7 +290,7 @@ export function MeterAdminSubmittedReadings() {
                 value={monthFilter}
                 onChange={setMonthFilter}
                 placeholder="Filter by Month"
-                className="bg-white border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
+                className="bg-white border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500 w-full"
               />
             </div>
           )}
@@ -300,7 +300,7 @@ export function MeterAdminSubmittedReadings() {
             <Button
               variant="outline"
               onClick={clearFilters}
-              className="h-11 px-4 border-gray-300 hover:bg-gray-50"
+              className="h-11 px-4 border-gray-300 hover:bg-gray-50 w-full sm:w-auto shrink-0"
             >
               <X size={16} className="mr-2" />
               Clear Filters
@@ -311,40 +311,44 @@ export function MeterAdminSubmittedReadings() {
         {/* Table */}
         <div>
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-gray-200 bg-gray-50">
-                  <TableHead className="text-sm font-semibold text-gray-700">Reading ID</TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700">Household Name</TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700">Meter No</TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700">Reading (m³)</TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700">Bill Month</TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700">Submitted</TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredReadings.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center text-gray-500 py-8">
-                      No readings found. Add readings from the Meter Data Entry page.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredReadings.map((reading) => (
-                    <TableRow key={reading.id} className="border-gray-100">
-                      <TableCell className="text-sm text-gray-600 font-mono">{reading.batchId}</TableCell>
-                      <TableCell className="text-sm text-gray-900 font-medium">{reading.householdName}</TableCell>
-                      <TableCell className="text-sm text-gray-600 font-mono">{reading.meterNo}</TableCell>
-                      <TableCell className="text-sm text-gray-600">{reading.reading} m³</TableCell>
-                      <TableCell className="text-sm text-gray-600">{reading.month}</TableCell>
-                      <TableCell className="text-sm text-gray-600">{reading.submitted}</TableCell>
-                      <TableCell>{getStatusBadge(reading.status)}</TableCell>
+            <div className="overflow-x-auto -mx-4 md:mx-0">
+              <div className="inline-block min-w-full align-middle px-4 md:px-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-gray-200 bg-gray-50">
+                      <TableHead className="text-sm font-semibold text-gray-700 min-w-[100px] hidden sm:table-cell">Reading ID</TableHead>
+                      <TableHead className="text-sm font-semibold text-gray-700 min-w-[120px]">Household Name</TableHead>
+                      <TableHead className="text-sm font-semibold text-gray-700 min-w-[90px] hidden sm:table-cell">Meter No</TableHead>
+                      <TableHead className="text-sm font-semibold text-gray-700 min-w-[90px]">Reading (m³)</TableHead>
+                      <TableHead className="text-sm font-semibold text-gray-700 min-w-[100px]">Bill Month</TableHead>
+                      <TableHead className="text-sm font-semibold text-gray-700 min-w-[120px] hidden md:table-cell">Submitted</TableHead>
+                      <TableHead className="text-sm font-semibold text-gray-700 min-w-[90px]">Status</TableHead>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredReadings.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center text-gray-500 py-8">
+                          No readings found. Add readings from the Meter Data Entry page.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredReadings.map((reading) => (
+                        <TableRow key={reading.id} className="border-gray-100">
+                          <TableCell className="text-sm text-gray-600 font-mono hidden sm:table-cell">{reading.batchId}</TableCell>
+                          <TableCell className="text-sm text-gray-900 font-medium">{reading.householdName}</TableCell>
+                          <TableCell className="text-sm text-gray-600 font-mono hidden sm:table-cell whitespace-nowrap">{reading.meterNo}</TableCell>
+                          <TableCell className="text-sm text-gray-600 whitespace-nowrap">{reading.reading} m³</TableCell>
+                          <TableCell className="text-sm text-gray-600">{reading.month}</TableCell>
+                          <TableCell className="text-sm text-gray-600 hidden md:table-cell">{reading.submitted}</TableCell>
+                          <TableCell>{getStatusBadge(reading.status)}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
           </div>
         </div>
       </div>

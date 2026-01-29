@@ -444,7 +444,7 @@ export function LocationManagement() {
         if (error?.response?.status === 404) {
           alert('Zone not found. It may have already been deleted.');
         } else if (error?.response?.status === 409) {
-          alert('Cannot delete zone. It may be in use by areas, wards, or other entities.');
+          alert('Cannot delete zone. It may be in use by areas or other entities.');
         }
       }
     }
@@ -649,8 +649,8 @@ export function LocationManagement() {
       <div className="px-4 md:px-8 py-4 md:py-6">
         {/* Header - centered on mobile to avoid hamburger overlap */}
         <div className="mb-6 text-center md:text-left">
-          <h1 className="text-2xl font-bold text-gray-900">Location Management</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage WASAs, zones, and areas</p>
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900">Location Management</h1>
+          <p className="text-xs md:text-sm text-gray-500 mt-1">Manage WASAs, zones, and areas</p>
         </div>
 
         {/* Tabs */}
@@ -692,24 +692,24 @@ export function LocationManagement() {
         {/* WASAs Tab */}
         {activeTab === 'wasas' && (
           <>
-            <div className="mb-6 flex items-center justify-between gap-4">
+            <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <Button 
                 onClick={() => setIsWasaCreateModalOpen(true)}
-                className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-11 px-6 flex items-center gap-2"
+                className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-11 px-4 sm:px-6 flex items-center justify-center gap-2 w-full sm:w-auto"
               >
                 <Plus size={18} />
                 Add New WASA
               </Button>
 
-              <div className="flex items-center gap-3 flex-1 justify-end">
-                <div className="relative w-64">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <div className="flex items-stretch gap-3 w-full sm:w-auto sm:min-w-0 sm:max-w-[280px]">
+                <div className="relative flex-1 min-w-0">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 shrink-0" size={18} />
                   <Input
                     type="text"
                     placeholder="Search by name, code, or ID..."
                     value={wasaSearchQuery}
                     onChange={(e) => setWasaSearchQuery(e.target.value)}
-                    className="pl-10 bg-white border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
+                    className="pl-10 w-full min-w-0 bg-white border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                   />
                 </div>
               </div>
@@ -722,67 +722,71 @@ export function LocationManagement() {
               </div>
             ) : (
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-900">
+                <div className="px-4 md:px-6 py-4 border-b border-gray-200">
+                  <h3 className="text-base md:text-lg font-semibold text-gray-900">
                     All WASAs ({filteredWasas.length})
                   </h3>
                 </div>
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-gray-200 bg-gray-50">
-                      <TableHead className="text-sm font-semibold text-gray-700">ID</TableHead>
-                      <TableHead className="text-sm font-semibold text-gray-700">Name</TableHead>
-                      <TableHead className="text-sm font-semibold text-gray-700">Code</TableHead>
-                      <TableHead className="text-sm font-semibold text-gray-700">Address</TableHead>
-                      <TableHead className="text-sm font-semibold text-gray-700 text-center">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredWasas.map((wasa) => (
-                      <TableRow key={wasa.id} className="border-gray-100">
-                        <TableCell className="text-sm text-gray-600">{wasa.id}</TableCell>
-                        <TableCell className="text-sm font-medium text-gray-900">{wasa.name}</TableCell>
-                        <TableCell className="text-sm text-gray-600">{wasa.code}</TableCell>
-                        <TableCell className="text-sm text-gray-600">{wasa.address || '-'}</TableCell>
-                        <TableCell className="text-center">
-                          <div className="flex items-center justify-center gap-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => handleEditWasa(wasa)}
-                              className="border-gray-300 text-gray-700 rounded-lg h-8 w-8 p-0 bg-white hover:bg-gray-50 inline-flex items-center justify-center"
-                              title="Edit"
-                            >
-                              <Edit size={14} />
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => handleDeleteWasa(wasa)}
-                              className="border-red-300 text-red-700 rounded-lg h-8 w-8 p-0 bg-white hover:bg-red-50 inline-flex items-center justify-center"
-                              title="Delete"
-                            >
-                              <Trash2 size={14} />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <div className="overflow-x-auto -mx-4 md:mx-0">
+                  <div className="inline-block min-w-full align-middle px-4 md:px-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-gray-200 bg-gray-50">
+                          <TableHead className="text-sm font-semibold text-gray-700 min-w-[60px]">ID</TableHead>
+                          <TableHead className="text-sm font-semibold text-gray-700 min-w-[120px]">Name</TableHead>
+                          <TableHead className="text-sm font-semibold text-gray-700 min-w-[80px]">Code</TableHead>
+                          <TableHead className="text-sm font-semibold text-gray-700 min-w-[140px] hidden sm:table-cell">Address</TableHead>
+                          <TableHead className="text-sm font-semibold text-gray-700 text-center min-w-[100px]">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredWasas.map((wasa) => (
+                          <TableRow key={wasa.id} className="border-gray-100">
+                            <TableCell className="text-sm text-gray-600 whitespace-nowrap">{wasa.id}</TableCell>
+                            <TableCell className="text-sm font-medium text-gray-900">{wasa.name}</TableCell>
+                            <TableCell className="text-sm text-gray-600 whitespace-nowrap">{wasa.code}</TableCell>
+                            <TableCell className="text-sm text-gray-600 hidden sm:table-cell max-w-[200px] truncate" title={wasa.address || undefined}>{wasa.address || '-'}</TableCell>
+                            <TableCell className="text-center">
+                              <div className="flex items-center justify-center gap-1 md:gap-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleEditWasa(wasa)}
+                                  className="border-gray-300 text-gray-700 rounded-lg h-8 w-8 p-0 bg-white hover:bg-gray-50 inline-flex items-center justify-center"
+                                  title="Edit"
+                                >
+                                  <Edit size={14} />
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleDeleteWasa(wasa)}
+                                  className="border-red-300 text-red-700 rounded-lg h-8 w-8 p-0 bg-white hover:bg-red-50 inline-flex items-center justify-center"
+                                  title="Delete"
+                                >
+                                  <Trash2 size={14} />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
               </div>
             )}
 
             {/* Create WASA Modal */}
             <Dialog open={isWasaCreateModalOpen} onOpenChange={setIsWasaCreateModalOpen}>
-              <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle className="text-xl font-semibold text-gray-900">Add New WASA</DialogTitle>
+              <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-2xl max-h-[90vh] flex flex-col overflow-hidden p-4 sm:p-6">
+                <DialogHeader className="shrink-0">
+                  <DialogTitle className="text-lg sm:text-xl font-semibold text-gray-900">Add New WASA</DialogTitle>
                   <DialogDescription className="text-sm text-gray-600">
                     Create a new WASA
                   </DialogDescription>
                 </DialogHeader>
-                <div className="py-4 space-y-4">
+                <div className="overflow-y-auto overflow-x-hidden min-h-0 flex-1 py-4 space-y-4 pr-2">
                   <div className="space-y-2">
                     <Label htmlFor="create-wasa-name" className="text-sm font-medium text-gray-700">
                       Name <span className="text-red-500">*</span>
@@ -820,7 +824,7 @@ export function LocationManagement() {
                     />
                   </div>
                 </div>
-                <DialogFooter className="gap-2">
+                <DialogFooter className="shrink-0 gap-2 pt-2">
                   <Button
                     variant="outline"
                     onClick={() => {
@@ -829,14 +833,14 @@ export function LocationManagement() {
                       setCreateWasaCode('');
                       setCreateWasaAddress('');
                     }}
-                    className="border-gray-300 text-gray-700 rounded-lg h-10 px-6 bg-white hover:bg-gray-50"
+                    className="border-gray-300 text-gray-700 rounded-lg h-10 px-4 sm:px-6 bg-white hover:bg-gray-50 w-full sm:w-auto"
                   >
                     Cancel
                   </Button>
                   <Button
                     onClick={handleCreateWasa}
                     disabled={createWasaMutation.isPending}
-                    className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-10 px-6 disabled:opacity-50"
+                    className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-10 px-4 sm:px-6 disabled:opacity-50 w-full sm:w-auto"
                   >
                     {createWasaMutation.isPending ? 'Creating...' : 'Create'}
                   </Button>
@@ -846,14 +850,14 @@ export function LocationManagement() {
 
             {/* Edit WASA Modal */}
             <Dialog open={isWasaEditModalOpen} onOpenChange={setIsWasaEditModalOpen}>
-              <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle className="text-xl font-semibold text-gray-900">Edit WASA</DialogTitle>
+              <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-2xl max-h-[90vh] flex flex-col overflow-hidden p-4 sm:p-6">
+                <DialogHeader className="shrink-0">
+                  <DialogTitle className="text-lg sm:text-xl font-semibold text-gray-900">Edit WASA</DialogTitle>
                   <DialogDescription className="text-sm text-gray-600">
                     Update WASA details
                   </DialogDescription>
                 </DialogHeader>
-                <div className="py-4 space-y-4">
+                <div className="overflow-y-auto overflow-x-hidden min-h-0 flex-1 py-4 space-y-4 pr-1">
                   <div className="space-y-2">
                     <Label htmlFor="edit-wasa-name" className="text-sm font-medium text-gray-700">
                       Name <span className="text-red-500">*</span>
@@ -888,7 +892,7 @@ export function LocationManagement() {
                     />
                   </div>
                 </div>
-                <DialogFooter className="gap-2">
+                <DialogFooter className="shrink-0 gap-2 pt-2">
                   <Button
                     variant="outline"
                     onClick={() => {
@@ -898,14 +902,14 @@ export function LocationManagement() {
                       setEditWasaCode('');
                       setEditWasaAddress('');
                     }}
-                    className="border-gray-300 text-gray-700 rounded-lg h-10 px-6 bg-white hover:bg-gray-50"
+                    className="border-gray-300 text-gray-700 rounded-lg h-10 px-4 sm:px-6 bg-white hover:bg-gray-50 w-full sm:w-auto"
                   >
                     Cancel
                   </Button>
                   <Button
                     onClick={handleUpdateWasa}
                     disabled={updateWasaMutation.isPending}
-                    className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-10 px-6 disabled:opacity-50"
+                    className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-10 px-4 sm:px-6 disabled:opacity-50 w-full sm:w-auto"
                   >
                     {updateWasaMutation.isPending ? 'Updating...' : 'Update'}
                   </Button>
@@ -931,17 +935,17 @@ export function LocationManagement() {
         {/* Zones Tab */}
         {activeTab === 'zones' && (
           <>
-            <div className="mb-6 flex items-center justify-between gap-4">
+            <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <Button 
                 onClick={() => setIsZoneCreateModalOpen(true)}
-                className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-11 px-6 flex items-center gap-2"
+                className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-11 px-4 sm:px-6 flex items-center justify-center gap-2 w-full sm:w-auto"
               >
                 <Plus size={18} />
                 Add New Zone
               </Button>
 
-              <div className="flex items-center gap-3 flex-1 justify-end">
-                <div className="w-48">
+              <div className="flex flex-col sm:flex-row items-stretch gap-3 w-full sm:w-auto sm:min-w-0">
+                <div className="w-full sm:w-48 min-w-0">
                   <Select 
                     value={zoneFilterWasaId} 
                     onValueChange={(value) => {
@@ -961,14 +965,14 @@ export function LocationManagement() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="relative w-64">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <div className="relative w-full sm:w-64 min-w-0">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 shrink-0" size={18} />
                   <Input
                     type="text"
                     placeholder="Search by name, zone no, or ID..."
                     value={zoneSearchQuery}
                     onChange={(e) => setZoneSearchQuery(e.target.value)}
-                    className="pl-10 bg-white border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
+                    className="pl-10 w-full min-w-0 bg-white border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                   />
                 </div>
               </div>
@@ -981,72 +985,76 @@ export function LocationManagement() {
               </div>
             ) : (
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-900">
+                <div className="px-4 md:px-6 py-4 border-b border-gray-200">
+                  <h3 className="text-base md:text-lg font-semibold text-gray-900">
                     All Zones ({filteredZones.length})
                   </h3>
                 </div>
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-gray-200 bg-gray-50">
-                      <TableHead className="text-sm font-semibold text-gray-700">ID</TableHead>
-                      <TableHead className="text-sm font-semibold text-gray-700">Zone No</TableHead>
-                      <TableHead className="text-sm font-semibold text-gray-700">Name</TableHead>
-                      <TableHead className="text-sm font-semibold text-gray-700">City Name</TableHead>
-                      <TableHead className="text-sm font-semibold text-gray-700">WASA</TableHead>
-                      <TableHead className="text-sm font-semibold text-gray-700 text-center">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredZones.map((zone) => {
-                      const wasa = wasas.find(w => w.id === zone.wasaId);
-                      return (
-                        <TableRow key={zone.id} className="border-gray-100">
-                          <TableCell className="text-sm text-gray-600">{zone.id}</TableCell>
-                          <TableCell className="text-sm text-gray-600">{zone.zoneNo}</TableCell>
-                          <TableCell className="text-sm font-medium text-gray-900">{zone.name}</TableCell>
-                          <TableCell className="text-sm text-gray-600">{zone.cityName}</TableCell>
-                          <TableCell className="text-sm text-gray-600">{wasa?.name || '-'}</TableCell>
-                          <TableCell className="text-center">
-                            <div className="flex items-center justify-center gap-2">
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleEditZone(zone)}
-                                className="border-gray-300 text-gray-700 rounded-lg h-8 w-8 p-0 bg-white hover:bg-gray-50 inline-flex items-center justify-center"
-                                title="Edit"
-                              >
-                                <Edit size={14} />
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleDeleteZone(zone)}
-                                className="border-red-300 text-red-700 rounded-lg h-8 w-8 p-0 bg-white hover:bg-red-50 inline-flex items-center justify-center"
-                                title="Delete"
-                              >
-                                <Trash2 size={14} />
-                              </Button>
-                            </div>
-                          </TableCell>
+                <div className="overflow-x-auto -mx-4 md:mx-0">
+                  <div className="inline-block min-w-full align-middle px-4 md:px-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-gray-200 bg-gray-50">
+                          <TableHead className="text-sm font-semibold text-gray-700 min-w-[60px]">ID</TableHead>
+                          <TableHead className="text-sm font-semibold text-gray-700 min-w-[80px]">Zone No</TableHead>
+                          <TableHead className="text-sm font-semibold text-gray-700 min-w-[120px]">Name</TableHead>
+                          <TableHead className="text-sm font-semibold text-gray-700 min-w-[120px] hidden sm:table-cell">City Name</TableHead>
+                          <TableHead className="text-sm font-semibold text-gray-700 min-w-[100px]">WASA</TableHead>
+                          <TableHead className="text-sm font-semibold text-gray-700 text-center min-w-[100px]">Actions</TableHead>
                         </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredZones.map((zone) => {
+                          const wasa = wasas.find(w => w.id === zone.wasaId);
+                          return (
+                            <TableRow key={zone.id} className="border-gray-100">
+                              <TableCell className="text-sm text-gray-600 whitespace-nowrap">{zone.id}</TableCell>
+                              <TableCell className="text-sm text-gray-600 whitespace-nowrap">{zone.zoneNo}</TableCell>
+                              <TableCell className="text-sm font-medium text-gray-900">{zone.name}</TableCell>
+                              <TableCell className="text-sm text-gray-600 hidden sm:table-cell max-w-[150px] truncate" title={zone.cityName}>{zone.cityName}</TableCell>
+                              <TableCell className="text-sm text-gray-600 max-w-[120px] truncate" title={wasa?.name}>{wasa?.name || '-'}</TableCell>
+                              <TableCell className="text-center">
+                                <div className="flex items-center justify-center gap-1 md:gap-2">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => handleEditZone(zone)}
+                                    className="border-gray-300 text-gray-700 rounded-lg h-8 w-8 p-0 bg-white hover:bg-gray-50 inline-flex items-center justify-center"
+                                    title="Edit"
+                                  >
+                                    <Edit size={14} />
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => handleDeleteZone(zone)}
+                                    className="border-red-300 text-red-700 rounded-lg h-8 w-8 p-0 bg-white hover:bg-red-50 inline-flex items-center justify-center"
+                                    title="Delete"
+                                  >
+                                    <Trash2 size={14} />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
               </div>
             )}
 
             {/* Create Zone Modal */}
             <Dialog open={isZoneCreateModalOpen} onOpenChange={setIsZoneCreateModalOpen}>
-              <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle className="text-xl font-semibold text-gray-900">Add New Zone</DialogTitle>
+              <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-2xl max-h-[90vh] flex flex-col overflow-hidden p-4 sm:p-6">
+                <DialogHeader className="shrink-0">
+                  <DialogTitle className="text-lg sm:text-xl font-semibold text-gray-900">Add New Zone</DialogTitle>
                   <DialogDescription className="text-sm text-gray-600">
                     Create a new zone
                   </DialogDescription>
                 </DialogHeader>
-                <div className="py-4 space-y-4">
+                <div className="overflow-y-auto overflow-x-hidden min-h-0 flex-1 py-4 space-y-4 pr-2">
                   <div className="space-y-2">
                     <Label htmlFor="create-zone-no" className="text-sm font-medium text-gray-700">
                       Zone No <span className="text-red-500">*</span>
@@ -1121,7 +1129,7 @@ export function LocationManagement() {
                     </Select>
                   </div>
                 </div>
-                <DialogFooter className="gap-2">
+                <DialogFooter className="shrink-0 gap-2 pt-2">
                   <Button
                     variant="outline"
                     onClick={() => {
@@ -1131,14 +1139,14 @@ export function LocationManagement() {
                       setCreateZoneCityName('');
                       setCreateZoneWasaId('');
                     }}
-                    className="border-gray-300 text-gray-700 rounded-lg h-10 px-6 bg-white hover:bg-gray-50"
+                    className="border-gray-300 text-gray-700 rounded-lg h-10 px-4 sm:px-6 bg-white hover:bg-gray-50 w-full sm:w-auto"
                   >
                     Cancel
                   </Button>
                   <Button
                     onClick={handleCreateZone}
                     disabled={createZoneMutation.isPending}
-                    className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-10 px-6 disabled:opacity-50"
+                    className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-10 px-4 sm:px-6 disabled:opacity-50 w-full sm:w-auto"
                   >
                     {createZoneMutation.isPending ? 'Creating...' : 'Create'}
                   </Button>
@@ -1148,14 +1156,14 @@ export function LocationManagement() {
 
             {/* Edit Zone Modal */}
             <Dialog open={isZoneEditModalOpen} onOpenChange={setIsZoneEditModalOpen}>
-              <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle className="text-xl font-semibold text-gray-900">Edit Zone</DialogTitle>
+              <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-2xl max-h-[90vh] flex flex-col overflow-hidden p-4 sm:p-6">
+                <DialogHeader className="shrink-0">
+                  <DialogTitle className="text-lg sm:text-xl font-semibold text-gray-900">Edit Zone</DialogTitle>
                   <DialogDescription className="text-sm text-gray-600">
                     Update zone details
                   </DialogDescription>
                 </DialogHeader>
-                <div className="py-4 space-y-4">
+                <div className="overflow-y-auto overflow-x-hidden min-h-0 flex-1 py-4 space-y-4 pr-2">
                   <div className="space-y-2">
                     <Label htmlFor="edit-zone-no" className="text-sm font-medium text-gray-700">
                       Zone No <span className="text-red-500">*</span>
@@ -1221,7 +1229,7 @@ export function LocationManagement() {
                     </Select>
                   </div>
                 </div>
-                <DialogFooter className="gap-2">
+                <DialogFooter className="shrink-0 gap-2 pt-2">
                   <Button
                     variant="outline"
                     onClick={() => {
@@ -1232,14 +1240,14 @@ export function LocationManagement() {
                       setEditZoneCityName('');
                       setEditZoneWasaId('');
                     }}
-                    className="border-gray-300 text-gray-700 rounded-lg h-10 px-6 bg-white hover:bg-gray-50"
+                    className="border-gray-300 text-gray-700 rounded-lg h-10 px-4 sm:px-6 bg-white hover:bg-gray-50 w-full sm:w-auto"
                   >
                     Cancel
                   </Button>
                   <Button
                     onClick={handleUpdateZone}
                     disabled={updateZoneMutation.isPending}
-                    className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-10 px-6 disabled:opacity-50"
+                    className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-10 px-4 sm:px-6 disabled:opacity-50 w-full sm:w-auto"
                   >
                     {updateZoneMutation.isPending ? 'Updating...' : 'Update'}
                   </Button>
@@ -1265,17 +1273,17 @@ export function LocationManagement() {
         {/* Areas Tab */}
         {activeTab === 'areas' && (
           <>
-            <div className="mb-6 flex items-center justify-between gap-4">
+            <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <Button 
                 onClick={() => setIsAreaCreateModalOpen(true)}
-                className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-11 px-6 flex items-center gap-2"
+                className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-11 px-4 sm:px-6 flex items-center justify-center gap-2 w-full sm:w-auto"
               >
                 <Plus size={18} />
                 Add New Area
               </Button>
 
-              <div className="flex items-center gap-3 flex-1 justify-end">
-                <div className="w-48">
+              <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 w-full sm:w-auto sm:min-w-0">
+                <div className="w-full sm:w-48 min-w-0">
                   <Select 
                     value={areaFilterWasaId} 
                     onValueChange={(value) => {
@@ -1296,7 +1304,7 @@ export function LocationManagement() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="w-48">
+                <div className="w-full sm:w-48 min-w-0">
                   <Select 
                     value={areaFilterZoneId} 
                     onValueChange={setAreaFilterZoneId}
@@ -1357,9 +1365,9 @@ export function LocationManagement() {
                   </Select>
                 </div>
                 {uniqueGeoJsonTypes.length > 0 && (
-                  <div className="w-48">
+                  <div className="w-full sm:w-48 min-w-0">
                     <Select value={geoJsonTypeFilter} onValueChange={setGeoJsonTypeFilter}>
-                      <SelectTrigger className="w-full border-gray-300 rounded-lg h-11 bg-white">
+                      <SelectTrigger className="w-full border-gray-300 rounded-lg h-11 bg-white min-w-0">
                         <SelectValue placeholder="Filter by Type" />
                       </SelectTrigger>
                       <SelectContent className="bg-white border border-gray-200">
@@ -1371,14 +1379,14 @@ export function LocationManagement() {
                     </Select>
                   </div>
                 )}
-                <div className="relative w-64">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <div className="relative w-full sm:w-64 min-w-0">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 shrink-0" size={18} />
                   <Input
                     type="text"
                     placeholder="Search by name or ID..."
                     value={areaSearchQuery}
                     onChange={(e) => setAreaSearchQuery(e.target.value)}
-                    className="pl-10 bg-white border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
+                    className="pl-10 w-full min-w-0 bg-white border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                   />
                 </div>
               </div>
@@ -1391,76 +1399,80 @@ export function LocationManagement() {
               </div>
             ) : (
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-900">
+                <div className="px-4 md:px-6 py-4 border-b border-gray-200">
+                  <h3 className="text-base md:text-lg font-semibold text-gray-900">
                     All Areas ({filteredAreas.length})
                   </h3>
                 </div>
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-gray-200 bg-gray-50">
-                      <TableHead className="text-sm font-semibold text-gray-700">ID</TableHead>
-                      <TableHead className="text-sm font-semibold text-gray-700">Name</TableHead>
-                      <TableHead className="text-sm font-semibold text-gray-700">Zone</TableHead>
-                      <TableHead className="text-sm font-semibold text-gray-700">WASA</TableHead>
-                      <TableHead className="text-sm font-semibold text-gray-700">GeoJSON Type</TableHead>
-                      <TableHead className="text-sm font-semibold text-gray-700 text-center">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredAreas.map((area) => {
-                      // Use nested zone object from area if available, otherwise fallback to lookup
-                      const zone = area.zone || zones.find(z => z.id === area.zoneId);
-                      const wasa = zone?.wasaId 
-                        ? wasas.find(cc => cc.id === zone.wasaId) 
-                        : null;
-                      return (
-                        <TableRow key={area.id} className="border-gray-100">
-                          <TableCell className="text-sm text-gray-600">{area.id}</TableCell>
-                          <TableCell className="text-sm font-medium text-gray-900">{area.name}</TableCell>
-                          <TableCell className="text-sm text-gray-600">{zone?.name || '-'}</TableCell>
-                          <TableCell className="text-sm text-gray-600">{wasa?.name || '-'}</TableCell>
-                          <TableCell className="text-sm text-gray-600">{area.geojson.type}</TableCell>
-                          <TableCell className="text-center">
-                            <div className="flex items-center justify-center gap-2">
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleEditArea(area)}
-                                className="border-gray-300 text-gray-700 rounded-lg h-8 w-8 p-0 bg-white hover:bg-gray-50 inline-flex items-center justify-center"
-                                title="Edit"
-                              >
-                                <Edit size={14} />
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleDeleteArea(area)}
-                                className="border-red-300 text-red-700 rounded-lg h-8 w-8 p-0 bg-white hover:bg-red-50 inline-flex items-center justify-center"
-                                title="Delete"
-                              >
-                                <Trash2 size={14} />
-                              </Button>
-                            </div>
-                          </TableCell>
+                <div className="overflow-x-auto -mx-4 md:mx-0">
+                  <div className="inline-block min-w-full align-middle px-4 md:px-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-gray-200 bg-gray-50">
+                          <TableHead className="text-sm font-semibold text-gray-700 min-w-[60px]">ID</TableHead>
+                          <TableHead className="text-sm font-semibold text-gray-700 min-w-[120px]">Name</TableHead>
+                          <TableHead className="text-sm font-semibold text-gray-700 min-w-[100px]">Zone</TableHead>
+                          <TableHead className="text-sm font-semibold text-gray-700 min-w-[100px]">WASA</TableHead>
+                          <TableHead className="text-sm font-semibold text-gray-700 min-w-[100px] hidden sm:table-cell">GeoJSON Type</TableHead>
+                          <TableHead className="text-sm font-semibold text-gray-700 text-center min-w-[100px]">Actions</TableHead>
                         </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredAreas.map((area) => {
+                          // Use nested zone object from area if available, otherwise fallback to lookup
+                          const zone = area.zone || zones.find(z => z.id === area.zoneId);
+                          const wasa = zone?.wasaId 
+                            ? wasas.find(cc => cc.id === zone.wasaId) 
+                            : null;
+                          return (
+                            <TableRow key={area.id} className="border-gray-100">
+                              <TableCell className="text-sm text-gray-600 whitespace-nowrap">{area.id}</TableCell>
+                              <TableCell className="text-sm font-medium text-gray-900">{area.name}</TableCell>
+                              <TableCell className="text-sm text-gray-600 max-w-[120px] truncate" title={zone?.name}>{zone?.name || '-'}</TableCell>
+                              <TableCell className="text-sm text-gray-600 max-w-[120px] truncate" title={wasa?.name}>{wasa?.name || '-'}</TableCell>
+                              <TableCell className="text-sm text-gray-600 hidden sm:table-cell whitespace-nowrap">{area.geojson.type}</TableCell>
+                              <TableCell className="text-center">
+                                <div className="flex items-center justify-center gap-1 md:gap-2">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => handleEditArea(area)}
+                                    className="border-gray-300 text-gray-700 rounded-lg h-8 w-8 p-0 bg-white hover:bg-gray-50 inline-flex items-center justify-center"
+                                    title="Edit"
+                                  >
+                                    <Edit size={14} />
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => handleDeleteArea(area)}
+                                    className="border-red-300 text-red-700 rounded-lg h-8 w-8 p-0 bg-white hover:bg-red-50 inline-flex items-center justify-center"
+                                    title="Delete"
+                                  >
+                                    <Trash2 size={14} />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
               </div>
             )}
 
             {/* Create Area Modal */}
             <Dialog open={isAreaCreateModalOpen} onOpenChange={setIsAreaCreateModalOpen}>
-              <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-3xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle className="text-xl font-semibold text-gray-900">Add New Area</DialogTitle>
+              <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-3xl max-h-[90vh] flex flex-col overflow-hidden p-4 sm:p-6 w-[calc(100%-2rem)]">
+                <DialogHeader className="shrink-0">
+                  <DialogTitle className="text-lg sm:text-xl font-semibold text-gray-900">Add New Area</DialogTitle>
                   <DialogDescription className="text-sm text-gray-600">
                     Create a new area with geographic boundaries defined by GeoJSON
                   </DialogDescription>
                 </DialogHeader>
-                <div className="py-4 space-y-4">
+                <div className="overflow-y-auto overflow-x-hidden min-h-0 flex-1 py-4 space-y-4 pr-2">
                   <div className="space-y-2">
                     <Label htmlFor="create-area-name" className="text-sm font-medium text-gray-700">
                       Name <span className="text-red-500">*</span>
@@ -1525,7 +1537,7 @@ export function LocationManagement() {
                     </div>
                   </div>
                 </div>
-                <DialogFooter className="gap-2">
+                <DialogFooter className="shrink-0 gap-2 pt-2">
                   <Button
                     variant="outline"
                     onClick={() => {
@@ -1535,14 +1547,14 @@ export function LocationManagement() {
                       setCreateAreaWasaId('');
                       setCreateAreaGeoJson('');
                     }}
-                    className="border-gray-300 text-gray-700 rounded-lg h-10 px-6 bg-white hover:bg-gray-50"
+                    className="border-gray-300 text-gray-700 rounded-lg h-10 px-4 sm:px-6 bg-white hover:bg-gray-50 w-full sm:w-auto"
                   >
                     Cancel
                   </Button>
                   <Button
                     onClick={handleCreateArea}
                     disabled={createAreaMutation.isPending}
-                    className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-10 px-6 disabled:opacity-50"
+                    className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-10 px-4 sm:px-6 disabled:opacity-50 w-full sm:w-auto"
                   >
                     {createAreaMutation.isPending ? 'Creating...' : 'Create Area'}
                   </Button>
@@ -1552,14 +1564,14 @@ export function LocationManagement() {
 
             {/* Edit Area Modal */}
             <Dialog open={isAreaEditModalOpen} onOpenChange={setIsAreaEditModalOpen}>
-              <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-3xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle className="text-xl font-semibold text-gray-900">Edit Area</DialogTitle>
+              <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-3xl max-h-[90vh] flex flex-col overflow-hidden p-4 sm:p-6 w-[calc(100%-2rem)]">
+                <DialogHeader className="shrink-0">
+                  <DialogTitle className="text-lg sm:text-xl font-semibold text-gray-900">Edit Area</DialogTitle>
                   <DialogDescription className="text-sm text-gray-600">
                     Update the area details and geographic boundaries
                   </DialogDescription>
                 </DialogHeader>
-                <div className="py-4 space-y-4">
+                <div className="overflow-y-auto overflow-x-hidden min-h-0 flex-1 py-4 space-y-4 pr-2">
                   <div className="space-y-2">
                     <Label htmlFor="edit-area-name" className="text-sm font-medium text-gray-700">
                       Name <span className="text-red-500">*</span>
@@ -1616,7 +1628,7 @@ export function LocationManagement() {
                     />
                   </div>
                 </div>
-                <DialogFooter className="gap-2">
+                <DialogFooter className="shrink-0 gap-2 pt-2">
                   <Button
                     variant="outline"
                     onClick={() => {
@@ -1627,14 +1639,14 @@ export function LocationManagement() {
                       setEditAreaWasaId('');
                       setEditAreaGeoJson('');
                     }}
-                    className="border-gray-300 text-gray-700 rounded-lg h-10 px-6 bg-white hover:bg-gray-50"
+                    className="border-gray-300 text-gray-700 rounded-lg h-10 px-4 sm:px-6 bg-white hover:bg-gray-50 w-full sm:w-auto"
                   >
                     Cancel
                   </Button>
                   <Button
                     onClick={handleUpdateArea}
                     disabled={updateAreaMutation.isPending}
-                    className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-10 px-6 disabled:opacity-50"
+                    className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-10 px-4 sm:px-6 disabled:opacity-50 w-full sm:w-auto"
                   >
                     {updateAreaMutation.isPending ? 'Updating...' : 'Update Area'}
                   </Button>

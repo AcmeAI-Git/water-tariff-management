@@ -60,8 +60,8 @@ export default function CustomerPortalLayout() {
       {/* Mobile Sidebar */}
       {isMobile && (
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-          <SheetContent side="left" className="w-[280px] p-0">
-            <div className="h-full overflow-y-auto">
+          <SheetContent side="left" className="w-[280px] p-0 bg-white">
+            <div className="h-full overflow-y-auto bg-white">
               <CustomerPortalSidebar activePage={getActivePage()} onNavigate={(page) => {
                 handleNavigate(page);
                 setMobileMenuOpen(false);

@@ -25,7 +25,6 @@ interface Agent {
     password?: string;
     confirm?: string;
     zone?: string;
-    ward?: string;
     role: string;
 }
 

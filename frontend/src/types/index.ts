@@ -183,30 +183,6 @@ export interface UpdateZoneDto {
   wasaId?: number;
 }
 
-// Ward Types
-export interface Ward {
-  id: number;
-  wardNo: string;
-  name: string;
-  tariffMultiplier: number;
-  zoneId: number;
-  createdAt?: string;
-}
-
-export interface CreateWardDto {
-  name: string;
-  wardNo: string;
-  tariffMultiplier: number;
-  zoneId: number;
-}
-
-export interface UpdateWardDto {
-  name?: string;
-  wardNo?: string;
-  tariffMultiplier?: number;
-  zoneId?: number;
-}
-
 // Tariff Slab Types
 export interface TariffSlab {
   id: number;
