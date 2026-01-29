@@ -67,13 +67,13 @@ export function AddParameterModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-4xl max-h-[90vh] flex flex-col p-0 gap-0">
+        <DialogHeader className="flex-shrink-0 px-6 pt-6 pb-4">
           <DialogTitle className="text-xl font-semibold text-gray-900">
             Add Scoring Parameter
           </DialogTitle>
         </DialogHeader>
-        <div className="py-4 space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 space-y-4">
           {/* WASA, Zone, and Area Selection */}
           <HierarchicalLocationSelector
             wasas={wasas}
@@ -102,7 +102,7 @@ export function AddParameterModal({
             ruleSetId={ruleSetId}
           />
         </div>
-        <DialogFooter>
+        <DialogFooter className="flex-shrink-0 px-6 pb-6 pt-4 border-t border-gray-200">
           <Button
             onClick={handleClose}
             variant="outline"

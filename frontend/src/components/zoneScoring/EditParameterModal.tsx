@@ -44,8 +44,8 @@ export function EditParameterModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-4xl max-h-[90vh] flex flex-col p-0 gap-0">
+        <DialogHeader className="flex-shrink-0 px-6 pt-6 pb-4">
           <DialogTitle className="text-xl font-semibold text-gray-900">
             Edit Zone Scoring Parameter
             <span className="text-base font-normal text-gray-600 ml-2">
@@ -54,7 +54,7 @@ export function EditParameterModal({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="py-4">
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
           <ScoringParameterFormFields
             values={editingParamValues}
             onChange={(field, value) => setEditingParamValues({ ...editingParamValues, [field]: value })}
@@ -66,7 +66,7 @@ export function EditParameterModal({
           />
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex-shrink-0 px-6 pb-6 pt-4 border-t border-gray-200">
           <Button
             variant="outline"
             onClick={onClose}
