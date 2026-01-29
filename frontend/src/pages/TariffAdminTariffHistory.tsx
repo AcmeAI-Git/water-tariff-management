@@ -220,8 +220,8 @@ export function TariffAdminTariffHistory() {
   return (
     <div className="min-h-screen bg-[#f8f9fb]">
       <div className="px-4 md:px-8 py-4 md:py-6">
-        {/* Header */}
-        <div className="mb-8">
+        {/* Header - centered on mobile to avoid hamburger overlap */}
+        <div className="mb-8 text-center md:text-left">
           <h1 className="text-[28px] font-semibold text-gray-900 mb-1">Tariff History</h1>
           <p className="text-sm text-gray-500">View all tariff policy changes, threshold slabs, category settings, and zone scoring rules</p>
         </div>

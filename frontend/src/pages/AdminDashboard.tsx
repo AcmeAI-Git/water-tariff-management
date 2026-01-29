@@ -249,6 +249,87 @@ export default function AdminDashboard() {
         }
     }, [waterBills, revenueView]);
 
+    const handlePrintReport = () => {
+        const billsThisMonth = waterBills.filter(bill => {
+            const billDate = new Date(bill.billMonth);
+            return billDate.getMonth() === new Date().getMonth() && billDate.getFullYear() === new Date().getFullYear();
+        }).length;
+        const chartRows = revenueData.map(d => `<tr><td>${d.month}</td><td class="num">৳${Number(d.revenue).toLocaleString()}</td></tr>`).join("");
+        const html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Admin Dashboard Report</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 32px; color: #1f2937; background: #f9fafb; line-height: 1.5; }
+  @media print { body { background: #fff; padding: 0; } .card { break-inside: avoid; box-shadow: none; border: 1px solid #e5e7eb; } }
+  .container { max-width: 720px; margin: 0 auto; }
+  .header { text-align: center; padding: 24px 0 32px; border-bottom: 2px solid #4C6EF5; margin-bottom: 28px; }
+  .header h1 { margin: 0; font-size: 1.75rem; font-weight: 600; color: #111827; }
+  .header .sub { margin-top: 6px; font-size: 0.875rem; color: #6b7280; }
+  .card { background: #fff; border-radius: 12px; padding: 20px 24px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 1px solid #e5e7eb; }
+  .card h2 { margin: 0 0 16px; font-size: 1rem; font-weight: 600; color: #4C6EF5; text-transform: uppercase; letter-spacing: 0.03em; }
+  .card .row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f3f4f6; }
+  .card .row:last-child { border-bottom: none; }
+  .card .label { color: #6b7280; font-size: 0.875rem; }
+  .card .value { font-weight: 600; color: #111827; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+  th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+  th { background: #f8fafc; font-weight: 600; color: #475569; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .revenue-table th:last-child, .revenue-table td.num { text-align: right; }
+</style>
+</head><body>
+<div class="container">
+  <div class="header">
+    <h1>Water Tariff — Admin Dashboard Report</h1>
+    <p class="sub">Generated ${new Date().toLocaleString()}</p>
+  </div>
+  <div class="card">
+    <h2>Key metrics</h2>
+    <div class="row"><span class="label">Total Consumers</span><span class="value">${totalConsumers} (${userStats.active} active, ${userStats.activePercentage}%)</span></div>
+    <div class="row"><span class="label">Average Consumption</span><span class="value">${avgConsumption} m³ (${consumptions.length} records)</span></div>
+  </div>
+  <div class="card">
+    <h2>Counts</h2>
+    <div class="row"><span class="label">Zones</span><span class="value">${totalZones}</span></div>
+    <div class="row"><span class="label">Meters</span><span class="value">${totalMeters}</span></div>
+    <div class="row"><span class="label">Tariff Settings</span><span class="value">${totalTariffSettings}</span></div>
+    <div class="row"><span class="label">Tariff Categories</span><span class="value">${totalTariffCategories}</span></div>
+    <div class="row"><span class="label">WASAs</span><span class="value">${totalWasas}</span></div>
+  </div>
+  <div class="card">
+    <h2>This month</h2>
+    <div class="row"><span class="label">New Consumers</span><span class="value">${newConsumersThisMonth}</span></div>
+    <div class="row"><span class="label">Consumption Entries</span><span class="value">${consumptionEntriesThisMonth}</span></div>
+    <div class="row"><span class="label">Bills Generated</span><span class="value">${billsThisMonth}</span></div>
+  </div>
+  <div class="card">
+    <h2>Bill status</h2>
+    <div class="row"><span class="label">Paid</span><span class="value">${billStats.paid}</span></div>
+    <div class="row"><span class="label">Unpaid</span><span class="value">${billStats.unpaid}</span></div>
+    <div class="row"><span class="label">Overdue</span><span class="value">${billStats.overdue}</span></div>
+    <div class="row"><span class="label">Collection Rate</span><span class="value">${billStats.collectionRate}%</span></div>
+  </div>
+  <div class="card">
+    <h2>Overview</h2>
+    <div class="row"><span class="label">Total Bills</span><span class="value">${billStats.total}</span></div>
+    <div class="row"><span class="label">Avg Bill Amount</span><span class="value">৳${billStats.avgBillAmount.toFixed(0)}</span></div>
+    <div class="row"><span class="label">Consumption Records</span><span class="value">${consumptions.length}</span></div>
+  </div>
+  <div class="card">
+    <h2>Revenue trend (${revenueView})</h2>
+    <table class="revenue-table"><thead><tr><th>Period</th><th>Revenue (৳)</th></tr></thead><tbody>${chartRows}</tbody></table>
+  </div>
+</div>
+</body></html>`;
+        const w = window.open("", "_blank");
+        if (w) {
+            w.document.write(html);
+            w.document.close();
+            w.focus();
+            w.print();
+        }
+    };
+
     if (usersLoading || zonesLoading || metersLoading || tariffCategorySettingsLoading || tariffCategoriesLoading || wasasLoading || waterBillsLoading || consumptionsLoading) {
         return (
             <div className="min-h-screen bg-app flex items-center justify-center">
@@ -260,8 +341,8 @@ export default function AdminDashboard() {
     return (
         <div className="min-h-screen bg-app">
             <div className="px-4 md:px-8 py-4 md:py-6">
-                {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 md:mb-8">
+                {/* Header - centered on mobile to avoid hamburger overlap */}
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 md:mb-8 items-center text-center md:text-left">
                     <div>
                         <h1 className="text-xl md:text-[1.75rem] font-semibold text-gray-900 mb-1">
                             Welcome back, Admin
@@ -272,7 +353,10 @@ export default function AdminDashboard() {
                         </p>
                     </div>
                     <div className="flex gap-3">
-                        <Button className="bg-primary hover:bg-primary-600 text-white px-4 md:px-6 rounded-lg shadow-sm text-sm md:text-base">
+                        <Button
+                            onClick={handlePrintReport}
+                            className="bg-primary hover:bg-primary-600 text-white px-4 md:px-6 rounded-lg shadow-sm text-sm md:text-base"
+                        >
                             + Generate Report
                         </Button>
                     </div>

@@ -108,8 +108,8 @@ export function TariffAdminMyMetrics() {
   return (
     <div className="min-h-screen bg-[#f8f9fb]">
       <div className="px-4 md:px-8 py-4 md:py-6">
-        {/* Header */}
-        <div className="mb-8">
+        {/* Header - centered on mobile to avoid hamburger overlap */}
+        <div className="mb-8 text-center md:text-left">
           <h1 className="text-[28px] font-semibold text-gray-900 mb-1">My Monthly Metrics</h1>
           <p className="text-sm text-gray-500">Track your tariff management performance and system overview</p>
         </div>

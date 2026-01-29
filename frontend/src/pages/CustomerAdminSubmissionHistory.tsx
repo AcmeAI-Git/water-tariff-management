@@ -189,9 +189,9 @@ export function CustomerAdminSubmissionHistory() {
   return (
     <div className="min-h-screen bg-[#f8f9fb]">
       <div className="px-4 md:px-8 py-4 md:py-6">
-        {/* Header with inline stats */}
+        {/* Header with inline stats - centered on mobile to avoid hamburger overlap */}
         <div className="mb-8">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 items-center text-center md:text-left">
             <div>
               <h1 className="text-[28px] font-semibold text-gray-900 mb-1">Customer History</h1>
               <p className="text-sm text-gray-500">View history of all registered customers</p>

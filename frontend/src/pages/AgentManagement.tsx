@@ -223,8 +223,8 @@ export function AgentManagement() {
     return (
         <div className="min-h-screen bg-app">
             <div className="px-4 md:px-8 py-4 md:py-6">
-                {/* Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 md:mb-8">
+                {/* Header - centered on mobile to avoid hamburger overlap */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 md:mb-8 items-center text-center sm:text-left">
                     <div>
                         <h1 className="text-xl md:text-[1.75rem] font-semibold text-gray-900 mb-1">
                             Agent Management

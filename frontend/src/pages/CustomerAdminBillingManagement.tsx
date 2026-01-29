@@ -121,8 +121,8 @@ export function CustomerAdminBillingManagement() {
   return (
     <div className="min-h-screen bg-app">
       <div className="px-4 md:px-8 py-4 md:py-6">
-        {/* Header */}
-        <div className="mb-8">
+        {/* Header - centered on mobile to avoid hamburger overlap */}
+        <div className="mb-8 text-center md:text-left">
           <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">Billing Management</h1>
           <p className="text-sm text-gray-500">View and manage customer water bills</p>
         </div>

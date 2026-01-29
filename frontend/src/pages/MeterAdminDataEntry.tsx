@@ -385,8 +385,8 @@ export function MeterAdminDataEntry() {
   return (
     <div className="min-h-screen bg-app">
       <div className="px-4 md:px-8 py-4 md:py-6">
-        {/* Header */}
-        <div className="mb-6 md:mb-8">
+        {/* Header - centered on mobile to avoid hamburger overlap */}
+        <div className="mb-6 md:mb-8 text-center md:text-left">
           <h1 className="text-xl md:text-[1.75rem] font-semibold text-gray-900 mb-1">Meter Data Entry</h1>
         </div>
 
