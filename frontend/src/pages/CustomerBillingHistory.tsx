@@ -88,37 +88,40 @@ export default function CustomerBillingHistory() {
   ];
 
   return (
-    <div>
-      <div className="mb-6 md:mb-8">
-        <h1 className="text-xl md:text-2xl font-semibold text-gray-900 mb-1">
-          Billing History
-        </h1>
-        <p className="text-sm text-gray-500">View and manage your water bills</p>
-      </div>
+    <div className="min-h-screen bg-app">
+      <div className="px-4 md:px-8 py-4 md:py-6">
+        {/* Header - centered on mobile to avoid hamburger overlap */}
+        <div className="mb-6 md:mb-8 text-center md:text-left">
+          <h1 className="text-xl md:text-2xl font-semibold text-gray-900 mb-1">
+            Billing History
+          </h1>
+          <p className="text-sm text-gray-500">View and manage your water bills</p>
+        </div>
 
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div className="relative flex-1">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-            size={18}
-          />
-          <Input
-            placeholder="Search by month..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="relative flex-1">
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              size={18}
+            />
+            <Input
+              placeholder="Search by month..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <Dropdown
+            options={statusOptions}
+            value={statusFilter}
+            onChange={setStatusFilter}
+            placeholder="Status"
+            className="w-full sm:w-[180px]"
           />
         </div>
-        <Dropdown
-          options={statusOptions}
-          value={statusFilter}
-          onChange={setStatusFilter}
-          placeholder="Status"
-          className="w-full sm:w-[180px]"
-        />
-      </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6">
+        {/* Bills table - Admin-style card */}
+        <div className="bg-white border-2 border-gray-200 rounded-xl p-6 md:p-8 hover:border-gray-300 hover:shadow-md transition-all duration-300">
         {bills.length > 0 ? (
           <div className="overflow-x-auto">
             <Table>
@@ -159,6 +162,7 @@ export default function CustomerBillingHistory() {
         ) : (
           <p className="text-gray-500 text-center py-12">No bills found</p>
         )}
+        </div>
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { api } from '../services/api';
 import { useApiQuery } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import { MetricCard } from '../components/common/MetricCard';
 
 export function MeterAdminMetrics() {
   // Fetch consumption entries
@@ -48,7 +49,12 @@ export function MeterAdminMetrics() {
     return data;
   }, [consumptions]);
 
-  const avgDailyEntries = (readingsThisMonth / 30).toFixed(0);
+  // Calculate days elapsed in current month for accurate daily average
+  const daysElapsedThisMonth = thisMonth.getDate(); // Day of month (1-31)
+  const avgDailyEntries = daysElapsedThisMonth > 0
+    ? (readingsThisMonth / daysElapsedThisMonth).toFixed(1)
+    : '0.0';
+  
   const totalHouseholds = users.length;
   const coverageRate = totalHouseholds > 0 
     ? ((consumptions.length / totalHouseholds) * 100).toFixed(0)
@@ -65,45 +71,62 @@ export function MeterAdminMetrics() {
   return (
     <div className="min-h-screen bg-app">
       <div className="px-4 md:px-8 py-4 md:py-6">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">My Monthly Metrics</h1>
-          <p className="text-sm text-gray-500">Track your data entry performance</p>
+        {/* Header - centered on mobile to avoid hamburger overlap */}
+        <div className="mb-6 md:mb-8 text-center md:text-left">
+          <h1 className="text-xl md:text-[1.75rem] font-semibold text-gray-900 mb-1">My Monthly Metrics</h1>
+          <p className="text-xs md:text-sm text-gray-500">Track your data entry performance</p>
         </div>
 
-        {/* Stats */}
-        <div className="mb-8">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Overview</h3>
-          
-          <div className="grid grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-xl border border-gray-200">
-              <p className="text-sm text-gray-600 mb-2">Readings Entered This Month</p>
-              <p className="text-3xl font-semibold text-gray-900">{readingsThisMonth}</p>
-              <p className="text-xs text-gray-500 mt-2">As of {thisMonth.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
-            </div>
-
-            <div className="bg-white p-6 rounded-xl border border-gray-200">
-              <p className="text-sm text-gray-600 mb-2">Total Readings</p>
-              <p className="text-3xl font-semibold text-gray-900">{consumptions.length}</p>
-              <p className="text-xs text-gray-500 mt-2">All time entries</p>
-            </div>
-
-            <div className="bg-white p-6 rounded-xl border border-gray-200">
-              <p className="text-sm text-gray-600 mb-2">Average Daily Entries</p>
-              <p className="text-3xl font-semibold text-gray-900">{avgDailyEntries}</p>
-              <p className="text-xs text-gray-500 mt-2">Last 30 days average</p>
-            </div>
-          </div>
+        {/* Stats - first row */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
+          <MetricCard
+            label="Readings This Month"
+            value={readingsThisMonth}
+            subtitle={`As of ${thisMonth.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`}
+            variant="blue"
+          />
+          <MetricCard
+            label="Total Readings"
+            value={consumptions.length}
+            subtitle="All time entries"
+            variant="green"
+            animationDelay={0.05}
+          />
+          <MetricCard
+            label="Average Daily Entries"
+            value={avgDailyEntries}
+            subtitle="Last 30 days average"
+            variant="purple"
+            animationDelay={0.1}
+          />
         </div>
 
-        {/* Divider */}
-        <div className="border-t border-gray-200 mb-8"></div>
+        {/* Performance Details - second row */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
+          <MetricCard
+            label="Total Households Covered"
+            value={totalHouseholds}
+            variant="blue"
+          />
+          <MetricCard
+            label="Coverage Rate"
+            value={`${coverageRate}%`}
+            variant="green"
+            animationDelay={0.05}
+          />
+          <MetricCard
+            label="Total Readings"
+            value={consumptions.length}
+            variant="purple"
+            animationDelay={0.1}
+          />
+        </div>
 
         {/* Chart */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Daily Readings Entered (Last 30 Days)</h3>
+        <div className="mb-6 md:mb-8">
+          <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-3 md:mb-4">Daily Readings Entered (Last 30 Days)</h3>
           
-          <div className="bg-white p-6 rounded-xl border border-gray-200">
+          <div className="bg-white border-2 border-gray-200 rounded-xl p-4 md:p-6 hover:border-gray-300 hover:shadow-md transition-all duration-300 overflow-x-auto min-h-[280px]">
             <ResponsiveContainer width="100%" height={350}>
               <BarChart data={dailyData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -133,36 +156,6 @@ export function MeterAdminMetrics() {
                 />
               </BarChart>
             </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Additional Stats */}
-        <div className="mt-8">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance Details</h3>
-          
-          <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
-            <div className="flex items-center justify-between px-6 py-4">
-              <div>
-                <p className="text-sm font-medium text-gray-900">Total Households Covered</p>
-              </div>
-              <p className="text-base font-semibold text-gray-900">{totalHouseholds}</p>
-            </div>
-
-            <div className="flex items-center justify-between px-6 py-4">
-              <div>
-                <p className="text-sm font-medium text-gray-900">Coverage Rate</p>
-                <p className="text-xs text-gray-500 mt-0.5">Percentage of households with data</p>
-              </div>
-              <p className="text-base font-semibold text-gray-900">{coverageRate}%</p>
-            </div>
-
-            <div className="flex items-center justify-between px-6 py-4">
-              <div>
-                <p className="text-sm font-medium text-gray-900">Total Readings</p>
-                <p className="text-xs text-gray-500 mt-0.5">All meter readings entered</p>
-              </div>
-              <p className="text-base font-semibold text-gray-900">{consumptions.length}</p>
-            </div>
           </div>
         </div>
       </div>

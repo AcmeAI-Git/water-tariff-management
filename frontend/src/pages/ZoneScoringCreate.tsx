@@ -309,7 +309,7 @@ export function ZoneScoringCreate() {
         />
 
         {/* Form */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 w-full">
+        <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 w-full">
           <div className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="title" className="text-sm font-medium text-gray-700">
@@ -341,14 +341,14 @@ export function ZoneScoringCreate() {
 
           {/* Scoring Parameters Section */}
           <div className="border-t border-gray-200 pt-6 mt-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
+              <div className="min-w-0">
                 <h3 className="text-lg font-semibold text-gray-900">Scoring Parameters</h3>
                 <p className="text-sm text-gray-500 mt-1">
                   Add at least one scoring parameter for this ruleset
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
                 <Button
                   type="button"
                   variant="outline"
@@ -443,13 +443,13 @@ export function ZoneScoringCreate() {
                       key={index}
                       className="border border-gray-200 rounded-lg p-4 bg-gray-50"
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-2">
                             <span className="text-sm font-semibold text-gray-900">
                               {area?.name || `Area ${param.areaId}`}
                             </span>
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xs text-gray-500 break-words">
                               (Land+Home: {param.landHomeRate}, Land: {param.landRate}, Land Tax: {param.landTaxRate})
                             </span>
                           </div>
@@ -463,7 +463,7 @@ export function ZoneScoringCreate() {
                           variant="outline"
                           size="sm"
                           onClick={() => handleRemoveParameter(index)}
-                          className="border-red-300 text-red-700 rounded-lg h-8 px-3 bg-white hover:bg-red-50 inline-flex items-center gap-1.5"
+                          className="border-red-300 text-red-700 rounded-lg h-8 px-3 bg-white hover:bg-red-50 inline-flex items-center gap-1.5 shrink-0"
                         >
                           <Trash2 size={14} />
                           Remove
@@ -477,7 +477,7 @@ export function ZoneScoringCreate() {
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-4 mt-8 pt-6 border-t border-gray-200">
+          <div className="flex flex-wrap items-center justify-end gap-3 sm:gap-4 mt-8 pt-6 border-t border-gray-200">
             <Button
               variant="outline"
               onClick={() => navigate('/tariff-admin/zone-scoring')}

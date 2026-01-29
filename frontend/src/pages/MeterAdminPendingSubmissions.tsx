@@ -109,66 +109,70 @@ export function MeterAdminPendingSubmissions() {
   return (
     <div className="min-h-screen bg-app">
       <div className="px-4 md:px-8 py-4 md:py-6">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">Pending Submissions</h1>
-          <p className="text-sm text-gray-500">View all pending meter readings awaiting approval</p>
+        {/* Header - centered on mobile to avoid hamburger overlap */}
+        <div className="mb-6 md:mb-8 text-center md:text-left">
+          <h1 className="text-xl md:text-[1.75rem] font-semibold text-gray-900 mb-1">Pending Submissions</h1>
+          <p className="text-xs md:text-sm text-gray-500">View all pending meter readings awaiting approval</p>
         </div>
 
         {/* Readings Table */}
         <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Pending Meter Readings</h3>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+            <h3 className="text-base md:text-lg font-semibold text-gray-900">Pending Meter Readings</h3>
             <span className="text-sm text-gray-500">{displayReadings.length} pending</span>
           </div>
           
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-gray-200 bg-gray-50">
-                  <TableHead className="text-sm font-semibold text-gray-700">Household Name</TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700">Meter No</TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700">Current Reading</TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700">Bill Month</TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700">Status</TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700 text-center">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {displayReadings.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center text-gray-500 py-8">
-                      No pending readings found. Add readings from the Meter Data Entry page.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  displayReadings.map((reading) => (
-                    <TableRow key={reading.id} className="border-gray-100">
-                      <TableCell className="text-sm text-gray-900 font-medium">{reading.householdName}</TableCell>
-                      <TableCell className="text-sm text-gray-600">{reading.meterNo}</TableCell>
-                      <TableCell className="text-sm text-gray-600">{reading.reading} m³</TableCell>
-                      <TableCell className="text-sm text-gray-600">{reading.month}</TableCell>
-                      <TableCell className="text-sm">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                          {reading.status}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Button 
-                          onClick={() => removeReading(reading.id)}
-                          variant="outline" 
-                          className="border-red-200 text-red-600 hover:bg-red-50 rounded-lg h-8 px-3 text-sm"
-                          disabled={deleteMutation.isPending}
-                        >
-                          <X size={14} className="mr-1" />
-                          Remove
-                        </Button>
-                      </TableCell>
+            <div className="overflow-x-auto -mx-4 md:mx-0">
+              <div className="inline-block min-w-full align-middle px-4 md:px-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-gray-200 bg-gray-50">
+                      <TableHead className="text-sm font-semibold text-gray-700 min-w-[120px]">Household Name</TableHead>
+                      <TableHead className="text-sm font-semibold text-gray-700 min-w-[90px] hidden sm:table-cell">Meter No</TableHead>
+                      <TableHead className="text-sm font-semibold text-gray-700 min-w-[100px]">Current Reading</TableHead>
+                      <TableHead className="text-sm font-semibold text-gray-700 min-w-[90px]">Bill Month</TableHead>
+                      <TableHead className="text-sm font-semibold text-gray-700 min-w-[80px] hidden sm:table-cell">Status</TableHead>
+                      <TableHead className="text-sm font-semibold text-gray-700 text-right min-w-[100px]">Action</TableHead>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {displayReadings.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center text-gray-500 py-8">
+                          No pending readings found. Add readings from the Meter Data Entry page.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      displayReadings.map((reading) => (
+                        <TableRow key={reading.id} className="border-gray-100">
+                          <TableCell className="text-sm text-gray-900 font-medium">{reading.householdName}</TableCell>
+                          <TableCell className="text-sm text-gray-600 hidden sm:table-cell whitespace-nowrap">{reading.meterNo}</TableCell>
+                          <TableCell className="text-sm text-gray-600 whitespace-nowrap">{reading.reading} m³</TableCell>
+                          <TableCell className="text-sm text-gray-600 whitespace-nowrap">{reading.month}</TableCell>
+                          <TableCell className="text-sm hidden sm:table-cell">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                              {reading.status}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button 
+                              onClick={() => removeReading(reading.id)}
+                              variant="outline" 
+                              className="border-red-200 text-red-600 hover:bg-red-50 rounded-lg h-8 px-2 sm:px-3 text-sm w-full sm:w-auto"
+                              disabled={deleteMutation.isPending}
+                            >
+                              <X size={14} className="sm:mr-1" />
+                              <span className="hidden sm:inline">Remove</span>
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
           </div>
         </div>
       </div>

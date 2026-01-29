@@ -30,6 +30,8 @@ interface ApprovalQueueItem {
 export function ApprovalQueue() {
   const [selectedRequest, setSelectedRequest] = useState<ApprovalQueueItem | null>(null);
   const [isLoadingRecordData, setIsLoadingRecordData] = useState(false);
+  /** Tracks customer accounts rejected this session so they disappear from queue (backend only has Active/Inactive) */
+  const [_rejectedCustomerAccounts, _setRejectedCustomerAccounts] = useState<Set<string>>(new Set());
   const adminId = useAdminId();
   const queryClient = useQueryClient();
 
@@ -709,19 +711,19 @@ export function ApprovalQueue() {
   return (
     <div className="min-h-screen bg-[#f8f9fb]">
       <div className="px-4 md:px-8 py-4 md:py-6">
-        {/* Header with inline stats */}
+        {/* Header with inline stats - centered on mobile to avoid hamburger overlap */}
         <div className="mb-8">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 items-center text-center md:text-left">
             <div>
-              <h1 className="text-[28px] font-semibold text-gray-900 mb-1">Approval Queue</h1>
-              <p className="text-sm text-gray-500">All pending changes from other admins</p>
+              <h1 className="text-xl md:text-[28px] font-semibold text-gray-900 mb-1">Approval Queue</h1>
+              <p className="text-xs md:text-sm text-gray-500">All pending changes from other admins</p>
             </div>
-            <div className="flex items-center gap-6 text-sm">
+            <div className="flex items-center gap-4 md:gap-6 text-sm flex-wrap justify-center md:justify-start">
               <div className="flex items-center gap-2">
                 <span className="text-gray-600">Total:</span>
                 <span className="font-semibold text-gray-900">{displayRequests.length}</span>
               </div>
-              <span className="text-gray-300">|</span>
+              <span className="text-gray-300 hidden sm:inline">|</span>
               <div className="flex items-center gap-2">
                 <span className="text-gray-600">Pending:</span>
                 <span className="font-semibold text-yellow-600">{displayRequests.length}</span>
@@ -732,60 +734,73 @@ export function ApprovalQueue() {
 
         {/* Table */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-gray-200 bg-gray-50 hover:bg-gray-50">
-                <TableHead className="font-semibold text-gray-700">Module</TableHead>
-                <TableHead className="font-semibold text-gray-700">Details</TableHead>
-                <TableHead className="font-semibold text-gray-700">Requested By</TableHead>
-                <TableHead className="font-semibold text-gray-700">Date</TableHead>
-                <TableHead className="font-semibold text-gray-700 text-right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {displayRequests.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-gray-500">
-                    No pending approval requests
-                  </TableCell>
-                </TableRow>
-              ) : (
-                displayRequests.map((request) => (
-                  <TableRow key={request.id} className="border-gray-100">
-                    <TableCell className="font-medium text-gray-900">{request.module}</TableCell>
-                    <TableCell className="text-gray-700">{request.details || '-'}</TableCell>
-                    <TableCell className="text-gray-600 text-sm">{request.requestedBy}</TableCell>
-                    <TableCell className="text-gray-600 text-sm">
-                      {request.request && request.request !== 'N/A' ? (
-                        <span className="whitespace-nowrap">
-                          {new Date(request.request).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                          })}
-                        </span>
-                      ) : (
-                        '-'
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        onClick={() => handleReview(request)}
-                        className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-9 px-4 flex items-center gap-2 ml-auto"
-                        disabled={
-                          approveConsumptionMutation.isPending ||
-                          rejectConsumptionMutation.isPending
-                        }
-                      >
-                        <Eye size={16} />
-                        Review
-                      </Button>
-                    </TableCell>
+          {/* Mobile: Horizontal scroll wrapper */}
+          <div className="overflow-x-auto -mx-4 md:mx-0">
+            <div className="inline-block min-w-full align-middle px-4 md:px-0">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-gray-200 bg-gray-50 hover:bg-gray-50">
+                    <TableHead className="font-semibold text-gray-700 min-w-[100px]">Module</TableHead>
+                    <TableHead className="font-semibold text-gray-700 min-w-[150px]">Details</TableHead>
+                    <TableHead className="font-semibold text-gray-700 min-w-[120px] hidden sm:table-cell">Requested By</TableHead>
+                    <TableHead className="font-semibold text-gray-700 min-w-[100px]">Date</TableHead>
+                    <TableHead className="font-semibold text-gray-700 text-right min-w-[100px]">Action</TableHead>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                </TableHeader>
+                <TableBody>
+                  {displayRequests.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                        No pending approval requests
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    displayRequests.map((request) => (
+                      <TableRow key={request.id} className="border-gray-100">
+                        <TableCell className="font-medium text-gray-900 whitespace-nowrap">{request.module}</TableCell>
+                        <TableCell className="text-gray-700">
+                          <div className="max-w-[200px] md:max-w-none truncate md:whitespace-normal" title={request.details || '-'}>
+                            {request.details || '-'}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-gray-600 text-sm hidden sm:table-cell whitespace-nowrap">
+                          <div className="max-w-[120px] truncate" title={request.requestedBy}>
+                            {request.requestedBy}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-gray-600 text-sm whitespace-nowrap">
+                          {request.request && request.request !== 'N/A' ? (
+                            <span>
+                              {new Date(request.request).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                              })}
+                            </span>
+                          ) : (
+                            '-'
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            onClick={() => handleReview(request)}
+                            className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-9 px-3 md:px-4 flex items-center gap-1 md:gap-2 ml-auto text-sm whitespace-nowrap"
+                            disabled={
+                              approveConsumptionMutation.isPending ||
+                              rejectConsumptionMutation.isPending
+                            }
+                          >
+                            <Eye size={14} className="md:w-4 md:h-4" />
+                            <span className="hidden sm:inline">Review</span>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
         </div>
       </div>
 

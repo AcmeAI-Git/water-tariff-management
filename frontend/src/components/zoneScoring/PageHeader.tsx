@@ -22,9 +22,9 @@ export function PageHeader({
   const navigate = useNavigate();
 
   return (
-    <div className="mb-8">
+    <div className="mb-8 text-center md:text-left">
       {showBackButton && backUrl && (
-        <div className="flex items-center gap-4 mb-4">
+        <div className="flex items-center justify-center md:justify-start gap-4 mb-4">
           <Button
             variant="outline"
             onClick={() => navigate(backUrl)}

@@ -5,7 +5,7 @@ import { Label } from '../ui/label';
 import { useState } from 'react';
 
 interface Multiplier {
-  ward: string;
+  areaName: string;
   multiplier: string;
   city?: 'Dhaka' | 'Chittagong' | 'Khulna';
 }
@@ -26,7 +26,7 @@ export function EditMultipliersModal({ title = 'Edit Multipliers', multipliers, 
     setLocal(copy);
   };
 
-  const add = () => setLocal([...local, { ward: `Ward ${local.length + 1}`, multiplier: '' }]);
+  const add = () => setLocal([...local, { areaName: `Area ${local.length + 1}`, multiplier: '' }]);
   const remove = (i: number) => setLocal(local.filter((_, idx) => idx !== i));
 
   return (
@@ -41,8 +41,8 @@ export function EditMultipliersModal({ title = 'Edit Multipliers', multipliers, 
           {local.map((m, idx) => (
             <div key={idx} className="grid grid-cols-12 gap-3 items-center">
               <div className="col-span-8">
-                <Label className="text-xs">Ward Name</Label>
-                <Input value={m.ward} placeholder={`Ward ${idx + 1}`} onChange={(e) => update(idx, 'ward', e.target.value)} />
+                <Label className="text-xs">Area name</Label>
+                <Input value={m.areaName} placeholder={`Area ${idx + 1}`} onChange={(e) => update(idx, 'areaName', e.target.value)} />
               </div>
               <div className="col-span-4">
                 <Label className="text-xs">Multiplier</Label>
@@ -55,7 +55,7 @@ export function EditMultipliersModal({ title = 'Edit Multipliers', multipliers, 
           ))}
 
           <div>
-            <Button className="bg-primary hover:bg-primary-600 text-white" onClick={add}>+ Add Ward</Button>
+            <Button className="bg-primary hover:bg-primary-600 text-white" onClick={add}>+ Add area</Button>
           </div>
         </div>
 

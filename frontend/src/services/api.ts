@@ -17,9 +17,6 @@ import type {
   Zone,
   CreateZoneDto,
   UpdateZoneDto,
-  Ward,
-  CreateWardDto,
-  UpdateWardDto,
   TariffPlan,
   CreateTariffPlanDto,
   UpdateTariffPlanDto,
@@ -208,30 +205,6 @@ export const zonesApi = {
   },
 };
 
-// ==================== WARDS ====================
-export const wardsApi = {
-  getAll: (zoneId?: number): Promise<Ward[]> => {
-    const query = zoneId ? `?zoneId=${zoneId}` : "";
-    return fetchService.get<Ward[]>(`/wards${query}`);
-  },
-
-  getById: (id: number): Promise<Ward> => {
-    return fetchService.get<Ward>(`/wards/${id}`);
-  },
-
-  create: (data: CreateWardDto): Promise<Ward> => {
-    return fetchService.post<Ward>("/wards", data);
-  },
-
-  update: (id: number, data: UpdateWardDto): Promise<Ward> => {
-    return fetchService.put<Ward>(`/wards/${id}`, data);
-  },
-
-  delete: (id: number): Promise<void> => {
-    return fetchService.delete<void>(`/wards/${id}`);
-  },
-};
-
 // ==================== TARIFF PLANS ====================
 export const tariffPlansApi = {
   getAll: (approvalStatusId?: number): Promise<TariffPlan[]> => {
@@ -313,8 +286,15 @@ export const approvalRequestsApi = {
     return fetchService.get<ApprovalRequest[]>(`/approval-requests${query}`);
   },
 
-  getPending: (): Promise<ApprovalRequest[]> => {
-    return fetchService.get<ApprovalRequest[]>("/approval-requests/pending");
+  /**
+   * Get pending approval requests. Backend has no /pending path; use GET /approval-requests
+   * with required query params moduleName and statusId (e.g. 1 = Pending).
+   */
+  getPending: (options?: { moduleName?: string; statusId?: number }): Promise<ApprovalRequest[]> => {
+    const statusId = options?.statusId ?? 1;
+    const moduleName = options?.moduleName ?? 'Customer';
+    const params = [`moduleName=${encodeURIComponent(moduleName)}`, `statusId=${statusId}`];
+    return fetchService.get<ApprovalRequest[]>(`/approval-requests?${params.join('&')}`);
   },
 
   getById: (id: number): Promise<ApprovalRequest> => {
@@ -691,7 +671,6 @@ export const api = {
   roles: rolesApi,
   wasas: wasasApi,
   zones: zonesApi,
-  wards: wardsApi,
   tariffPlans: tariffPlansApi,
   approvalStatus: approvalStatusApi,
   approvalRequests: approvalRequestsApi,

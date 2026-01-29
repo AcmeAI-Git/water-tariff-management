@@ -12,7 +12,7 @@ interface Agent {
   confirm?: string;
   wasa?: string;
   zone?: string;
-  ward?: string;
+  area?: string;
   role: string;
 }
 
@@ -26,16 +26,16 @@ interface AddAgentModalProps {
   onDelete?: () => void; // Optional delete handler for edit mode
   wasaOptions?: Array<{ value: string; label: string }>; // WASA options from API
   zoneOptions?: Array<{ value: string; label: string }>; // Zone options from API
-  wardOptions?: Array<{ value: string; label: string }>; // Ward options from API
+  areaOptions?: Array<{ value: string; label: string }>; // Area options from API
   roleOptions?: Array<{ value: string; label: string }>; // Role options from API
   modalTitle?: string; // Custom modal title (defaults to "Add New Agent" or "Edit Agent")
   submitButtonText?: string; // Custom submit button text (defaults to "Add Agent" or "Save Changes")
   showWasa?: boolean; // Show WASA field (default false)
-  showZoneWard?: boolean; // Show zone/ward fields (default false)
-  zoneWardAsNumbers?: boolean; // Use number inputs instead of dropdowns (default false)
+  showZoneArea?: boolean; // Show zone/area fields (default false)
+  zoneAreaAsNumbers?: boolean; // Use number inputs instead of dropdowns (default false)
 }
 
-export function AddAgentModal({ open, onClose, onSave, editMode = false, agent = null, roleFixed, onDelete, wasaOptions = [], zoneOptions = [], wardOptions = [], roleOptions = [], modalTitle, submitButtonText, showWasa = false, showZoneWard = false, zoneWardAsNumbers = false }: AddAgentModalProps) {
+export function AddAgentModal({ open, onClose, onSave, editMode = false, agent = null, roleFixed, onDelete, wasaOptions = [], zoneOptions = [], areaOptions = [], roleOptions = [], modalTitle, submitButtonText, showWasa = false, showZoneArea = false, zoneAreaAsNumbers = false }: AddAgentModalProps) {
   const [form, setForm] = useState<Agent>({
     name: "",
     phone: "",
@@ -44,7 +44,7 @@ export function AddAgentModal({ open, onClose, onSave, editMode = false, agent =
     confirm: "",
     wasa: "",
     zone: "",
-    ward: "",
+    area: "",
     role: roleFixed || "Super Admin",
   });
 
@@ -66,7 +66,7 @@ export function AddAgentModal({ open, onClose, onSave, editMode = false, agent =
         confirm: "",
         wasa: "",
         zone: "",
-        ward: "",
+        area: "",
         role: roleFixed || "Super Admin",
       });
     }
@@ -207,7 +207,7 @@ export function AddAgentModal({ open, onClose, onSave, editMode = false, agent =
             </div>
 
             {/* Location Information Section */}
-            {(showWasa || showZoneWard) && (
+            {(showWasa || showZoneArea) && (
               <div className="space-y-4">
                 <div className="pb-2 border-b border-gray-100">
                   <h3 className="text-sm font-semibold text-gray-800">Location Information</h3>
@@ -227,9 +227,9 @@ export function AddAgentModal({ open, onClose, onSave, editMode = false, agent =
                       />
                     </div>
                   )}
-                  {showZoneWard && (
+                  {showZoneArea && (
                     <div className="grid grid-cols-2 gap-3">
-                      {zoneWardAsNumbers ? (
+                      {zoneAreaAsNumbers ? (
                         <>
                           <div className="space-y-1.5">
                             <label className="text-sm font-medium text-gray-700">Zone ID</label>
@@ -242,12 +242,12 @@ export function AddAgentModal({ open, onClose, onSave, editMode = false, agent =
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-sm font-medium text-gray-700">Ward ID</label>
+                            <label className="text-sm font-medium text-gray-700">Area ID</label>
                             <Input 
                               type="number" 
-                              placeholder="Ward ID" 
-                              value={form.ward || ""} 
-                              onChange={e => handleChange("ward", e.target.value)} 
+                              placeholder="Area ID" 
+                              value={form.area || ""} 
+                              onChange={e => handleChange("area", e.target.value)} 
                               className="w-full" 
                             />
                           </div>
@@ -265,12 +265,12 @@ export function AddAgentModal({ open, onClose, onSave, editMode = false, agent =
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-sm font-medium text-gray-700">Ward</label>
+                            <label className="text-sm font-medium text-gray-700">Area</label>
                             <Dropdown 
-                              options={wardOptions} 
-                              value={form.ward || ""} 
-                              onChange={v => handleChange("ward", v)} 
-                              placeholder="Select ward" 
+                              options={areaOptions} 
+                              value={form.area || ""} 
+                              onChange={v => handleChange("area", v)} 
+                              placeholder="Select area" 
                               className="w-full" 
                             />
                           </div>

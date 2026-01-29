@@ -135,14 +135,15 @@ export function TariffConfigurationView() {
                 </div>
               </div>
             </div>
-            <div className="overflow-x-auto w-full">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-gray-200 bg-gray-50">
-                    <TableHead className="text-sm font-semibold text-gray-700 text-center whitespace-nowrap">Parameter</TableHead>
-                    <TableHead className="text-sm font-semibold text-gray-700 text-center whitespace-nowrap">Value</TableHead>
-                  </TableRow>
-                </TableHeader>
+            <div className="overflow-x-auto -mx-4 md:mx-0 w-full">
+              <div className="inline-block min-w-full align-middle px-4 md:px-6">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-gray-200 bg-gray-50">
+                      <TableHead className="text-sm font-semibold text-gray-700 text-center whitespace-nowrap min-w-[180px]">Parameter</TableHead>
+                      <TableHead className="text-sm font-semibold text-gray-700 text-center whitespace-nowrap min-w-[120px]">Value</TableHead>
+                    </TableRow>
+                  </TableHeader>
                 <TableBody>
                   <TableRow className="border-gray-100">
                     <TableCell className="text-sm font-medium text-gray-900 text-center">Production Cost</TableCell>
@@ -186,6 +187,7 @@ export function TariffConfigurationView() {
                   </TableRow>
                 </TableBody>
               </Table>
+              </div>
             </div>
           </div>
         </div>
