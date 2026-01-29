@@ -421,14 +421,13 @@ export function generateCSVTemplate(areas?: Area[], zones?: Zone[], wasas?: Wasa
   ];
   
   // Use first area from database if available, otherwise use placeholder
+  // Zone and WASA (city corp) are left empty in template - optional for reference only
   const exampleArea = areas && areas.length > 0 ? areas[0] : null;
-  const exampleZone = exampleArea?.zone || (exampleArea && zones ? zones.find(z => z.id === exampleArea.zoneId) : null);
-  const exampleWasa = exampleZone && wasas ? wasas.find(w => w.id === exampleZone.wasaId) : null;
   
   const exampleRow = [
     exampleArea ? exampleArea.name : '[Enter Area Name]',
-    exampleZone ? exampleZone.name : '[Zone Name]',
-    exampleWasa ? exampleWasa.name : '[WASA Name]',
+    '', // Zone - leave empty (optional)
+    '', // WASA / City Corp - leave empty (optional)
     '32896.00',
     '20000.00',
     '5000.00',
