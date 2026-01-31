@@ -1,7 +1,7 @@
 import { Button } from '../ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Input } from '../ui/input';
-import { Plus, Edit, Trash2, Search, Star, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { api } from '../../services/api';
@@ -156,15 +156,25 @@ export function TariffCategoriesTab({ settingsId }: TariffCategoriesTabProps) {
     setSettingBaseCategoryId(category.id);
 
     try {
-      // Set this category as base
-      // The backend should handle unsetting other base categories automatically
-      // and recalculate tariffs for other Domestic categories based on settings
-      await api.tariffCategory.update(category.id, { isBaseCategory: true });
-      
-      // Manually invalidate queries after update
-      queryClient.invalidateQueries({ queryKey: ['tariff-category'] });
-      queryClient.invalidateQueries({ queryKey: ['tariff-category', settingsId] });
-      
+      // Set this category as base. Backend may return a single category or all
+      // updated categories (with recalculated tariff rates for other domestic categories).
+      const response = await api.tariffCategory.update(category.id, {
+        isBaseCategory: true,
+      }) as TariffCategory | TariffCategory[];
+
+      if (Array.isArray(response)) {
+        // Backend sent all changed categories – update cache so UI shows new rates immediately
+        queryClient.setQueryData(['tariff-category', settingsId], response);
+        queryClient.setQueryData(['tariff-category'], (old: TariffCategory[] | undefined) => {
+          if (!old) return response;
+          return old.filter((c) => c.settingsId !== settingsId).concat(response);
+        });
+      } else {
+        // Backend returned only the updated category – refetch to get recalculated rates
+        queryClient.invalidateQueries({ queryKey: ['tariff-category'] });
+        queryClient.invalidateQueries({ queryKey: ['tariff-category', settingsId] });
+      }
+
       toast.success('Base category set successfully');
     } catch (error) {
       console.error('Error setting base category:', error);
@@ -355,14 +365,7 @@ export function TariffCategoriesTab({ settingsId }: TariffCategoriesTabProps) {
                           <TableRow key={category.id} className="border-gray-100">
                             <TableCell className="text-sm font-medium text-gray-900">{category.slNo}</TableCell>
                             <TableCell className="text-sm text-gray-900">
-                              <div className="flex items-center gap-2">
-                                {category.name}
-                                {category.isBaseCategory && (
-                                  <span title="Base Category">
-                                    <Star size={14} className="text-green-600" />
-                                  </span>
-                                )}
-                              </div>
+                              {category.name}
                             </TableCell>
                             <TableCell className="text-sm text-gray-600 hidden sm:table-cell">{formatRange(category)}</TableCell>
                             <TableCell className="text-sm text-gray-600 text-right whitespace-nowrap">

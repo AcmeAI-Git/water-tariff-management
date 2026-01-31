@@ -19,7 +19,6 @@ export function ScoringParameterFormFields({
   editingParamId,
   showPercentages = true,
   showReadOnlyFields = false,
-  ruleSetId,
 }: ScoringParameterFormFieldsProps) {
   const getPercentageValue = (field: string): string => {
     if (!showPercentages || !calculatedParams.length) return '-';

@@ -406,7 +406,7 @@ function isRowEmpty(row: string[]): boolean {
  * @param zones Optional array of zones to look up zone name
  * @param wasas Optional array of WASAs to look up WASA name
  */
-export function generateCSVTemplate(areas?: Area[], zones?: Zone[], wasas?: Wasa[]): string {
+export function generateCSVTemplate(areas?: Area[], _zones?: Zone[], _wasas?: Wasa[]): string {
   const headers = [
     'Area Name',
     'Zone (Optional - for reference)',

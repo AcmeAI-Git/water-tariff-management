@@ -17,6 +17,7 @@ import { Plus, Edit, Trash2, CheckCircle } from 'lucide-react';
 import { PageHeader } from '../components/zoneScoring/PageHeader';
 import { EmptyState } from '../components/zoneScoring/EmptyState';
 import { DeleteConfirmationDialog } from '../components/zoneScoring/DeleteConfirmationDialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
 import { TariffCategorySettingsModal } from '../components/modals/TariffCategorySettingsModal';
 import { ThresholdSlabsSection } from '../components/tariff/ThresholdSlabsSection';
 import type {
@@ -34,6 +35,8 @@ export function TariffConfiguration() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [settingsToDelete, setSettingsToDelete] = useState<TariffCategorySettings | null>(null);
   const [activeTab, setActiveTab] = useState<'settings' | 'threshold'>('settings');
+  const [policyConfirmOpen, setPolicyConfirmOpen] = useState(false);
+  const [pendingPolicy, setPendingPolicy] = useState<{ id: number; label: string } | null>(null);
 
   // Fetch all settings
   const { data: allSettings = [], isLoading: settingsLoading } = useApiQuery(
@@ -174,6 +177,13 @@ export function TariffConfiguration() {
     await setSettingsActiveMutation.mutateAsync(settingsId);
   };
 
+  const handleConfirmPolicyChange = async () => {
+    if (!pendingPolicy) return;
+    await activatePolicyMutation.mutateAsync(pendingPolicy.id);
+    setPolicyConfirmOpen(false);
+    setPendingPolicy(null);
+  };
+
   // Auto-switch tab when policy changes (but not for FIXED - let user choose)
   useEffect(() => {
     if (activePolicy?.tariffType === 'AREA_BASED') {
@@ -219,7 +229,12 @@ export function TariffConfiguration() {
             value={activePolicy?.id?.toString() ?? ''}
             onValueChange={(value) => {
               const id = parseInt(value, 10);
-              if (!isNaN(id)) activatePolicyMutation.mutate(id);
+              if (isNaN(id)) return;
+              const policy = allPolicies.find((p) => p.id === id);
+              if (policy && id !== activePolicy?.id) {
+                setPendingPolicy({ id, label: getPolicyTypeLabel(policy.tariffType) });
+                setPolicyConfirmOpen(true);
+              }
             }}
             disabled={activatePolicyMutation.isPending}
           >
@@ -241,23 +256,21 @@ export function TariffConfiguration() {
           <div className="flex gap-6">
             <button
               onClick={() => setActiveTab('settings')}
-              disabled={!isAreaBased || isFixed}
               className={`pb-3 text-[15px] font-medium border-b-2 transition-colors ${
                 activeTab === 'settings'
                   ? 'border-[#4C6EF5] text-[#4C6EF5]'
                   : 'border-transparent text-gray-600 hover:text-gray-900'
-              } ${(!isAreaBased || isFixed) ? 'opacity-50 cursor-not-allowed' : ''}`}
+              }`}
             >
               Settings Rulesets
             </button>
             <button
               onClick={() => setActiveTab('threshold')}
-              disabled={!isThreshold || isFixed}
               className={`pb-3 text-[15px] font-medium border-b-2 transition-colors ${
                 activeTab === 'threshold'
                   ? 'border-[#4C6EF5] text-[#4C6EF5]'
                   : 'border-transparent text-gray-600 hover:text-gray-900'
-              } ${(!isThreshold || isFixed) ? 'opacity-50 cursor-not-allowed' : ''}`}
+              }`}
             >
               Threshold Slabs
             </button>
@@ -271,15 +284,13 @@ export function TariffConfiguration() {
               <div className="text-sm text-gray-600">
                 Select <span className="font-medium text-gray-900">Area Based</span> in the Tariff Policy dropdown above to manage settings and categories.
               </div>
-            ) : isFixed ? (
-              null
             ) : (
               <>
                 {/* Create Button */}
                 <div className="mb-6">
                   <Button
                     onClick={() => setIsCreateModalOpen(true)}
-                    disabled={createMutation.isPending || !isAreaBased}
+                    disabled={createMutation.isPending || (!isAreaBased && !isFixed)}
                     className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-11 px-6 flex items-center gap-2 disabled:opacity-50"
                   >
                     <Plus size={18} />
@@ -334,7 +345,7 @@ export function TariffConfiguration() {
                                           e.stopPropagation();
                                           handleSetActive(setting.id);
                                         }}
-                                        disabled={setSettingsActiveMutation.isPending || !isAreaBased}
+                                        disabled={setSettingsActiveMutation.isPending || (!isAreaBased && !isFixed)}
                                         className="border-green-300 text-green-700 rounded-lg h-8 px-2 md:px-3 bg-white hover:bg-green-50 inline-flex items-center justify-center gap-1 disabled:opacity-50 whitespace-nowrap min-w-[32px] md:w-[135px]"
                                         title="Set as Active"
                                       >
@@ -361,7 +372,7 @@ export function TariffConfiguration() {
                                         e.stopPropagation();
                                         handleDelete(setting);
                                       }}
-                                      disabled={!isAreaBased}
+                                      disabled={!isAreaBased && !isFixed}
                                       className="border-red-300 text-red-700 rounded-lg h-8 w-8 p-0 bg-white hover:bg-red-50 inline-flex items-center justify-center disabled:opacity-50"
                                       title="Delete"
                                     >
@@ -389,10 +400,8 @@ export function TariffConfiguration() {
               <div className="text-sm text-gray-600">
                 Select <span className="font-medium text-gray-900">Threshold</span> in the Tariff Policy dropdown above to manage slabs.
               </div>
-            ) : isFixed ? (
-              null
             ) : (
-              <ThresholdSlabsSection disabled={!isThreshold} />
+              <ThresholdSlabsSection disabled={!isThreshold && !isFixed} />
             )}
           </>
         )}
@@ -420,6 +429,38 @@ export function TariffConfiguration() {
             mode="edit"
           />
         )}
+
+        {/* Tariff Policy change confirmation */}
+        <Dialog open={policyConfirmOpen} onOpenChange={(open) => { if (!open) { setPolicyConfirmOpen(false); setPendingPolicy(null); } }}>
+          <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold text-gray-900">
+                Change tariff policy
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <p className="text-sm text-gray-600">
+                Set the active tariff policy to <span className="font-medium text-gray-900">{pendingPolicy?.label ?? ''}</span>?
+              </p>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => { setPolicyConfirmOpen(false); setPendingPolicy(null); }}
+                className="border-gray-300 text-gray-700 rounded-lg h-10 px-6 bg-white hover:bg-gray-50"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleConfirmPolicyChange}
+                disabled={activatePolicyMutation.isPending}
+                className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-10 px-6 disabled:opacity-50"
+              >
+                {activatePolicyMutation.isPending ? 'Setting...' : 'Confirm'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Delete Confirmation Dialog */}
         <DeleteConfirmationDialog
