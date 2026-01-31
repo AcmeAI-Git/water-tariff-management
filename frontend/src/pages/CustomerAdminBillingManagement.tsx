@@ -482,7 +482,7 @@ export function CustomerAdminBillingManagement() {
 
         {/* Mark Paid Confirmation Dialog */}
         <Dialog open={isMarkPaidDialogOpen} onOpenChange={setIsMarkPaidDialogOpen}>
-          <DialogContent className="sm:max-w-[500px] bg-white p-4 sm:p-6 w-[calc(100%-2rem)]">
+          <DialogContent className="sm:max-w-[500px] bg-white p-4 sm:p-6 w-[calc(100%-2rem)]" aria-describedby={undefined}>
             <DialogHeader>
               <DialogTitle className="text-lg sm:text-xl font-semibold text-gray-900">Mark Bill as Paid</DialogTitle>
               <DialogDescription className="text-sm text-gray-600">

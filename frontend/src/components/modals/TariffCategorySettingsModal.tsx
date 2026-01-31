@@ -133,7 +133,7 @@ export function TariffCategorySettingsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>
             {mode === 'create' ? 'Create Settings Ruleset' : 'Edit Settings Ruleset'}

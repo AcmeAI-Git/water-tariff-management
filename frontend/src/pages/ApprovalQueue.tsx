@@ -143,6 +143,7 @@ export function ApprovalQueue() {
         return false;
       });
       
+      const userAccount = consumption.userAccount || (consumption as any).account || customer?.account;
       items.push({
         id: `CONSUMPTION-${consumption.id}`,
         module: 'Consumption',
@@ -160,6 +161,7 @@ export function ApprovalQueue() {
         status: 'Pending',
         recordId: consumption.id,
         recordType: 'consumption',
+        account: userAccount ? String(userAccount) : undefined,
         details: `${consumption.billMonth} - ${customerName}`,
         affectedEntity: `Consumption: ${consumption.consumption || 0} m³`,
         oldData: null,
@@ -568,6 +570,23 @@ export function ApprovalQueue() {
         await approveConsumptionMutation.mutateAsync({
           id: request.recordId,
         });
+        // Create water bill for this user from the approved consumption (API: POST /water-bills/user/{account} with { consumptionId })
+        if (request.account) {
+          try {
+            await api.waterBills.create(request.account, request.recordId);
+            toast.success('Consumption approved and bill generated.');
+          } catch (billError) {
+            const msg = billError instanceof Error ? billError.message : String(billError);
+            if (msg.includes('already exists') || msg.includes('Water bill already exists')) {
+              toast.success('Consumption approved. A bill already exists for this reading.');
+            } else {
+              console.error('Consumption approved but bill creation failed:', billError);
+              toast.warning('Consumption approved, but bill could not be generated. You may create the bill manually.');
+            }
+          }
+        } else {
+          toast.warning('Consumption approved, but customer account was missing so no bill was generated.');
+        }
       } else if (request.recordType === 'customer') {
         // Approve customer - update status to Active
         if (!request.account) {
@@ -587,12 +606,14 @@ export function ApprovalQueue() {
           queryClient.refetchQueries({ queryKey: ['zone-scoring'] }),
         ]);
       } else if (request.recordType === 'consumption') {
-        // For consumptions, invalidate consumption queries
+        // For consumptions, invalidate consumption and water-bills
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: ['consumption'], refetchType: 'active' }),
+          queryClient.invalidateQueries({ queryKey: ['water-bills'], refetchType: 'active' }),
         ]);
         await Promise.all([
           queryClient.refetchQueries({ queryKey: ['consumption'] }),
+          queryClient.refetchQueries({ queryKey: ['water-bills'] }),
         ]);
       } else if (request.recordType === 'customer') {
         // For customers, invalidate users queries

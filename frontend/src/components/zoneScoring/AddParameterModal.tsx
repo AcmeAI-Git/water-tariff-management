@@ -67,7 +67,7 @@ export function AddParameterModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg w-full max-w-[calc(100%-2rem)] sm:max-w-4xl max-h-[90vh] flex flex-col p-0 gap-0">
+      <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg w-full max-w-[calc(100%-2rem)] sm:max-w-4xl max-h-[90vh] flex flex-col p-0 gap-0" aria-describedby={undefined}>
         <DialogHeader className="flex-shrink-0 px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4">
           <DialogTitle className="text-lg sm:text-xl font-semibold text-gray-900">
             Add Scoring Parameter

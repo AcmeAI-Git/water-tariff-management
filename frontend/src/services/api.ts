@@ -34,7 +34,6 @@ import type {
   UpdateConsumptionDto,
   ApproveConsumptionDto,
   WaterBill,
-  CreateWaterBillDto,
   UpdateWaterBillDto,
   AuditLog,
   CreateAuditLogDto,
@@ -371,8 +370,9 @@ export const waterBillsApi = {
     return fetchService.get<WaterBill[]>(`/water-bills?userId=${userId}`);
   },
 
-  create: (data: CreateWaterBillDto): Promise<WaterBill> => {
-    return fetchService.post<WaterBill>("/water-bills", data);
+  /** Create a water bill for a user from an approved consumption. API: POST /water-bills/user/{account} with body { consumptionId }. */
+  create: (account: string, consumptionId: number): Promise<WaterBill> => {
+    return fetchService.post<WaterBill>(`/water-bills/user/${encodeURIComponent(account)}`, { consumptionId });
   },
 
   update: (id: number, data: UpdateWaterBillDto): Promise<WaterBill> => {
