@@ -20,6 +20,7 @@ import { ZoneScoringList } from '../pages/ZoneScoringList';
 import { ZoneScoringCreate } from '../pages/ZoneScoringCreate';
 import { ZoneScoringView } from '../pages/ZoneScoringView';
 import { LocationManagement } from '../pages/LocationManagement';
+import TariffMap from '../pages/TariffMap';
 import { ApprovalQueue } from '../pages/ApprovalQueue';
 import { ApprovalHistory } from '../pages/ApprovalHistory';
 import { ProtectedRoute } from "../components/common/ProtectedRoute";
@@ -227,6 +228,14 @@ const RouterIndex = () => {
           element={
             <ProtectedRoute allowedRoles={['tariff-admin']}>
               <LocationManagement />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/tariff-admin/map" 
+          element={
+            <ProtectedRoute allowedRoles={['tariff-admin']}>
+              <TariffMap />
             </ProtectedRoute>
           } 
         />
