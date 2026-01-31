@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import 'leaflet/dist/leaflet.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -56,3 +57,32 @@ label, button, input { font-size: 14px; }
 
 @keyframes slide-in { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 .animate-slide-in { animation: slide-in 0.3s ease-out; }
+
+/* Leaflet: remove focus bounding box on click; tooltips don't leave stray outlines */
+.leaflet-interactive:focus,
+.leaflet-interactive:focus-visible {
+  outline: none !important;
+}
+
+/* Area details popup: animated entrance and full content visible */
+.area-details-popup-wrapper.leaflet-popup .leaflet-popup-content-wrapper {
+  min-width: 200px;
+  max-width: 320px;
+}
+.area-details-popup-wrapper.leaflet-popup .leaflet-popup-content {
+  margin: 14px 18px;
+  width: auto !important;
+}
+.area-details-popup {
+  animation: areaDetailsPopupIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes areaDetailsPopupIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
