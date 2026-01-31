@@ -139,7 +139,14 @@ export function AreaLayer({ geojson, visible, colorBy, selectedAreaKey = null, o
         values.add(v);
       }
     });
-    const uniqueValues = key === "zone_score" ? [] : Array.from(values) as string[];
+    const uniqueValues =
+      key === "zone_score"
+        ? []
+        : (key === "zone_name"
+            ? (Array.from(values) as string[]).sort((a, b) =>
+                String(a).localeCompare(String(b), undefined, { numeric: true })
+              )
+            : (Array.from(values) as string[]));
     const numericRange =
       key === "zone_score" && isFinite(minScore) && isFinite(maxScore)
         ? { min: minScore, max: maxScore }

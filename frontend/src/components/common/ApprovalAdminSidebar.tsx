@@ -1,4 +1,4 @@
-import { FileCheck, History, LogOut } from 'lucide-react';
+import { FileCheck, History, LogOut, Map } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -13,6 +13,7 @@ export function ApprovalAdminSidebar({ activePage, onNavigate }: ApprovalAdminSi
   const qc = useQueryClient();
 
   const routeMap: Record<string, string> = {
+    'tariff-map': '/tariff-admin/map',
     'approval-queue': '/approval-admin/queue',
     'my-history': '/approval-admin/history',
   };
@@ -44,6 +45,7 @@ export function ApprovalAdminSidebar({ activePage, onNavigate }: ApprovalAdminSi
   };
 
   const menuItems = [
+    { id: 'tariff-map', label: 'Tariff Map', icon: Map },
     { id: 'approval-queue', label: 'Approval Queue', icon: FileCheck },
     { id: 'my-history', label: 'My History', icon: History },
   ];

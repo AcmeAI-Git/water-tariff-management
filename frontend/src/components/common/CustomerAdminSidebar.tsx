@@ -1,4 +1,4 @@
-import { Users, BarChart3, LogOut, FileText } from "lucide-react";
+import { Users, BarChart3, LogOut, FileText, Map } from "lucide-react";
 
 interface CustomerAdminSidebarProps {
     activePage: string;
@@ -10,6 +10,11 @@ export function CustomerAdminSidebar({
     onNavigate,
 }: CustomerAdminSidebarProps) {
     const menuItems = [
+        {
+            id: "customer-admin-tariff-map",
+            label: "Tariff Map",
+            icon: Map,
+        },
         {
             id: "customer-admin-customers",
             label: "Customer Management",

@@ -3,6 +3,7 @@ import {
     Users2,
     ClipboardList,
     LogOut,
+    Map,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -18,6 +19,7 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
     const qc = useQueryClient();
 
     const routeMap: Record<string, string> = {
+        "tariff-map": "/tariff-admin/map",
         dashboard: "/admin/dashboard",
         agents: "/admin/agents",
         audit: "/admin/audit",
@@ -50,6 +52,7 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
     };
 
     const menuItems = [
+        { id: "tariff-map", label: "Tariff Map", icon: Map },
         { id: "dashboard", label: "Dashboard", icon: Home },
         { id: "agents", label: "Agent Management", icon: Users2 },
         { id: "audit", label: "System Audit Log", icon: ClipboardList },

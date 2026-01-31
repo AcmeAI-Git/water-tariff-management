@@ -88,6 +88,7 @@ export function RulesetCoverageLayer({ areas, ruleset, zoneScores, visible }: Ru
   return (
     <GeoJSON
       data={featureCollection as GeoJSONType}
+      pathOptions={{ interactive: false }}
       style={(feature) => {
         const props = feature?.properties as {
           covered?: boolean;

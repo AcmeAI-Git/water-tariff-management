@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { MapView } from "../components/map/MapView";
 import { ZoneLayer } from "../components/map/ZoneLayer";
 import { AreaLayer, type ColorByOption, type AreaClickDetails } from "../components/map/AreaLayer";
 import { RulesetCoverageLayer } from "../components/map/RulesetCoverageLayer";
 import { Popup } from "react-leaflet";
-import { Info } from "lucide-react";
 import { Checkbox } from "../components/ui/checkbox";
 import { Label } from "../components/ui/label";
 import {
@@ -25,27 +24,32 @@ import { LoadingSpinner } from "../components/common/LoadingSpinner";
 const GEOJSON_URL = "/data/zones_and_areas_combined.geojson";
 
 const COLOR_BY_OPTIONS: { value: ColorByOption; label: string }[] = [
+  { value: "zone_score", label: "Zone score" },
   { value: "zone_name", label: "Zone" },
   { value: "tax_zone", label: "Tax zone" },
-  { value: "zone_score", label: "Zone score" },
   { value: "thana", label: "Thana" },
   { value: "union", label: "Union" },
   { value: "mauza", label: "Mauza" },
 ];
 
-function isApprovedOrPublished(status: string | undefined): boolean {
+/** Palette for Zone (zone_name) legend - must match AreaLayer ZONE_PALETTE order. */
+const ZONE_PALETTE = [
+  "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7",
+  "#DDA15E", "#6C5CE7", "#A29BFE", "#FD79A8", "#FDCB6E",
+];
+
+/** Only rulesets with status 'active' or 'published' are the current active ruleset (used for zone score map). */
+function isActiveOrPublished(status: string | undefined): boolean {
   if (!status) return false;
   const s = status.toLowerCase();
-  return s === "approved" || s === "published" || s === "active";
+  return s === "active" || s === "published";
 }
 
 export default function TariffMap() {
   const [geojson, setGeojson] = useState<FeatureCollection | null>(null);
   const [zoneLayerOn, setZoneLayerOn] = useState(true);
   const [areaLayerOn, setAreaLayerOn] = useState(true);
-  const [coverageLayerOn, setCoverageLayerOn] = useState(false);
-  const [colorBy, setColorBy] = useState<ColorByOption>("tax_zone");
-  const [rulesetId, setRulesetId] = useState<string>("");
+  const [colorBy, setColorBy] = useState<ColorByOption>("zone_score");
   const [selectedAreaKey, setSelectedAreaKey] = useState<string | null>(null);
   const [selectedAreaDetails, setSelectedAreaDetails] = useState<AreaClickDetails | null>(null);
 
@@ -54,14 +58,8 @@ export default function TariffMap() {
     () => api.zoneScoring.getAll()
   );
   const rulesets = (rulesetsData ?? []) as ZoneScoringRuleSet[];
-  const activeRulesets = rulesets.filter((r) => isApprovedOrPublished(r.status));
-
-  const { data: selectedRulesetData } = useApiQuery<ZoneScoringRuleSet | null>(
-    ["zone-scoring", rulesetId],
-    () => (rulesetId ? api.zoneScoring.getById(parseInt(rulesetId, 10)) : Promise.resolve(null)),
-    { enabled: !!rulesetId }
-  );
-  const selectedRuleset = rulesetId ? (selectedRulesetData as ZoneScoringRuleSet | undefined) ?? null : null;
+  const activeRulesets = rulesets.filter((r) => isActiveOrPublished(r.status));
+  const activeRuleset = colorBy === "zone_score" ? (activeRulesets[0] ?? null) : null;
 
   const { data: areasData } = useApiQuery<Area[]>(
     ["areas"],
@@ -69,17 +67,32 @@ export default function TariffMap() {
   );
   const areas = (areasData ?? []) as Area[];
 
-  // Zone scores from API: only when ruleset coverage layer is on and a ruleset is selected (active rules only in dropdown)
   const { data: zoneScoresData } = useApiQuery<ZoneScore[]>(
     ["zone-scoring-scores"],
     () => api.zoneScoring.getScores(),
-    { enabled: coverageLayerOn && !!rulesetId }
+    { enabled: colorBy === "zone_score" && !!activeRuleset }
   );
   const zoneScores = (zoneScoresData ?? []) as ZoneScore[];
   const zoneScoresForRuleset =
-    rulesetId && coverageLayerOn
-      ? zoneScores.filter((s) => s.ruleSetId === parseInt(rulesetId, 10))
+    colorBy === "zone_score" && activeRuleset
+      ? zoneScores.filter((s) => s.ruleSetId === activeRuleset.id)
       : [];
+
+  const uniqueZoneNames = useMemo(() => {
+    if (!geojson?.features || colorBy !== "zone_name") return [];
+    const seen = new Set<string>();
+    const order: string[] = [];
+    for (const f of geojson.features) {
+      if (f.type !== "Feature" || (f.properties as { type?: string })?.type !== "area") continue;
+      const p = f.properties as { zone_name?: string; zone_no?: string };
+      const v = (p.zone_name ?? p.zone_no ?? "").trim() || "—";
+      if (!seen.has(v)) {
+        seen.add(v);
+        order.push(v);
+      }
+    }
+    return order.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  }, [geojson, colorBy]);
 
   useEffect(() => {
     let cancelled = false;
@@ -123,9 +136,8 @@ export default function TariffMap() {
             </label>
           </div>
 
-          {/* Areas: checkbox + color by */}
+          {/* Show areas + color by */}
           <div className="space-y-3">
-            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Areas</span>
             <label
               htmlFor="layer-area"
               className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2 hover:bg-gray-50"
@@ -137,7 +149,7 @@ export default function TariffMap() {
               />
               <span className="text-sm font-medium text-gray-800">Show areas</span>
             </label>
-            <div className="pl-8">
+            <div>
               <Label className="text-xs text-gray-600">Color by</Label>
               <Select value={colorBy} onValueChange={(v) => setColorBy(v as ColorByOption)}>
                 <SelectTrigger className="mt-1.5 h-9">
@@ -151,99 +163,73 @@ export default function TariffMap() {
                   ))}
                 </SelectContent>
               </Select>
+              {colorBy === "zone_score" && (
+                <p className="mt-2 text-xs text-gray-500">
+                  Shows the currently active ruleset.
+                </p>
+              )}
             </div>
           </div>
 
-          {/* Ruleset coverage: checkbox + ruleset dropdown */}
-          <div className="space-y-3">
-            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Ruleset coverage</span>
-            <label
-              htmlFor="layer-coverage"
-              className={`flex items-center gap-3 rounded-lg px-2 py-2 ${rulesetId ? "cursor-pointer hover:bg-gray-50" : "cursor-not-allowed opacity-70"}`}
-            >
-              <Checkbox
-                id="layer-coverage"
-                checked={coverageLayerOn}
-                onCheckedChange={(c) => setCoverageLayerOn(!!c)}
-                disabled={!rulesetId}
-              />
-              <span className="text-sm font-medium text-gray-800">Show coverage</span>
-            </label>
-            <div className="pl-8">
-              <Label className="text-xs text-gray-600">Applied tariff ruleset</Label>
-              <Select value={rulesetId || "none"} onValueChange={(v) => setRulesetId(v === "none" ? "" : v)}>
-                <SelectTrigger className="mt-1.5 h-9">
-                  <SelectValue placeholder="Select ruleset" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {activeRulesets.length === 0 ? (
-                    <SelectItem value="empty" disabled>No approved/published rulesets</SelectItem>
-                  ) : (
-                    activeRulesets.map((r) => (
-                      <SelectItem key={r.id} value={String(r.id)}>
-                        {r.title ?? `Ruleset #${r.id}`}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-              <p className="mt-1 text-xs text-gray-500">Approved/published only</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex-1 min-h-[400px] rounded-lg border border-gray-200 overflow-hidden bg-gray-100 relative">
-          {/* Legend overlay: top-right, semi-transparent */}
-          {(areaLayerOn && colorBy === "tax_zone") || (coverageLayerOn && rulesetId) ? (
-            <div className="absolute top-3 right-3 z-[1000] flex flex-col gap-3 rounded-lg border border-gray-200/80 bg-white/90 px-3 py-2.5 shadow-md backdrop-blur-sm">
+          {/* Legend in sidebar */}
+          {((areaLayerOn && (colorBy === "zone_name" || colorBy === "tax_zone")) || (colorBy === "zone_score" && activeRuleset)) && (
+            <div className="space-y-3 border-t border-gray-200 pt-4">
+              <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Legend</span>
+              {areaLayerOn && colorBy === "zone_name" && uniqueZoneNames.length > 0 && (
+                <div>
+                  <span className="text-xs font-semibold text-gray-700">Zone</span>
+                  <div className="mt-1.5 flex flex-col gap-1">
+                    {uniqueZoneNames.map((name, i) => (
+                      <div key={name} className="flex items-center gap-2">
+                        <div
+                          className="h-3 w-3 shrink-0 rounded border border-gray-300"
+                          style={{ backgroundColor: ZONE_PALETTE[i % ZONE_PALETTE.length] }}
+                        />
+                        <span className="text-xs text-gray-700 truncate" title={name}>{name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               {areaLayerOn && colorBy === "tax_zone" && (
                 <div>
                   <span className="text-xs font-semibold text-gray-700">Tax zone</span>
                   <div className="mt-1.5 flex flex-col gap-1">
                     <div className="flex items-center gap-2">
-                      <div className="h-3 w-3 rounded border border-[#C92A2A]" style={{ backgroundColor: "#C92A2A" }} />
+                      <div className="h-3 w-3 shrink-0 rounded border border-[#C92A2A]" style={{ backgroundColor: "#C92A2A" }} />
                       <span className="text-xs text-gray-700">High</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="h-3 w-3 rounded border border-[#E67700]" style={{ backgroundColor: "#E67700" }} />
+                      <div className="h-3 w-3 shrink-0 rounded border border-[#E67700]" style={{ backgroundColor: "#E67700" }} />
                       <span className="text-xs text-gray-700">Medium</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="h-3 w-3 rounded border border-[#2B8A3E]" style={{ backgroundColor: "#2B8A3E" }} />
+                      <div className="h-3 w-3 shrink-0 rounded border border-[#2B8A3E]" style={{ backgroundColor: "#2B8A3E" }} />
                       <span className="text-xs text-gray-700">Low</span>
                     </div>
                   </div>
                 </div>
               )}
-              {coverageLayerOn && rulesetId && (
-                <div className={areaLayerOn && colorBy === "tax_zone" ? "border-t border-gray-200 pt-2" : ""}>
+              {colorBy === "zone_score" && activeRuleset && (
+                <div>
                   <span className="text-xs font-semibold text-gray-700">Coverage</span>
                   <div className="mt-1.5 flex flex-col gap-1">
                     <div className="flex items-center gap-2">
-                      <div className="h-3 w-3 rounded border border-[#1B5E20]" style={{ backgroundColor: "rgba(43,138,62,0.6)" }} />
+                      <div className="h-3 w-3 shrink-0 rounded border border-[#1B5E20]" style={{ backgroundColor: "rgba(43,138,62,0.6)" }} />
                       <span className="text-xs text-gray-700">Covered</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="h-3 w-3 rounded border border-[#7F8C8D]" style={{ backgroundColor: "rgba(149,165,166,0.35)" }} />
+                      <div className="h-3 w-3 shrink-0 rounded border border-[#7F8C8D]" style={{ backgroundColor: "rgba(149,165,166,0.35)" }} />
                       <span className="text-xs text-gray-700">Not covered</span>
                     </div>
                   </div>
                 </div>
               )}
             </div>
-          ) : null}
-
-          {/* Zone score note: bottom overlay when "Zone score" is selected */}
-          {colorBy === "zone_score" && (
-            <div className="absolute bottom-3 left-3 right-3 z-[1000] flex items-start gap-2 rounded-lg border border-amber-200/90 bg-amber-50/95 px-3 py-2.5 shadow-md backdrop-blur-sm">
-              <Info className="mt-0.5 size-4 shrink-0 text-amber-600" aria-hidden />
-              <p className="text-xs font-medium leading-snug text-amber-900">
-                Zone scores are only shown when clicking areas defined in an active zone scoring ruleset. Turn on <strong>Ruleset coverage</strong> and select a ruleset to see scores on the map.
-              </p>
-            </div>
           )}
+        </div>
 
+        <div className="flex-1 min-h-[400px] rounded-lg border border-gray-200 overflow-hidden bg-gray-100 relative">
           {!geojson && (
             <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-[1000]">
               <LoadingSpinner />
@@ -323,9 +309,9 @@ export default function TariffMap() {
             )}
             <RulesetCoverageLayer
               areas={areas}
-              ruleset={selectedRuleset}
+              ruleset={activeRuleset}
               zoneScores={zoneScoresForRuleset}
-              visible={coverageLayerOn && !!rulesetId}
+              visible={colorBy === "zone_score" && !!activeRuleset}
             />
           </MapView>
         </div>

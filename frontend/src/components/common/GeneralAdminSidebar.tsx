@@ -2,6 +2,7 @@ import {
     Home,
     Users,
     LogOut,
+    Map,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -17,6 +18,7 @@ export function GeneralAdminSidebar({ activePage, onNavigate }: GeneralAdminSide
     const qc = useQueryClient();
 
     const routeMap: Record<string, string> = {
+        "tariff-map": "/tariff-admin/map",
         dashboard: "/general-admin/dashboard",
         users: "/general-admin/meter-readers",
     };
@@ -48,6 +50,7 @@ export function GeneralAdminSidebar({ activePage, onNavigate }: GeneralAdminSide
     };
 
     const menuItems = [
+        { id: "tariff-map", label: "Tariff Map", icon: Map },
         { id: "dashboard", label: "Dashboard", icon: Home },
         { id: "users", label: "Meter Reader Management", icon: Users },
     ];

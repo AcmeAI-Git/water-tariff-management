@@ -130,7 +130,7 @@ export default function CustomerDashboard() {
   const recentConsumptions = consumptions.slice(-5).reverse(); // Last 5, newest first
 
   if (!userAccount) {
-    navigate('/login', { replace: true });
+    navigate('/customer/login', { replace: true });
     return null;
   }
 

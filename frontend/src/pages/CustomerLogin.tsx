@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -10,10 +10,12 @@ import { ArrowLeft } from 'lucide-react';
 
 export default function CustomerLogin() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [customerName, setCustomerName] = useState('');
   const [identifier, setIdentifier] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const from = (location.state as { from?: { pathname: string } })?.from?.pathname;
 
   const handleLogin = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -27,10 +29,22 @@ export default function CustomerLogin() {
       setLoading(true);
       setError('');
 
-      // Fetch all users
-      const users = await api.users.getAll();
-      if (!Array.isArray(users)) {
-        throw new Error('Failed to fetch customers');
+      // Fetch all users (backend must allow this for unauthenticated customer portal; else 401)
+      let users: User[];
+      try {
+        const raw = await api.users.getAll();
+        users = Array.isArray(raw) ? raw : (raw as any)?.data ?? (raw as any)?.items ?? [];
+      } catch (apiErr: any) {
+        const msg = apiErr?.message || '';
+        if (msg.includes('401') || msg.toLowerCase().includes('unauthorized')) {
+          throw new Error(
+            'Customer portal could not verify your details. If this keeps happening, contact your administrator—the customer portal may need to be enabled on the server.'
+          );
+        }
+        throw apiErr;
+      }
+      if (!Array.isArray(users) || users.length === 0) {
+        throw new Error('Failed to load customer list. Please try again.');
       }
 
       // Find customer by name (case-insensitive) and identifier (meter ID or inspection code)
@@ -79,7 +93,7 @@ export default function CustomerLogin() {
       localStorage.setItem('isCustomerAuthenticated', 'true');
 
       toast.success(`Welcome, ${customerUser.fullName || customerUser.name}!`);
-      navigate('/customer/dashboard', { replace: true });
+      navigate(from && from.startsWith('/customer/') ? from : '/customer/dashboard', { replace: true });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Login failed. Please try again.';
       setError(errorMessage);
