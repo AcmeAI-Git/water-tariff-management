@@ -9,6 +9,7 @@ import { api } from '../services/api';
 import { useApiQuery, useApiMutation, useAdminId } from '../hooks/useApiQuery';
 import { mapUserToCustomer, type DisplayCustomer } from '../utils/dataMappers';
 import type { Meter, CreateUserDto } from '../types';
+import { CUSTOMER_CATEGORIES } from '../types';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { toast } from 'sonner';
 import { CustomerMeterModal } from '../components/modals/CustomerMeterModal';
@@ -211,9 +212,10 @@ export function CustomerAdminCustomerManagement() {
     return Array.from(types).sort();
   }, [customers]);
 
+  // Use canonical categories; include any extra from data for backward compat
   const uniqueCustomerCategories = useMemo(() => {
-    const categories = new Set(customers.map(c => c.customerCategory).filter((cat): cat is string => Boolean(cat)));
-    return Array.from(categories).sort();
+    const fromData = new Set(customers.map(c => c.customerCategory).filter((cat): cat is string => Boolean(cat)));
+    return Array.from(new Set([...CUSTOMER_CATEGORIES, ...fromData])).sort();
   }, [customers]);
 
   const uniqueWaterStatuses = useMemo(() => {
@@ -253,9 +255,9 @@ export function CustomerAdminCustomerManagement() {
     }
   );
 
-  // Update user mutation
+  // Update user mutation (id can be numeric id or account UUID)
   const updateMutation = useApiMutation(
-    ({ id, data }: { id: number; data: Parameters<typeof api.users.update>[1] }) =>
+    ({ id, data }: { id: number | string; data: Parameters<typeof api.users.update>[1] }) =>
       api.users.update(id, data),
     {
       successMessage: 'Customer updated successfully',
@@ -264,9 +266,9 @@ export function CustomerAdminCustomerManagement() {
     }
   );
 
-  // Delete user mutation
+  // Delete user mutation (id can be numeric id or account UUID)
   const deleteMutation = useApiMutation(
-    (id: number) => api.users.delete(id),
+    (id: number | string) => api.users.delete(id),
     {
       successMessage: 'Customer deleted successfully',
       errorMessage: 'Failed to delete customer',
@@ -571,7 +573,7 @@ export function CustomerAdminCustomerManagement() {
           ...(meterData && { meter: meterData }),
         } as any, // Type assertion - backend API accepts these fields but types are outdated
       });
-      
+
       setIsEditDialogOpen(false);
       setSelectedCustomer(null);
     } catch (error) {
@@ -960,9 +962,10 @@ export function CustomerAdminCustomerManagement() {
                   <Dropdown
                     options={[
                       { value: 'all', label: 'All Status' },
+                      { value: 'pending', label: 'Pending' },
                       { value: 'active', label: 'Active' },
-                      { value: 'inactive', label: 'Inactive' },
-                      { value: 'pending', label: 'Pending' }
+                      { value: 'rejected', label: 'Rejected' },
+                      { value: 'inactive', label: 'Inactive' }
                     ]}
                     value={statusFilter}
                     onChange={setStatusFilter}
@@ -1314,17 +1317,25 @@ export function CustomerAdminCustomerManagement() {
                         <TableCell className="text-center">
                           <div className="flex items-center justify-center gap-3">
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              customer.status?.toLowerCase() === 'active' 
-                                ? 'bg-green-100 text-green-800' 
-                                : customer.status?.toLowerCase() === 'inactive'
+                              customer.status?.toLowerCase() === 'active'
+                                ? 'bg-green-100 text-green-800'
+                                : customer.status?.toLowerCase() === 'pending'
+                                ? 'bg-amber-100 text-amber-800'
+                                : customer.status?.toLowerCase() === 'rejected'
                                 ? 'bg-red-100 text-red-800'
-                                : 'bg-yellow-100 text-yellow-800'
+                                : customer.status?.toLowerCase() === 'inactive'
+                                ? 'bg-gray-100 text-gray-700'
+                                : customer.status?.toLowerCase() === 'draft'
+                                ? 'bg-gray-100 text-gray-600'
+                                : 'bg-gray-100 text-gray-600'
                             }`}>
-                              {customer.status ? customer.status.charAt(0).toUpperCase() + customer.status.slice(1) : '-'}
+                              {customer.status
+                                ? (customer.status.charAt(0).toUpperCase() + customer.status.slice(1).toLowerCase())
+                                : '-'}
                             </span>
                             <div className="flex items-center gap-2">
-                              <Button 
-                                variant="outline" 
+                              <Button
+                                variant="outline"
                                 size="sm"
                                 onClick={() => handleEditClick(customer)}
                                 className="border-gray-300 text-gray-700 rounded-lg h-8 w-8 p-0 bg-white hover:bg-gray-50 flex items-center justify-center"
@@ -1332,8 +1343,8 @@ export function CustomerAdminCustomerManagement() {
                               >
                                 <Edit size={14} />
                               </Button>
-                              <Button 
-                                variant="outline" 
+                              <Button
+                                variant="outline"
                                 size="sm"
                                 onClick={() => handleDeleteClick(customer)}
                                 className="border-red-300 text-red-600 rounded-lg h-8 w-8 p-0 bg-white hover:bg-red-50 flex items-center justify-center"

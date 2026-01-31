@@ -78,20 +78,6 @@ export function ApprovalHistory() {
     });
   }, [allConsumptions, adminId]);
 
-  // Filter customers that were approved/rejected by current admin
-  // Note: Customer approval might be tracked differently - checking for status changes
-  // Currently unused but kept for potential future use
-  // const reviewedCustomers = useMemo(() => {
-  //   if (!adminId) return [];
-  //   // For now, we'll check if there's an approval mechanism for customers
-  //   // This might need to be adjusted based on actual backend implementation
-  //   return (allUsers as User[]).filter((user: User) => {
-  //     const userData = user as any;
-  //     // Check if user has been reviewed (has activeStatus changed from pending)
-  //     // This is a placeholder - actual implementation depends on backend
-  //     return false; // Disable for now until we know how customer approval is tracked
-  //   });
-  // }, [allUsers, adminId]);
 
   // Filter to show only reviewed rulesets (approved, rejected, published, active)
   // Note: 'published' and 'active' are considered approved states

@@ -73,11 +73,16 @@ export function CustomerAdminSubmissionHistory() {
       const createdById = userData.createdBy || userData.created_by;
       const creator = createdById ? (admins as Admin[]).find((a) => a.id === createdById) : null;
       
-      // Get status
-      const status = user.status?.toLowerCase() === 'active' ? 'Active' : 
-                     user.status?.toLowerCase() === 'inactive' ? 'Inactive' : 
-                     (userData.activeStatus?.toLowerCase() === 'active' ? 'Active' :
-                      userData.activeStatus?.toLowerCase() === 'inactive' ? 'Inactive' : 'Active');
+      // Get status: prefer new approvalStatus (Pending, Success, Reject), then legacy activeStatus/status
+      const rawApproval = userData.approvalStatus ?? userData.activeStatus ?? userData.status ?? user.status;
+      const rawStr = typeof rawApproval === 'string' ? rawApproval : (typeof rawApproval === 'object' && rawApproval !== null ? (rawApproval as { statusName?: string; name?: string }).statusName ?? (rawApproval as { statusName?: string; name?: string }).name : '');
+      const lower = (rawStr && String(rawStr).toLowerCase()) || '';
+      const status =
+        lower === 'pending' ? 'Pending' :
+        lower === 'success' ? 'Active' :
+        lower === 'reject' ? 'Rejected' :
+        lower === 'active' ? 'Active' :
+        lower === 'inactive' ? 'Inactive' : 'Pending';
       
       return {
         id: customerId,
@@ -159,9 +164,21 @@ export function CustomerAdminSubmissionHistory() {
             Active
           </Badge>
         );
-      case 'Inactive':
+      case 'Pending':
+        return (
+          <Badge className="bg-amber-50 text-amber-700 border-amber-200">
+            Pending
+          </Badge>
+        );
+      case 'Rejected':
         return (
           <Badge className="bg-red-50 text-red-700 border-red-200">
+            Rejected
+          </Badge>
+        );
+      case 'Inactive':
+        return (
+          <Badge className="bg-gray-50 text-gray-600 border-gray-200">
             Inactive
           </Badge>
         );
@@ -182,7 +199,9 @@ export function CustomerAdminSubmissionHistory() {
     );
   }
 
+  const pendingCount = filteredSubmissions.filter(s => s.status === 'Pending').length;
   const activeCount = filteredSubmissions.filter(s => s.status === 'Active').length;
+  const rejectedCount = filteredSubmissions.filter(s => s.status === 'Rejected').length;
   const inactiveCount = filteredSubmissions.filter(s => s.status === 'Inactive').length;
   const totalCount = filteredSubmissions.length;
 
@@ -203,14 +222,28 @@ export function CustomerAdminSubmissionHistory() {
               </div>
               <span className="text-gray-300 hidden sm:inline">|</span>
               <div className="flex items-center gap-2">
+                <span className="text-gray-600">Pending:</span>
+                <span className="font-semibold text-amber-600">{pendingCount}</span>
+              </div>
+              <span className="text-gray-300 hidden sm:inline">|</span>
+              <div className="flex items-center gap-2">
                 <span className="text-gray-600">Active:</span>
                 <span className="font-semibold text-green-600">{activeCount}</span>
               </div>
               <span className="text-gray-300 hidden sm:inline">|</span>
               <div className="flex items-center gap-2">
-                <span className="text-gray-600">Inactive:</span>
-                <span className="font-semibold text-red-600">{inactiveCount}</span>
+                <span className="text-gray-600">Rejected:</span>
+                <span className="font-semibold text-red-600">{rejectedCount}</span>
               </div>
+              {inactiveCount > 0 && (
+                <>
+                  <span className="text-gray-300 hidden sm:inline">|</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600">Inactive:</span>
+                    <span className="font-semibold text-gray-600">{inactiveCount}</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -234,7 +267,9 @@ export function CustomerAdminSubmissionHistory() {
             <Dropdown
               options={[
                 { value: 'all', label: 'All Status' },
+                { value: 'Pending', label: 'Pending' },
                 { value: 'Active', label: 'Active' },
+                { value: 'Rejected', label: 'Rejected' },
                 { value: 'Inactive', label: 'Inactive' }
               ]}
               value={statusFilter}

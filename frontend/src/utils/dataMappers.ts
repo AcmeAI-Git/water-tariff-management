@@ -12,7 +12,8 @@ export interface DisplayAdmin {
 }
 
 export interface DisplayCustomer {
-  id: number;
+  id: number | string; // can be numeric id or account UUID
+  account?: string; // account UUID for status/approval API
   name: string;
   address: string;
   inspCode?: number;
@@ -83,14 +84,18 @@ export function mapUserToCustomer(user: User): DisplayCustomer {
   const userId = (user as any).account || user.id;
   const userData = user as any;
   
-  // Get status - check multiple possible field names
-  // Note: New API structure might not include status field
-  // Since customers register directly without approval, default to 'active' if status is missing
-  const rawStatus = userData.activeStatus || userData.status || user.status;
-  
-  // If status exists, use it (normalize to lowercase)
-  // If status doesn't exist, default to 'active' (customers register directly as active now)
-  const status = rawStatus ? String(rawStatus).toLowerCase() : 'active';
+  // Backend: "status" = approval (Draft/Pending/Success/Reject), "activeStatus" = Active/Inactive.
+  // Check approval status first so Reject shows as Rejected and Success as Active; then activeStatus.
+  const activeLower = (userData.activeStatus && String(userData.activeStatus).toLowerCase()) || '';
+  const rawStatus = userData.approvalStatus ?? userData.status ?? user.status;
+  const rawStr = typeof rawStatus === 'string' ? rawStatus : (typeof rawStatus === 'object' && rawStatus !== null ? (rawStatus as { statusName?: string; name?: string }).statusName ?? (rawStatus as { statusName?: string; name?: string }).name : '');
+  const lower = (rawStr && String(rawStr).toLowerCase()) || '';
+  const status =
+    lower === 'reject' ? 'rejected' :
+    lower === 'success' ? 'active' :
+    activeLower === 'active' ? 'active' :
+    activeLower === 'inactive' ? 'inactive' :
+    lower === 'pending' || lower === 'draft' ? 'pending' : 'pending';
   
   // Extract meter data from nested meter object or direct fields
   const meterData = userData.meter || {};
@@ -101,6 +106,7 @@ export function mapUserToCustomer(user: User): DisplayCustomer {
 
   return {
     id: userId,
+    account: (user as any).account ?? (typeof userId === 'string' ? userId : undefined),
     name: userData.name || user.fullName || '',
     address: user.address || '',
     inspCode: userData.inspCode,

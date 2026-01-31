@@ -4,7 +4,8 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Dropdown } from '../ui/Dropdown';
 import { useState, useEffect } from 'react';
-import type { TariffCategory, CreateTariffCategoryDto, UpdateTariffCategoryDto, TariffCategorySettings } from '../../types';
+import type { TariffCategory, CreateTariffCategoryDto, UpdateTariffCategoryDto, TariffCategorySettings, CustomerCategory } from '../../types';
+import { CUSTOMER_CATEGORIES } from '../../types';
 
 interface TariffCategoryModalProps {
   isOpen: boolean;
@@ -29,7 +30,7 @@ export function TariffCategoryModal({
 }: TariffCategoryModalProps) {
   const [formData, setFormData] = useState({
     slNo: '',
-    category: 'Domestic' as 'Domestic' | 'Commercial' | 'Industrial' | 'Government' | 'Community',
+    category: 'Domestic' as CustomerCategory,
     name: '',
     lowerRange: '',
     upperRange: '',
@@ -132,15 +133,9 @@ export function TariffCategoryModal({
                   Category *
                 </Label>
                 <Dropdown
-                  options={[
-                    { value: 'Domestic', label: 'Domestic' },
-                    { value: 'Commercial', label: 'Commercial' },
-                    { value: 'Industrial', label: 'Industrial' },
-                    { value: 'Government', label: 'Government' },
-                    { value: 'Community', label: 'Community' },
-                  ]}
+                  options={CUSTOMER_CATEGORIES.map(c => ({ value: c, label: c }))}
                   value={formData.category}
-                  onChange={(value) => handleInputChange('category', value as typeof formData.category)}
+                  onChange={(value) => handleInputChange('category', value as CustomerCategory)}
                   placeholder="Select category"
                   className="bg-gray-50 border-gray-300"
                 />

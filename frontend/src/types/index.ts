@@ -1,3 +1,7 @@
+// Customer categories (backend enum CustomerCategory)
+export const CUSTOMER_CATEGORIES = ['Domestic', 'Commercial/Industrial', 'Government/Community'] as const;
+export type CustomerCategory = (typeof CUSTOMER_CATEGORIES)[number];
+
 // API Response Types
 export interface ApiResponse<T> {
   status: 'success' | 'error';
@@ -111,8 +115,14 @@ export interface UpdateUserDto {
   meter?: UpdateUserMeterDto; // Optional nested meter object for updates
 }
 
+/** Customer approval status from backend (ApprovalStatus enum). Draft not used in flow. */
+export type CustomerApprovalStatus = 'Draft' | 'Pending' | 'Success' | 'Reject';
+
 export interface UpdateUserStatusDto {
-  activeStatus: 'Active' | 'Inactive';
+  /** Legacy: may still be used by backend for Active/Inactive */
+  activeStatus?: 'Active' | 'Inactive';
+  /** New: approval workflow status. Use Success = approved, Reject = rejected. */
+  approvalStatus?: CustomerApprovalStatus;
 }
 
 // Role Types
@@ -576,11 +586,11 @@ export interface UpdateMeterDto {
   meterInstallationDate?: string;
 }
 
-// Tariff Category Types
+// Tariff Category Types (category aligns with CustomerCategory)
 export interface TariffCategory {
   id: number;
   slNo: number;
-  category: 'Domestic' | 'Commercial' | 'Industrial' | 'Government' | 'Community';
+  category: CustomerCategory;
   name: string;
   lowerRange?: number;
   upperRange?: number;
@@ -596,7 +606,7 @@ export interface TariffCategory {
 
 export interface CreateTariffCategoryDto {
   slNo: number;
-  category: 'Domestic' | 'Commercial' | 'Industrial' | 'Government' | 'Community';
+  category: CustomerCategory;
   name: string;
   lowerRange?: number;
   upperRange?: number;
@@ -608,7 +618,7 @@ export interface CreateTariffCategoryDto {
 
 export interface UpdateTariffCategoryDto {
   slNo?: number;
-  category?: 'Domestic' | 'Commercial' | 'Industrial' | 'Government' | 'Community';
+  category?: CustomerCategory;
   name?: string;
   lowerRange?: number;
   upperRange?: number;

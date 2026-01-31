@@ -112,20 +112,36 @@ export const usersApi = {
     return fetchService.post<User>("/users", data);
   },
 
-  update: (id: number, data: UpdateUserDto): Promise<User> => {
-    return fetchService.put<User>(`/users/${id}`, data);
+  update: (idOrAccount: number | string, data: UpdateUserDto): Promise<User> => {
+    return fetchService.put<User>(`/users/${idOrAccount}`, data);
   },
 
-  delete: (id: number): Promise<void> => {
-    return fetchService.delete<void>(`/users/${id}`);
+  delete: (idOrAccount: number | string): Promise<void> => {
+    return fetchService.delete<void>(`/users/${idOrAccount}`);
   },
 
   activate: (id: number): Promise<User> => {
     return fetchService.put<User>(`/users/${id}/activate`, {});
   },
 
+  /** Update activeStatus only (Active/Inactive). */
   updateStatus: (account: string, activeStatus: 'Active' | 'Inactive'): Promise<User> => {
     return fetchService.put<User>(`/users/${account}/status`, { activeStatus });
+  },
+
+  /** PATCH submit for approval: Draft → Pending (backend: PATCH /users/:account/approval). Required before approve/reject if user is Draft. */
+  submitForApproval: (account: string): Promise<User> => {
+    return fetchService.patch<User>(`/users/${account}/approval`, {});
+  },
+
+  /** PATCH approve: sets approval status to Success (backend: PATCH /users/:account/approve). User must be Pending (call submitForApproval first if Draft). */
+  approve: (account: string): Promise<User> => {
+    return fetchService.patch<User>(`/users/${account}/approve`, {});
+  },
+
+  /** PATCH reject: sets approval status to Reject (backend: PATCH /users/:account/reject). User must be Pending (call submitForApproval first if Draft). */
+  reject: (account: string): Promise<User> => {
+    return fetchService.patch<User>(`/users/${account}/reject`, {});
   },
 };
 

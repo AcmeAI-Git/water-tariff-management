@@ -218,19 +218,17 @@ export function TariffCategoriesTab({ settingsId }: TariffCategoriesTabProps) {
       return matchesSearch && matchesType;
     });
 
-    // Group by category type
+    // Group by category type (Domestic, Commercial/Industrial, Government/Community)
     const grouped: Record<string, TariffCategory[]> = {
       Domestic: [],
-      Commercial: [],
-      Industrial: [],
-      Government: [],
-      Community: [],
+      'Commercial/Industrial': [],
+      'Government/Community': [],
     };
 
     filtered.forEach(cat => {
-      if (grouped[cat.category]) {
-        grouped[cat.category].push(cat);
-      }
+      const key = cat.category;
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(cat);
     });
 
     // Sort Domestic categories by range to show tier structure
@@ -273,7 +271,7 @@ export function TariffCategoriesTab({ settingsId }: TariffCategoriesTabProps) {
     );
   }
 
-  const categoryTypes = ['all', 'Domestic', 'Commercial', 'Industrial', 'Government', 'Community'];
+  const categoryTypes = ['all', 'Domestic', 'Commercial/Industrial', 'Government/Community'];
 
   const totalCount = getTotalCategoryCount();
 

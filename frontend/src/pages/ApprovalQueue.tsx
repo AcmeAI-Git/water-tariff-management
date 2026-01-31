@@ -30,8 +30,6 @@ interface ApprovalQueueItem {
 export function ApprovalQueue() {
   const [selectedRequest, setSelectedRequest] = useState<ApprovalQueueItem | null>(null);
   const [isLoadingRecordData, setIsLoadingRecordData] = useState(false);
-  /** Tracks customer accounts rejected this session so they disappear from queue (backend only has Active/Inactive) */
-  const [_rejectedCustomerAccounts, _setRejectedCustomerAccounts] = useState<Set<string>>(new Set());
   const adminId = useAdminId();
   const queryClient = useQueryClient();
 
@@ -58,7 +56,7 @@ export function ApprovalQueue() {
     );
   }, [zoneScoringData]);
 
-  // Fetch inactive customers (users with Inactive status)
+  // Fetch all users; queue shows those with Pending approval status
   const { data: allUsers = [], isLoading: usersLoading } = useApiQuery<User[]>(
     ['users'],
     () => api.users.getAll()
@@ -81,11 +79,16 @@ export function ApprovalQueue() {
     () => api.meters.getAll()
   );
 
-  const inactiveCustomers = useMemo(() => {
+  // Customers awaiting approval: backend "Draft" (or Pending), exclude already approved (activeStatus Active)
+  const pendingCustomers = useMemo(() => {
     return (allUsers as User[]).filter((user: User) => {
       const userData = user as any;
-      const status = userData.activeStatus || userData.status || user.status;
-      return status && typeof status === 'string' && status.toLowerCase() === 'inactive';
+      const activeLower = (userData.activeStatus && String(userData.activeStatus).toLowerCase()) || '';
+      if (activeLower === 'active') return false; // already approved
+      const status = userData.approvalStatus ?? userData.status ?? user.status;
+      const s = status && typeof status === 'string' ? status : (typeof status === 'object' && status !== null ? (status as { statusName?: string; name?: string }).statusName ?? (status as { statusName?: string; name?: string }).name : '');
+      const lower = s ? String(s).toLowerCase() : '';
+      return lower === 'pending' || lower === 'draft';
     });
   }, [allUsers]);
 
@@ -222,8 +225,8 @@ export function ApprovalQueue() {
       });
     });
 
-    // Add inactive customers
-    inactiveCustomers.forEach((user: User) => {
+    // Add pending customers (approval status Pending)
+    pendingCustomers.forEach((user: User) => {
       const userData = user as any;
       const customerAccount = userData.account || user.id;
       const customer = mapUserToCustomer(user);
@@ -286,7 +289,7 @@ export function ApprovalQueue() {
               minute: '2-digit',
               second: '2-digit',
             }),
-        status: 'Inactive',
+        status: 'Pending',
         recordId: typeof customerAccount === 'string' ? 0 : customerAccount, // Use 0 for UUID, actual ID for number
         recordType: 'customer',
         account: typeof customerAccount === 'string' ? customerAccount : undefined,
@@ -317,7 +320,7 @@ export function ApprovalQueue() {
       const dateB = b.request === 'N/A' ? 0 : new Date(b.request).getTime();
       return dateB - dateA;
     });
-  }, [pendingConsumptions, pendingZoneScoringRulesets, inactiveCustomers, admins, allAreas, allZones, allMeters]);
+  }, [pendingConsumptions, pendingZoneScoringRulesets, pendingCustomers, admins, allAreas, allZones, allMeters]);
 
   // Approve consumption mutation
   const approveConsumptionMutation = useApiMutation(
@@ -588,11 +591,16 @@ export function ApprovalQueue() {
           toast.warning('Consumption approved, but customer account was missing so no bill was generated.');
         }
       } else if (request.recordType === 'customer') {
-        // Approve customer - update status to Active
         if (!request.account) {
           throw new Error('Customer account UUID not found');
         }
-        await api.users.updateStatus(request.account, 'Active');
+        // Backend approve/reject only work when status is Pending; new customers are Draft → submit first
+        try {
+          await api.users.submitForApproval(request.account);
+        } catch (_) {
+          // Already Pending or other; continue to approve
+        }
+        await api.users.approve(request.account);
         toast.success('Customer approved successfully');
       }
       
@@ -662,11 +670,16 @@ export function ApprovalQueue() {
           id: recordId,
         });
       } else if (recordType === 'customer') {
-        // Reject customer - ensure status remains Inactive (or explicitly set to Inactive)
         if (!requestToReject.account) {
           throw new Error('Customer account UUID not found');
         }
-        await api.users.updateStatus(requestToReject.account, 'Inactive');
+        // Backend reject only works when status is Pending; new customers are Draft → submit first
+        try {
+          await api.users.submitForApproval(requestToReject.account);
+        } catch (_) {
+          // Already Pending or other; continue to reject
+        }
+        await api.users.reject(requestToReject.account);
         toast.success('Customer rejected');
       }
       
