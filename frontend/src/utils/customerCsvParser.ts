@@ -211,7 +211,7 @@ export async function parseCustomerCSV(
         rowErrors.push(`Row ${i + 1}: Invalid accountType "${accountType}". Must be one of: ${validAccountTypes.join(', ')}`);
       }
 
-      const validCustomerCategories = ['Domestic', 'Commercial', 'Industrial', 'Government', 'Community'];
+      const validCustomerCategories = ['Domestic', 'Commercial/Industrial', 'Government/Community'];
       if (!validCustomerCategories.includes(customerCategory)) {
         rowErrors.push(`Row ${i + 1}: Invalid customerCategory "${customerCategory}". Must be one of: ${validCustomerCategories.join(', ')}`);
       }
@@ -346,7 +346,7 @@ export function generateCustomerCSVTemplate(areas: Area[]): string {
     exampleArea ? exampleArea.name : 'Banani Block C',
     exampleArea ? exampleArea.id.toString() : '7',
     'General',
-    'Domestic',
+    'Domestic', // One of: Domestic, Commercial/Industrial, Government/Community
     'Metered',
     'Connected',
     '1200.50',

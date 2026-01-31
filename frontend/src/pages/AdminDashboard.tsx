@@ -140,12 +140,12 @@ export default function AdminDashboard() {
         return { paid, unpaid, overdue, total, collectionRate, avgBillAmount };
     }, [waterBills]);
 
-    // Calculate active vs inactive users
+    // Calculate active vs inactive users (Success = approved = active)
     const userStats = useMemo(() => {
         const active = users.filter(user => {
-            // Check both activeStatus (from API) and status (from User type)
-            const status = (user as any).activeStatus || user.status || '';
-            return status.toLowerCase() === 'active';
+            const u = user as any;
+            const status = (u.approvalStatus ?? u.activeStatus ?? user.status ?? '').toString().toLowerCase();
+            return status === 'active' || status === 'success';
         }).length;
         const inactive = users.length - active;
         const activePercentage = users.length > 0 ? ((active / users.length) * 100).toFixed(1) : '0';

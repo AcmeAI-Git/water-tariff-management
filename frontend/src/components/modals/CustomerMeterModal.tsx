@@ -211,10 +211,8 @@ export function CustomerMeterModal({
                 <Dropdown
                   options={[
                     { value: 'Domestic', label: 'Domestic' },
-                    { value: 'Commercial', label: 'Commercial' },
-                    { value: 'Industrial', label: 'Industrial' },
-                    { value: 'Government', label: 'Government' },
-                    { value: 'Community', label: 'Community' }
+                    { value: 'Commercial/Industrial', label: 'Commercial/Industrial' },
+                    { value: 'Government/Community', label: 'Government/Community' }
                   ]}
                   value={formData.customerCategory}
                   onChange={(value) => handleInputChange('customerCategory', value)}

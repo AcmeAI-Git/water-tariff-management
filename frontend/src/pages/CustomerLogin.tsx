@@ -71,7 +71,7 @@ export default function CustomerLogin() {
         installDate: matchingCustomer.installDate || '',
         zoneId: matchingCustomer.zoneId || 0,
         wardId: matchingCustomer.wardId || 0,
-        status: matchingCustomer.status || (matchingCustomer as any).activeStatus || 'Active',
+        status: (matchingCustomer as any).approvalStatus ?? matchingCustomer.status ?? (matchingCustomer as any).activeStatus ?? 'Active',
       };
 
       // Store authenticated customer user
