@@ -432,7 +432,7 @@ export function TariffConfiguration() {
 
         {/* Tariff Policy change confirmation */}
         <Dialog open={policyConfirmOpen} onOpenChange={(open) => { if (!open) { setPolicyConfirmOpen(false); setPendingPolicy(null); } }}>
-          <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-md">
+          <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-md" aria-describedby={undefined}>
             <DialogHeader>
               <DialogTitle className="text-xl font-semibold text-gray-900">
                 Change tariff policy

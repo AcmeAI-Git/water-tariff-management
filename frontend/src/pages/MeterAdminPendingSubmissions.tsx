@@ -21,6 +21,12 @@ export function MeterAdminPendingSubmissions() {
     () => api.users.getAll()
   );
 
+  // Fetch all meters to get meter numbers (users API may not include meterNo)
+  const { data: meters = [], isLoading: metersLoading } = useApiQuery(
+    ['meters'],
+    () => api.meters.getAll()
+  );
+
   // Filter consumptions created by current meter admin and ensure they are pending
   const myConsumptions = useMemo(() => {
     if (!adminId) return [];
@@ -62,7 +68,7 @@ export function MeterAdminPendingSubmissions() {
       // Find user by userAccount (UUID) or userId (number) - handle both for compatibility
       const userAccount = (consumption as any).userAccount || (consumption as any).account;
       const userId = consumption.userId;
-      
+
       const user = users.find((u) => {
         // Match by account UUID string
         if (userAccount && u.account) {
@@ -74,31 +80,45 @@ export function MeterAdminPendingSubmissions() {
         }
         return false;
       });
-      
+
+      // Get meter number from user or from meters table (users API may not include meterNo)
+      let meterNo = user?.meterNo ?? '';
+      if (!meterNo && user) {
+        const accountForMeter = user.account || userAccount;
+        const userMeter = (meters as { account?: string; userAccount?: string; user_account?: string; meterNo?: number | string }[]).find((m) => {
+          const meterAccount = m.account || m.userAccount || m.user_account;
+          return meterAccount && accountForMeter && String(meterAccount) === String(accountForMeter);
+        });
+        if (userMeter?.meterNo != null) {
+          meterNo = typeof userMeter.meterNo === 'number' ? String(userMeter.meterNo) : String(userMeter.meterNo);
+        }
+      }
+      if (!meterNo) meterNo = 'N/A';
+
       const billMonthDate = new Date(consumption.billMonth);
       // Ensure currentReading is a number before calling toFixed
-      const currentReading = typeof consumption.currentReading === 'number' 
-        ? consumption.currentReading 
+      const currentReading = typeof consumption.currentReading === 'number'
+        ? consumption.currentReading
         : Number(consumption.currentReading) || 0;
-      
+
       // Get approval status
-      const approvalStatus = consumption.approvalStatus 
+      const approvalStatus = consumption.approvalStatus
         ? ((consumption.approvalStatus as any)?.statusName || (consumption.approvalStatus as any)?.name || 'Pending')
         : 'Pending';
-      
+
       return {
         id: consumption.id,
         householdName: user?.fullName || user?.name || 'Unknown',
-        meterNo: user?.meterNo || 'N/A',
+        meterNo,
         reading: currentReading.toFixed(2),
         month: billMonthDate.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit' }),
         status: approvalStatus,
         createdAt: consumption.createdAt ? new Date(consumption.createdAt).toLocaleString('en-US') : 'N/A',
       };
     });
-  }, [myConsumptions, users]);
+  }, [myConsumptions, users, meters]);
 
-  if (consumptionsLoading || usersLoading) {
+  if (consumptionsLoading || usersLoading || metersLoading) {
     return (
       <div className="min-h-screen bg-app flex items-center justify-center">
         <LoadingSpinner />

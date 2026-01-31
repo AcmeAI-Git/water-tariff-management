@@ -524,7 +524,7 @@ export function ThresholdSlabsSection({ disabled = false }: ThresholdSlabsSectio
 
       {/* Create Modal */}
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px]" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Create Threshold Slab</DialogTitle>
             <DialogDescription>
@@ -631,7 +631,7 @@ export function ThresholdSlabsSection({ disabled = false }: ThresholdSlabsSectio
 
       {/* Edit Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px]" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Edit Threshold Slab</DialogTitle>
             <DialogDescription>

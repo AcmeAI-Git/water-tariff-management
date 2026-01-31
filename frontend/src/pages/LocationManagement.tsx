@@ -779,7 +779,7 @@ export function LocationManagement() {
 
             {/* Create WASA Modal */}
             <Dialog open={isWasaCreateModalOpen} onOpenChange={setIsWasaCreateModalOpen}>
-              <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-2xl max-h-[90vh] flex flex-col overflow-hidden p-4 sm:p-6">
+              <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-2xl max-h-[90vh] flex flex-col overflow-hidden p-4 sm:p-6" aria-describedby={undefined}>
                 <DialogHeader className="shrink-0">
                   <DialogTitle className="text-lg sm:text-xl font-semibold text-gray-900">Add New WASA</DialogTitle>
                   <DialogDescription className="text-sm text-gray-600">
@@ -850,7 +850,7 @@ export function LocationManagement() {
 
             {/* Edit WASA Modal */}
             <Dialog open={isWasaEditModalOpen} onOpenChange={setIsWasaEditModalOpen}>
-              <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-2xl max-h-[90vh] flex flex-col overflow-hidden p-4 sm:p-6">
+              <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-2xl max-h-[90vh] flex flex-col overflow-hidden p-4 sm:p-6" aria-describedby={undefined}>
                 <DialogHeader className="shrink-0">
                   <DialogTitle className="text-lg sm:text-xl font-semibold text-gray-900">Edit WASA</DialogTitle>
                   <DialogDescription className="text-sm text-gray-600">
@@ -1047,7 +1047,7 @@ export function LocationManagement() {
 
             {/* Create Zone Modal */}
             <Dialog open={isZoneCreateModalOpen} onOpenChange={setIsZoneCreateModalOpen}>
-              <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-2xl max-h-[90vh] flex flex-col overflow-hidden p-4 sm:p-6">
+              <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-2xl max-h-[90vh] flex flex-col overflow-hidden p-4 sm:p-6" aria-describedby={undefined}>
                 <DialogHeader className="shrink-0">
                   <DialogTitle className="text-lg sm:text-xl font-semibold text-gray-900">Add New Zone</DialogTitle>
                   <DialogDescription className="text-sm text-gray-600">
@@ -1156,7 +1156,7 @@ export function LocationManagement() {
 
             {/* Edit Zone Modal */}
             <Dialog open={isZoneEditModalOpen} onOpenChange={setIsZoneEditModalOpen}>
-              <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-2xl max-h-[90vh] flex flex-col overflow-hidden p-4 sm:p-6">
+              <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-2xl max-h-[90vh] flex flex-col overflow-hidden p-4 sm:p-6" aria-describedby={undefined}>
                 <DialogHeader className="shrink-0">
                   <DialogTitle className="text-lg sm:text-xl font-semibold text-gray-900">Edit Zone</DialogTitle>
                   <DialogDescription className="text-sm text-gray-600">
@@ -1465,7 +1465,7 @@ export function LocationManagement() {
 
             {/* Create Area Modal */}
             <Dialog open={isAreaCreateModalOpen} onOpenChange={setIsAreaCreateModalOpen}>
-              <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-3xl max-h-[90vh] flex flex-col overflow-hidden p-4 sm:p-6 w-[calc(100%-2rem)]">
+              <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-3xl max-h-[90vh] flex flex-col overflow-hidden p-4 sm:p-6 w-[calc(100%-2rem)]" aria-describedby={undefined}>
                 <DialogHeader className="shrink-0">
                   <DialogTitle className="text-lg sm:text-xl font-semibold text-gray-900">Add New Area</DialogTitle>
                   <DialogDescription className="text-sm text-gray-600">
@@ -1564,7 +1564,7 @@ export function LocationManagement() {
 
             {/* Edit Area Modal */}
             <Dialog open={isAreaEditModalOpen} onOpenChange={setIsAreaEditModalOpen}>
-              <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-3xl max-h-[90vh] flex flex-col overflow-hidden p-4 sm:p-6 w-[calc(100%-2rem)]">
+              <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-3xl max-h-[90vh] flex flex-col overflow-hidden p-4 sm:p-6 w-[calc(100%-2rem)]" aria-describedby={undefined}>
                 <DialogHeader className="shrink-0">
                   <DialogTitle className="text-lg sm:text-xl font-semibold text-gray-900">Edit Area</DialogTitle>
                   <DialogDescription className="text-sm text-gray-600">

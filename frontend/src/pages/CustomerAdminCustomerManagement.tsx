@@ -1101,7 +1101,7 @@ export function CustomerAdminCustomerManagement() {
 
         {/* CSV Confirmation Modal */}
         <Dialog open={csvConfirmModalOpen} onOpenChange={setCsvConfirmModalOpen}>
-          <DialogContent className="sm:max-w-[500px] bg-white">
+          <DialogContent className="sm:max-w-[500px] bg-white" aria-describedby={undefined}>
             <DialogHeader>
               <DialogTitle>Confirm CSV Import</DialogTitle>
               <DialogDescription>
@@ -1219,7 +1219,7 @@ export function CustomerAdminCustomerManagement() {
 
         {/* Delete Confirmation Modal */}
         <Dialog open={deleteConfirmModalOpen} onOpenChange={setDeleteConfirmModalOpen}>
-          <DialogContent className="sm:max-w-[500px] bg-white">
+          <DialogContent className="sm:max-w-[500px] bg-white" aria-describedby={undefined}>
             <DialogHeader>
               <DialogTitle>Delete Customer</DialogTitle>
               <DialogDescription>

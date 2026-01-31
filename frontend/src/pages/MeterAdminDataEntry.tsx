@@ -217,13 +217,14 @@ export function MeterAdminDataEntry() {
       return cBillMonth < billMonthDateObj;
     });
     
-    const previousReading = previousReadingConsumption?.currentReading || 0;
+    const previousReadingRaw = previousReadingConsumption?.currentReading ?? 0;
+    const previousReading = typeof previousReadingRaw === 'number' ? previousReadingRaw : Number(previousReadingRaw) || 0;
 
     if (existingConsumption) {
       // Check approval status
       const approvalStatus = existingConsumption.approvalStatus;
       let statusName = 'Unknown';
-      
+
       if (typeof approvalStatus === 'string') {
         statusName = approvalStatus;
       } else if (approvalStatus && typeof approvalStatus === 'object') {
@@ -280,6 +281,15 @@ export function MeterAdminDataEntry() {
       }
     }
 
+    // Cannot create consumption for an inactive customer
+    if (verifiedUser) {
+      const status = (verifiedUser as { activeStatus?: string; status?: string }).activeStatus ?? verifiedUser.status ?? '';
+      if (status && String(status).toLowerCase() === 'inactive') {
+        toast.error('Cannot create a consumption record for an inactive customer. Please activate the customer first.');
+        return;
+      }
+    }
+
     // Proceed with creation
     await createOrUpdateConsumption(billMonthDate, currentReadingNum, previousReading, null);
   };
@@ -300,14 +310,19 @@ export function MeterAdminDataEntry() {
           previousReading: previousReading > 0 ? previousReading : undefined,
         });
       } else {
-        // Create new consumption - use userAccount (UUID string) as per API specification
+        // Create new consumption - block inactive customers
+        const status = (verifiedUser as { activeStatus?: string; status?: string }).activeStatus ?? verifiedUser!.status ?? '';
+        if (status && String(status).toLowerCase() === 'inactive') {
+          toast.error('Cannot create a consumption record for an inactive customer. Please activate the customer first.');
+          return;
+        }
         const userAccount = verifiedUser!.account;
         if (!userAccount || typeof userAccount !== 'string') {
           toast.error('User account UUID not found. Please verify the customer.');
           console.error('User account missing:', verifiedUser);
           return;
         }
-        
+
         const payload: CreateConsumptionDto = {
           userAccount: String(userAccount), // UUID string as per API spec
           createdBy: Number(adminId!),
@@ -742,7 +757,7 @@ export function MeterAdminDataEntry() {
               setPreviousReadingForModal(0);
             }
           }}>
-            <DialogContent className="max-w-2xl bg-white max-h-[90vh] flex flex-col overflow-hidden p-4 sm:p-6 w-[calc(100%-2rem)]">
+            <DialogContent className="max-w-2xl bg-white max-h-[90vh] flex flex-col overflow-hidden p-4 sm:p-6 w-[calc(100%-2rem)]" aria-describedby={undefined}>
               <DialogHeader className="shrink-0">
                 <DialogTitle className="text-lg sm:text-xl">{modalTitle}</DialogTitle>
                 <DialogDescription className="text-sm">

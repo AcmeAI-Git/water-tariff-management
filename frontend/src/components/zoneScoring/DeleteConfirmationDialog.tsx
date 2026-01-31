@@ -31,7 +31,7 @@ export function DeleteConfirmationDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-md">
+      <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-md" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold text-gray-900">
             {title}
