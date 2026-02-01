@@ -27,6 +27,8 @@ export function TariffCategorySettingsModal({
   mode = 'create',
 }: TariffCategorySettingsModalProps) {
   const [formData, setFormData] = useState({
+    title: '',
+    description: '',
     productionCost: '',
     baseRate: '',
     currentTariff: '',
@@ -52,6 +54,8 @@ export function TariffCategorySettingsModal({
       };
 
       setFormData({
+        title: initialData.title ?? '',
+        description: initialData.description ?? '',
         productionCost: initialData.productionCost.toString(),
         baseRate: initialData.baseRate.toString(),
         currentTariff: initialData.currentTariff.toString(),
@@ -66,6 +70,8 @@ export function TariffCategorySettingsModal({
     } else {
       // Reset form for create mode with default values
       setFormData({
+        title: '',
+        description: '',
         productionCost: '',
         baseRate: '',
         currentTariff: '',
@@ -88,12 +94,13 @@ export function TariffCategorySettingsModal({
     e.preventDefault();
 
     // Validate required fields
+    if (mode === 'create' && !formData.title.trim()) return;
     if (!formData.productionCost || !formData.baseRate || !formData.currentTariff || !formData.currentTubewellTariff) {
       return;
     }
 
     // Convert percentages to decimals for backend (divide by 100)
-    const submitData: CreateTariffCategorySettingsDto | UpdateTariffCategorySettingsDto = {
+    const base = {
       productionCost: parseFloat(formData.productionCost),
       baseRate: parseFloat(formData.baseRate),
       currentTariff: parseFloat(formData.currentTariff),
@@ -105,11 +112,18 @@ export function TariffCategorySettingsModal({
       commercialIncreasePercent: parseFloat(formData.commercialIncreasePercent) / 100,
       governmentIncreasePercent: parseFloat(formData.governmentIncreasePercent) / 100,
     };
+    const submitData: CreateTariffCategorySettingsDto | UpdateTariffCategorySettingsDto = {
+      ...(formData.title.trim() ? { title: formData.title.trim() } : {}),
+      ...(formData.description.trim() ? { description: formData.description.trim() } : {}),
+      ...base,
+    };
+    if (mode === 'create') (submitData as CreateTariffCategorySettingsDto).title = formData.title.trim();
 
     onSubmit(submitData);
   };
 
   const isFormValid = 
+    (mode !== 'create' || formData.title.trim() !== '') &&
     formData.productionCost.trim() !== '' &&
     formData.baseRate.trim() !== '' &&
     formData.currentTariff.trim() !== '' &&
@@ -142,6 +156,35 @@ export function TariffCategorySettingsModal({
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 items-start">
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="title" className="text-sm font-medium text-gray-700 min-h-[2.5rem] flex items-start">
+                  Title *
+                </Label>
+                <Input
+                  id="title"
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) => handleInputChange('title', e.target.value)}
+                  placeholder="e.g., FY 2025 Category Rules"
+                  className="bg-gray-50 border-gray-300"
+                  required={mode === 'create'}
+                />
+              </div>
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="description" className="text-sm font-medium text-gray-700 min-h-[2.5rem] flex items-start">
+                  Description
+                </Label>
+                <Input
+                  id="description"
+                  type="text"
+                  value={formData.description}
+                  onChange={(e) => handleInputChange('description', e.target.value)}
+                  placeholder="Optional description"
+                  className="bg-gray-50 border-gray-300"
+                />
+              </div>
+            </div>
             <div className="grid grid-cols-2 gap-4 items-start">
               <div className="flex flex-col space-y-2">
                 <Label htmlFor="productionCost" className="text-sm font-medium text-gray-700 min-h-[2.5rem] flex items-start">

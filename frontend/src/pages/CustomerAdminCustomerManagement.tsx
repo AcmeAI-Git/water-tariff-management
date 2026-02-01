@@ -555,15 +555,17 @@ export function CustomerAdminCustomerManagement() {
         };
       }
 
-      // Update customer/user with nested meter data (if applicable)
-      await updateMutation.mutateAsync({
-        id: selectedCustomer.id,
-        data: {
+      const isRejected = selectedCustomer.status?.toLowerCase() === 'rejected';
+
+      if (isRejected) {
+        // Backend cannot set rejected → pending on update. Workaround: delete old user, then create new
+        // (same as add customer) so the new record is Draft and appears in approval queue again.
+        const createPayload: CreateUserDto = {
           name: editFormData.name.trim(),
           address: editFormData.address.trim(),
           inspCode: inspCodeNum,
           accountType: editFormData.accountType,
-          customerCategories: [{ customerCategory: editFormData.customerCategory, ratio: 100 }], // Array of objects with category and ratio
+          customerCategories: [{ customerCategory: editFormData.customerCategory, ratio: 100 }],
           waterStatus: editFormData.waterStatus,
           sewerStatus: editFormData.sewerStatus,
           areaId: parseInt(editFormData.areaId),
@@ -571,8 +573,30 @@ export function CustomerAdminCustomerManagement() {
           numberOfStories: editFormData.numberOfStories ? parseInt(editFormData.numberOfStories) : undefined,
           numberOfFlats: editFormData.numberOfFlats ? parseInt(editFormData.numberOfFlats) : undefined,
           ...(meterData && { meter: meterData }),
-        } as any, // Type assertion - backend API accepts these fields but types are outdated
-      });
+        };
+
+        await deleteMutation.mutateAsync(selectedCustomer.id);
+        await createMutation.mutateAsync(createPayload as any);
+        toast.success('Customer re-submitted for approval');
+      } else {
+        await updateMutation.mutateAsync({
+          id: selectedCustomer.id,
+          data: {
+            name: editFormData.name.trim(),
+            address: editFormData.address.trim(),
+            inspCode: inspCodeNum,
+            accountType: editFormData.accountType,
+            customerCategories: [{ customerCategory: editFormData.customerCategory, ratio: 100 }], // Array of objects with category and ratio
+            waterStatus: editFormData.waterStatus,
+            sewerStatus: editFormData.sewerStatus,
+            areaId: parseInt(editFormData.areaId),
+            landSizeDecimal: editFormData.landSizeDecimal ? parseFloat(editFormData.landSizeDecimal) : undefined,
+            numberOfStories: editFormData.numberOfStories ? parseInt(editFormData.numberOfStories) : undefined,
+            numberOfFlats: editFormData.numberOfFlats ? parseInt(editFormData.numberOfFlats) : undefined,
+            ...(meterData && { meter: meterData }),
+          } as any, // Type assertion - backend API accepts these fields but types are outdated
+        });
+      }
 
       setIsEditDialogOpen(false);
       setSelectedCustomer(null);

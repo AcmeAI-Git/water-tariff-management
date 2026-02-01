@@ -192,12 +192,12 @@ export function ZoneScoringList() {
                         <TableCell className="text-center align-middle">
                           <div className="flex items-center justify-center gap-2">
                             {(ruleset.status === 'active' || ruleset.status === 'published') && (
-                              <span className="text-xs text-gray-700 bg-gray-100 rounded-md px-2.5 py-1 whitespace-nowrap inline-flex items-center justify-center h-8 font-medium w-[135px]">
+                              <span className="text-xs text-gray-700 bg-gray-100 rounded-md px-2.5 py-1 whitespace-nowrap inline-flex items-center justify-center h-8 font-medium min-w-[160px] w-[160px]">
                                 Active
                               </span>
                             )}
                             {ruleset.status === 'pending' && (
-                              <span className="text-xs text-amber-700 bg-amber-100 rounded-md px-2.5 py-1 whitespace-nowrap inline-flex items-center justify-center h-8 font-medium w-[160px]">
+                              <span className="text-xs text-amber-700 bg-amber-100 rounded-md px-2.5 py-1 whitespace-nowrap inline-flex items-center justify-center h-8 font-medium min-w-[160px] w-[160px]">
                                 Awaiting Approval
                               </span>
                             )}
@@ -207,7 +207,7 @@ export function ZoneScoringList() {
                                 size="sm"
                                 onClick={() => handleSendForApproval(ruleset)}
                                 disabled={sendForApprovalMutation.isPending}
-                                className="border-blue-300 text-blue-700 rounded-lg h-8 px-3 bg-white hover:bg-blue-50 inline-flex items-center justify-center gap-1.5 disabled:opacity-50 whitespace-nowrap w-[160px]"
+                                className="border-blue-300 text-blue-700 rounded-lg h-8 px-3 bg-white hover:bg-blue-50 inline-flex items-center justify-center gap-1.5 disabled:opacity-50 whitespace-nowrap min-w-[160px] w-[160px]"
                               >
                                 <Send size={14} />
                                 Send for Approval
@@ -219,7 +219,7 @@ export function ZoneScoringList() {
                                 size="sm"
                                 onClick={() => handleSetActive(ruleset)}
                                 disabled={setActiveMutation.isPending}
-                                className="border-green-300 text-green-700 rounded-lg h-8 px-3 bg-white hover:bg-green-50 inline-flex items-center justify-center gap-1.5 disabled:opacity-50 whitespace-nowrap w-[135px]"
+                                className="border-green-300 text-green-700 rounded-lg h-8 px-3 bg-white hover:bg-green-50 inline-flex items-center justify-center gap-1.5 disabled:opacity-50 whitespace-nowrap min-w-[160px] w-[160px]"
                               >
                                 <CheckCircle size={14} />
                                 Set as Active

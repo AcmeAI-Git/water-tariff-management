@@ -281,15 +281,6 @@ export function MeterAdminDataEntry() {
       }
     }
 
-    // Cannot create consumption for an inactive customer
-    if (verifiedUser) {
-      const status = (verifiedUser as { activeStatus?: string; status?: string }).activeStatus ?? verifiedUser.status ?? '';
-      if (status && String(status).toLowerCase() === 'inactive') {
-        toast.error('Cannot create a consumption record for an inactive customer. Please activate the customer first.');
-        return;
-      }
-    }
-
     // Proceed with creation
     await createOrUpdateConsumption(billMonthDate, currentReadingNum, previousReading, null);
   };
@@ -310,12 +301,7 @@ export function MeterAdminDataEntry() {
           previousReading: previousReading > 0 ? previousReading : undefined,
         });
       } else {
-        // Create new consumption - block inactive customers
-        const status = (verifiedUser as { activeStatus?: string; status?: string }).activeStatus ?? verifiedUser!.status ?? '';
-        if (status && String(status).toLowerCase() === 'inactive') {
-          toast.error('Cannot create a consumption record for an inactive customer. Please activate the customer first.');
-          return;
-        }
+        // Create new consumption
         const userAccount = verifiedUser!.account;
         if (!userAccount || typeof userAccount !== 'string') {
           toast.error('User account UUID not found. Please verify the customer.');
