@@ -1,6 +1,8 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Badge } from '../components/ui/badge';
 import { useMemo, useState } from 'react';
+import { useLanguage } from '../context/LanguageContext';
+import { getStaticTranslation } from '../constants/staticTranslations';
 import { api } from '../services/api';
 import { useApiQuery, useAdminId } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
@@ -10,6 +12,8 @@ import { Button } from '../components/ui/button';
 import { Search, X } from 'lucide-react';
 
 export function MeterAdminSubmittedReadings() {
+  const { language } = useLanguage();
+  const t = (key: string) => getStaticTranslation(language, key);
   const adminId = useAdminId();
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -222,7 +226,7 @@ export function MeterAdminSubmittedReadings() {
         <div className="mb-6 md:mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 items-center text-center md:text-left">
             <div>
-              <h1 className="text-xl md:text-[1.75rem] font-semibold text-gray-900 mb-1">Reading History</h1>
+              <h1 className="text-xl md:text-[1.75rem] font-semibold text-gray-900 mb-1 notranslate" translate="no">{t('pages.readingHistoryTitle')}</h1>
               <p className="text-xs md:text-sm text-gray-500">View history of all meter readings you have created</p>
             </div>
             <div className="flex items-center gap-4 md:gap-6 text-sm flex-wrap justify-center md:justify-start">

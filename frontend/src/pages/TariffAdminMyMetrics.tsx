@@ -1,6 +1,8 @@
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useLanguage } from '../context/LanguageContext';
+import { getStaticTranslation } from '../constants/staticTranslations';
 import { api } from '../services/api';
 import { useApiQuery, useAdminId } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
@@ -12,6 +14,8 @@ type PolicyWithDate = TariffPolicy & { createdAt?: string };
 type SlabWithDate = TariffThresholdSlab & { createdAt?: string };
 
 export function TariffAdminMyMetrics() {
+  const { language } = useLanguage();
+  const t = (key: string) => getStaticTranslation(language, key);
   const adminId = useAdminId();
 
   // Use same APIs as Tariff History: tariff-policy, tariff-threshold-slabs, tariff-category-settings
@@ -110,7 +114,7 @@ export function TariffAdminMyMetrics() {
     <div className="min-h-screen bg-[#f8f9fb]">
       <div className="px-4 md:px-8 py-4 md:py-6">
         <div className="mb-8 text-center md:text-left">
-          <h1 className="text-[28px] font-semibold text-gray-900 mb-1">My Monthly Metrics</h1>
+          <h1 className="text-[28px] font-semibold text-gray-900 mb-1 notranslate" translate="no">{t('pages.myMonthlyMetricsTitle')}</h1>
           <p className="text-sm text-gray-500">
             Track your tariff management performance and system overview
           </p>

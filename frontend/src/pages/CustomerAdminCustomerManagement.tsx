@@ -1,3 +1,5 @@
+import { useLanguage } from '../context/LanguageContext';
+import { getStaticTranslation } from '../constants/staticTranslations';
 import { Button } from '../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Input } from '../components/ui/input';
@@ -16,6 +18,8 @@ import { CustomerMeterModal } from '../components/modals/CustomerMeterModal';
 import { parseCustomerCSV, generateCustomerCSVTemplate, exportCustomersToCSV } from '../utils/customerCsvParser';
 
 export function CustomerAdminCustomerManagement() {
+  const { language } = useLanguage();
+  const t = (key: string) => getStaticTranslation(language, key);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // Show all customers by default
   const [accountTypeFilter, setAccountTypeFilter] = useState('all');
@@ -862,7 +866,7 @@ export function CustomerAdminCustomerManagement() {
       <div className="px-4 md:px-8 py-4 md:py-6">
         {/* Header - centered on mobile to avoid hamburger overlap */}
         <div className="mb-6 md:mb-8 text-center md:text-left">
-          <h1 className="text-xl md:text-[1.75rem] font-semibold text-gray-900">Customer Management</h1>
+          <h1 className="text-xl md:text-[1.75rem] font-semibold text-gray-900 notranslate" translate="no">{t('pages.customerAdminCustomersTitle')}</h1>
         </div>
 
         {/* Add Button */}

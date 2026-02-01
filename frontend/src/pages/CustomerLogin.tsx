@@ -7,10 +7,14 @@ import { api } from '../services/api';
 import { toast } from 'sonner';
 import type { User } from '../types';
 import { ArrowLeft } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
+import { getStaticTranslation } from '../constants/staticTranslations';
 
 export default function CustomerLogin() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { language } = useLanguage();
+  const t = (key: string) => getStaticTranslation(language, key);
   const [customerName, setCustomerName] = useState('');
   const [identifier, setIdentifier] = useState('');
   const [loading, setLoading] = useState(false);
@@ -21,7 +25,7 @@ export default function CustomerLogin() {
     e?.preventDefault();
     
     if (!customerName.trim() || !identifier.trim()) {
-      setError('Please enter both customer name and identifier (Meter ID or Inspection Code)');
+      setError(t('customerLogin.pleaseEnterBoth'));
       return;
     }
 
@@ -37,14 +41,12 @@ export default function CustomerLogin() {
       } catch (apiErr: any) {
         const msg = apiErr?.message || '';
         if (msg.includes('401') || msg.toLowerCase().includes('unauthorized')) {
-          throw new Error(
-            'Customer portal could not verify your details. If this keeps happening, contact your administrator—the customer portal may need to be enabled on the server.'
-          );
+          throw new Error(t('customerLogin.portalVerifyError'));
         }
         throw apiErr;
       }
       if (!Array.isArray(users) || users.length === 0) {
-        throw new Error('Failed to load customer list. Please try again.');
+        throw new Error(t('customerLogin.failedToLoadCustomers'));
       }
 
       // Find customer by name (case-insensitive) and identifier (meter ID or inspection code)
@@ -64,8 +66,8 @@ export default function CustomerLogin() {
       });
 
       if (!matchingCustomer) {
-        setError('Customer not found. Please check your name and identifier (Meter ID or Inspection Code).');
-        toast.error('Customer not found');
+        setError(t('customerLogin.customerNotFound'));
+        toast.error(t('customerLogin.customerNotFoundToast'));
         return;
       }
 
@@ -95,7 +97,7 @@ export default function CustomerLogin() {
       toast.success(`Welcome, ${customerUser.fullName || customerUser.name}!`);
       navigate(from && from.startsWith('/customer/') ? from : '/customer/dashboard', { replace: true });
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Login failed. Please try again.';
+      const errorMessage = err instanceof Error ? err.message : t('customerLogin.loginFailed');
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -113,20 +115,20 @@ export default function CustomerLogin() {
           className="mb-4 text-gray-600 hover:text-gray-900"
         >
           <ArrowLeft size={16} className="mr-2" />
-          Back to Admin Login
+          <span className="notranslate" translate="no">{t('customerLogin.backToAdminLogin')}</span>
         </Button>
 
         {/* Title */}
         <div className="text-center mb-6 md:mb-8">
-          <h1 className="text-2xl md:text-3xl font-semibold text-gray-900 mb-2">Customer Portal</h1>
-          <p className="text-sm md:text-base text-gray-600">Enter your details to access your account</p>
+          <h1 className="text-2xl md:text-3xl font-semibold text-gray-900 mb-2 notranslate" translate="no">{t('customerLogin.title')}</h1>
+          <p className="text-sm md:text-base text-gray-600 notranslate" translate="no">{t('customerLogin.subtitle')}</p>
         </div>
 
         {/* Login Form */}
         <div className="bg-white rounded-2xl border border-gray-200 p-6 md:p-8">
           <div className="mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-1">Customer Login</h2>
-            <p className="text-sm text-gray-600">Please enter your name and meter ID</p>
+            <h2 className="text-xl font-semibold text-gray-900 mb-1 notranslate" translate="no">{t('customerLogin.heading')}</h2>
+            <p className="text-sm text-gray-600 notranslate" translate="no">{t('customerLogin.pleaseEnterNameMeter')}</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-5">
@@ -137,13 +139,13 @@ export default function CustomerLogin() {
             )}
             
             <div className="space-y-2">
-              <Label htmlFor="customerName" className="text-sm font-medium text-gray-700">
-                Customer Name
+              <Label htmlFor="customerName" className="text-sm font-medium text-gray-700 notranslate" translate="no">
+                {t('customerLogin.customerName')}
               </Label>
               <Input
                 id="customerName"
                 type="text"
-                placeholder="Enter your full name"
+                placeholder={t('customerLogin.enterFullName')}
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
                 disabled={loading}
@@ -153,21 +155,21 @@ export default function CustomerLogin() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="identifier" className="text-sm font-medium text-gray-700">
-                Meter ID or Inspection Code
+              <Label htmlFor="identifier" className="text-sm font-medium text-gray-700 notranslate" translate="no">
+                {t('customerLogin.meterIdOrInspectionCode')}
               </Label>
               <Input
                 id="identifier"
                 type="text"
-                placeholder="Enter meter ID (if metered) or inspection code"
+                placeholder={t('customerLogin.enterMeterIdPlaceholder')}
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 disabled={loading}
                 className="bg-gray-50 border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                 required
               />
-              <p className="text-xs text-gray-500">
-                For metered customers: enter your Meter ID. For non-metered customers: enter your Inspection Code.
+              <p className="text-xs text-gray-500 notranslate" translate="no">
+                {t('customerLogin.meterIdHint')}
               </p>
             </div>
 
@@ -176,19 +178,19 @@ export default function CustomerLogin() {
               disabled={loading}
               className="w-full bg-primary hover:bg-primary-600 text-white rounded-lg h-11 text-base font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Logging in...' : 'Login'}
+              <span className="notranslate" translate="no">{loading ? t('customerLogin.loggingIn') : t('customerLogin.login')}</span>
             </Button>
           </form>
 
           <div className="mt-6 pt-6 border-t border-gray-200">
-            <p className="text-xs text-gray-500 text-center">
-              Don't have an account? Contact your administrator.
+            <p className="text-xs text-gray-500 text-center notranslate" translate="no">
+              {t('customerLogin.dontHaveAccount')}
             </p>
           </div>
         </div>
 
-        <p className="text-center text-xs text-gray-500 mt-6">
-          © 2025 Water Tariff Management System. All rights reserved.
+        <p className="text-center text-xs text-gray-500 mt-6 notranslate" translate="no">
+          {t('customerLogin.footer')}
         </p>
       </div>
     </div>

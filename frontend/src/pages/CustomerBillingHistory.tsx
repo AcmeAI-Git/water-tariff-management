@@ -17,6 +17,8 @@ import { useApiQuery } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { format } from 'date-fns';
 import type { User } from '../types';
+import { useLanguage } from '../context/LanguageContext';
+import { getStaticTranslation } from '../constants/staticTranslations';
 
 function getCustomerUser(): User | null {
   try {
@@ -29,6 +31,8 @@ function getCustomerUser(): User | null {
 }
 
 export default function CustomerBillingHistory() {
+  const { language } = useLanguage();
+  const t = (key: string) => getStaticTranslation(language, key);
   const [statusFilter, setStatusFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [selectedBill, setSelectedBill] = useState<any>(null);
@@ -89,10 +93,10 @@ export default function CustomerBillingHistory() {
   }
 
   const statusOptions = [
-    { value: 'all', label: 'All statuses' },
-    { value: 'Unpaid', label: 'Unpaid' },
-    { value: 'Paid', label: 'Paid' },
-    { value: 'Overdue', label: 'Overdue' },
+    { value: 'all', label: t('common.allStatuses') },
+    { value: 'Unpaid', label: t('common.unpaid') },
+    { value: 'Paid', label: t('common.paid') },
+    { value: 'Overdue', label: t('common.overdue') },
   ];
 
   return (
@@ -100,10 +104,10 @@ export default function CustomerBillingHistory() {
       <div className="px-4 md:px-8 py-4 md:py-6">
         {/* Header - centered on mobile to avoid hamburger overlap */}
         <div className="mb-6 md:mb-8 text-center md:text-left">
-          <h1 className="text-xl md:text-2xl font-semibold text-gray-900 mb-1">
-            Billing History
+          <h1 className="text-xl md:text-2xl font-semibold text-gray-900 mb-1 notranslate" translate="no">
+            {t('pages.billingHistoryTitle')}
           </h1>
-          <p className="text-sm text-gray-500">View and manage your water bills</p>
+          <p className="text-sm text-gray-500 notranslate" translate="no">{t('pages.billingHistorySubtitle')}</p>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -113,7 +117,7 @@ export default function CustomerBillingHistory() {
               size={18}
             />
             <Input
-              placeholder="Search by month..."
+              placeholder={t('pages.searchBillsPlaceholder')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
@@ -123,7 +127,7 @@ export default function CustomerBillingHistory() {
             options={statusOptions}
             value={statusFilter}
             onChange={setStatusFilter}
-            placeholder="Status"
+            placeholder={t('common.status')}
             className="w-full sm:w-[180px]"
           />
         </div>
@@ -135,10 +139,10 @@ export default function CustomerBillingHistory() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-xs md:text-sm">Month</TableHead>
-                  <TableHead className="text-xs md:text-sm">Amount</TableHead>
-                  <TableHead className="text-xs md:text-sm">Status</TableHead>
-                  <TableHead className="text-xs md:text-sm text-right">Actions</TableHead>
+                  <TableHead className="text-xs md:text-sm notranslate" translate="no">{t('pages.month')}</TableHead>
+                  <TableHead className="text-xs md:text-sm notranslate" translate="no">{t('pages.amount')}</TableHead>
+                  <TableHead className="text-xs md:text-sm notranslate" translate="no">{t('common.status')}</TableHead>
+                  <TableHead className="text-xs md:text-sm text-right notranslate" translate="no">{t('common.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -171,7 +175,7 @@ export default function CustomerBillingHistory() {
                         className="border-gray-300 h-8 px-2 sm:px-3"
                       >
                         <Eye size={14} className="sm:mr-1" />
-                        <span className="hidden sm:inline">View</span>
+                        <span className="hidden sm:inline notranslate" translate="no">{t('common.viewDetails')}</span>
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -180,7 +184,7 @@ export default function CustomerBillingHistory() {
             </Table>
           </div>
         ) : (
-          <p className="text-gray-500 text-center py-12">No bills found</p>
+          <p className="text-gray-500 text-center py-12 notranslate" translate="no">{t('pages.noBillsYet')}</p>
         )}
         </div>
 

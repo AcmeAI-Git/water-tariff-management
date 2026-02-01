@@ -8,6 +8,8 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useLanguage } from "../../context/LanguageContext";
+import { getStaticTranslation } from "../../constants/staticTranslations";
 
 export type SidebarProps = {
     activePage?: string;
@@ -17,6 +19,8 @@ export type SidebarProps = {
 export function Sidebar({ activePage, onNavigate }: SidebarProps) {
     const navigate = useNavigate();
     const qc = useQueryClient();
+    const { language } = useLanguage();
+    const t = (key: string) => getStaticTranslation(language, key);
 
     const routeMap: Record<string, string> = {
         "tariff-map": "/tariff-admin/map",
@@ -42,7 +46,7 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
             } catch {
                 // Ignore query client errors
             }
-            toast("Logged out");
+            toast(t("common.loggedOut"));
             navigate("/login");
             return;
         }
@@ -52,10 +56,10 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
     };
 
     const menuItems = [
-        { id: "tariff-map", label: "Tariff Map", icon: Map },
-        { id: "dashboard", label: "Dashboard", icon: Home },
-        { id: "agents", label: "Agent Management", icon: Users2 },
-        { id: "audit", label: "System Audit Log", icon: ClipboardList },
+        { id: "tariff-map", label: t("nav.tariffMap"), icon: Map },
+        { id: "dashboard", label: t("nav.dashboard"), icon: Home },
+        { id: "agents", label: t("nav.agentManagement"), icon: Users2 },
+        { id: "audit", label: t("nav.systemAuditLog"), icon: ClipboardList },
     ];
 
     return (
@@ -63,8 +67,8 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
             {/* Header */}
             <div className="px-6 py-6 border-b border-gray-200">
                 <div className="flex items-center gap-3">
-                    <span className="text-lg font-semibold text-gray-900">
-                        Water Tariff
+                    <span className="text-lg font-semibold text-gray-900 notranslate" translate="no">
+                        {t("common.appTitle")}
                     </span>
                 </div>
             </div>
@@ -85,7 +89,7 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
                                 }`}
                             >
                                 <Icon size={20} strokeWidth={isActive ? 2.5 : 2} className="flex-shrink-0" />
-                                <span className="text-[0.9375rem] font-medium whitespace-nowrap text-left">
+                                <span className="text-[0.9375rem] font-medium whitespace-nowrap text-left notranslate" translate="no">
                                     {item.label}
                                 </span>
                             </button>
@@ -104,8 +108,8 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-red-50 hover:text-red-600 transition-all"
                 >
                     <LogOut size={20} strokeWidth={2} />
-                    <span className="text-[0.9375rem] font-medium">
-                        Log Out
+                    <span className="text-[0.9375rem] font-medium notranslate" translate="no">
+                        {t("common.logOut")}
                     </span>
                 </button>
             </div>

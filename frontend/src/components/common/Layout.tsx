@@ -2,6 +2,9 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { Menu } from "lucide-react";
+import LanguageSwitcher from "./LanguageSwitcher";
+import { useLanguage } from "../../context/LanguageContext";
+import { getStaticTranslation } from "../../constants/staticTranslations";
 import { Sidebar } from "./Sidebar";
 import { MeterReaderSidebar } from "./MeterReaderSidebar";
 import { CustomerAdminSidebar } from "./CustomerAdminSidebar";
@@ -19,6 +22,8 @@ export default function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
+  const { language } = useLanguage();
+  const t = (key: string) => getStaticTranslation(language, key);
 
   const adminJson = typeof localStorage !== "undefined" ? localStorage.getItem("admin") : null;
   const roleKey = adminJson ? getRouteKeyFromRoleName(JSON.parse(adminJson)?.role?.name ?? "") : "";
@@ -256,7 +261,7 @@ export default function Layout({ children }: LayoutProps) {
         <button
           onClick={() => setMobileMenuOpen(true)}
           className="fixed top-4 left-4 z-30 p-2 bg-white rounded-lg shadow-md border border-gray-200 md:hidden"
-          aria-label="Open menu"
+          aria-label={t("common.openMenu")}
         >
           <Menu size={24} className="text-gray-700" />
         </button>
@@ -280,6 +285,9 @@ export default function Layout({ children }: LayoutProps) {
 
       {/* Main Content */}
       <main className="flex-1 w-full md:ml-[260px] px-4 md:px-6 py-4 md:py-6 overflow-x-hidden min-w-0">
+        <div className="sticky top-0 z-10 flex justify-end py-2 -mt-2 mb-2">
+          <LanguageSwitcher />
+        </div>
         {children ?? <Outlet />}
       </main>
     </div>

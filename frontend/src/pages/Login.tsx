@@ -6,9 +6,13 @@ import { Label } from '../components/ui/label';
 import { api } from '../services/api';
 import { toast } from 'sonner';
 import { getRouteForRole } from '../utils/roleUtils';
+import { useLanguage } from '../context/LanguageContext';
+import { getStaticTranslation } from '../constants/staticTranslations';
 
 export default function Login() {
   const navigate = useNavigate();
+  const { language } = useLanguage();
+  const t = (key: string) => getStaticTranslation(language, key);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -29,7 +33,7 @@ export default function Login() {
     e?.preventDefault();
     
     if (!email || !password) {
-      setError('Please enter both email and password');
+      setError(t('login.pleaseEnterBoth'));
       return;
     }
 
@@ -46,7 +50,7 @@ export default function Login() {
       localStorage.setItem('admin', JSON.stringify(admin));
       localStorage.setItem('isAuthenticated', 'true');
       
-      toast.success('Login successful!');
+      toast.success(t('login.loginSuccessful'));
       
       // Navigate based on role
       const roleName = admin.role?.name || '';
@@ -59,7 +63,7 @@ export default function Login() {
       
       navigate(route);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Login failed. Please check your credentials.';
+      const errorMessage = err instanceof Error ? err.message : t('login.loginFailed');
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -77,7 +81,7 @@ export default function Login() {
     // Handle admin demo logins
     const credentials = demoCredentials[role];
     if (!credentials) {
-      toast.error('Invalid demo role');
+      toast.error(t('login.invalidDemoRole'));
       return;
     }
 
@@ -95,7 +99,7 @@ export default function Login() {
       localStorage.setItem('admin', JSON.stringify(admin));
       localStorage.setItem('isAuthenticated', 'true');
       
-      toast.success('Login successful!');
+      toast.success(t('login.loginSuccessful'));
       
       // Navigate based on role (same logic as regular login)
       const roleName = admin.role?.name || '';
@@ -110,7 +114,7 @@ export default function Login() {
     } catch (err) {
       const errorMessage = err instanceof Error 
         ? err.message 
-        : 'Login failed. Please check your credentials.';
+        : t('login.loginFailed');
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -123,15 +127,15 @@ export default function Login() {
       <div className="w-full max-w-md">
         {/* Title */}
         <div className="text-center mb-6 md:mb-8">
-          <h1 className="text-2xl md:text-3xl font-semibold text-gray-900 mb-2">Water Tariff</h1>
-          <p className="text-sm md:text-base text-gray-600">Management System</p>
+          <h1 className="text-2xl md:text-3xl font-semibold text-gray-900 mb-2 notranslate" translate="no">{t('login.title')}</h1>
+          <p className="text-sm md:text-base text-gray-600 notranslate" translate="no">{t('login.subtitle')}</p>
         </div>
 
         {/* Login Form */}
         <div className="bg-white rounded-2xl border border-gray-200 p-6 md:p-8">
           <div className="mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-1">Welcome back</h2>
-            <p className="text-sm text-gray-600">Please enter your credentials to continue</p>
+            <h2 className="text-xl font-semibold text-gray-900 mb-1 notranslate" translate="no">{t('login.welcomeBack')}</h2>
+            <p className="text-sm text-gray-600 notranslate" translate="no">{t('login.pleaseEnterCredentials')}</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-5">
@@ -142,13 +146,13 @@ export default function Login() {
             )}
             
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium text-gray-700">
-                Email
+              <Label htmlFor="email" className="text-sm font-medium text-gray-700 notranslate" translate="no">
+                {t('login.email')}
               </Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="Enter your email"
+                placeholder={t('login.enterEmail')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={loading || demoLoading !== null}
@@ -158,13 +162,13 @@ export default function Login() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium text-gray-700">
-                Password
+              <Label htmlFor="password" className="text-sm font-medium text-gray-700 notranslate" translate="no">
+                {t('login.password')}
               </Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="Enter your password"
+                placeholder={t('login.enterPassword')}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loading || demoLoading !== null}
@@ -176,10 +180,10 @@ export default function Login() {
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-2 focus:ring-primary/20" disabled={loading || demoLoading !== null} />
-                <span className="text-sm text-gray-600">Remember me</span>
+                <span className="text-sm text-gray-600 notranslate" translate="no">{t('login.rememberMe')}</span>
               </label>
-              <button className="text-sm font-medium text-primary hover:text-primary-600" disabled={loading || demoLoading !== null}>
-                Forgot password?
+              <button type="button" className="text-sm font-medium text-primary hover:text-primary-600 notranslate" translate="no" disabled={loading || demoLoading !== null}>
+                {t('login.forgotPassword')}
               </button>
             </div>
 
@@ -188,12 +192,12 @@ export default function Login() {
               disabled={loading || demoLoading !== null}
               className="w-full bg-primary hover:bg-primary-600 text-white rounded-lg h-11 text-base font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Logging in...' : 'Login'}
+              <span className="notranslate" translate="no">{loading ? t('login.loggingIn') : t('login.login')}</span>
             </Button>
           </form>
 
           <div className="mt-6 pt-6 border-t border-gray-200">
-            <p className="text-xs md:text-sm text-gray-600 mb-3 text-center">Quick Demo Access:</p>
+            <p className="text-xs md:text-sm text-gray-600 mb-3 text-center notranslate" translate="no">{t('login.quickDemoAccess')}</p>
             <div className="grid grid-cols-2 gap-2 md:gap-3">
               <Button 
                 onClick={() => handleDemo('admin')}
@@ -201,7 +205,7 @@ export default function Login() {
                 disabled={loading || demoLoading !== null}
                 className="border-gray-300 text-gray-700 rounded-lg h-9 md:h-10 text-xs md:text-sm hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {demoLoading === 'admin' ? 'Logging in...' : 'Super Admin'}
+                <span className="notranslate" translate="no">{demoLoading === 'admin' ? t('login.loggingIn') : t('login.superAdmin')}</span>
               </Button>
               <Button 
                 onClick={() => handleDemo('meter-admin')}
@@ -209,7 +213,7 @@ export default function Login() {
                 disabled={loading || demoLoading !== null}
                 className="border-gray-300 text-gray-700 rounded-lg h-9 md:h-10 text-xs md:text-sm hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {demoLoading === 'meter-admin' ? 'Logging in...' : 'Meter Reader'}
+                <span className="notranslate" translate="no">{demoLoading === 'meter-admin' ? t('login.loggingIn') : t('login.meterReader')}</span>
               </Button>
               <Button 
                 onClick={() => handleDemo('customer-admin')}
@@ -217,7 +221,7 @@ export default function Login() {
                 disabled={loading || demoLoading !== null}
                 className="border-gray-300 text-gray-700 rounded-lg h-9 md:h-10 text-xs md:text-sm hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {demoLoading === 'customer-admin' ? 'Logging in...' : 'Customer Admin'}
+                <span className="notranslate" translate="no">{demoLoading === 'customer-admin' ? t('login.loggingIn') : t('login.customerAdmin')}</span>
               </Button>
               <Button 
                 onClick={() => handleDemo('tariff-admin')}
@@ -225,7 +229,7 @@ export default function Login() {
                 disabled={loading || demoLoading !== null}
                 className="border-gray-300 text-gray-700 rounded-lg h-9 md:h-10 text-xs md:text-sm hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {demoLoading === 'tariff-admin' ? 'Logging in...' : 'Tariff Admin'}
+                <span className="notranslate" translate="no">{demoLoading === 'tariff-admin' ? t('login.loggingIn') : t('login.tariffAdmin')}</span>
               </Button>
               <Button 
                 onClick={() => handleDemo('approval-admin')}
@@ -233,7 +237,7 @@ export default function Login() {
                 disabled={loading || demoLoading !== null}
                 className="border-gray-300 text-gray-700 rounded-lg h-9 md:h-10 text-xs md:text-sm hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {demoLoading === 'approval-admin' ? 'Logging in...' : 'Approval Admin'}
+                <span className="notranslate" translate="no">{demoLoading === 'approval-admin' ? t('login.loggingIn') : t('login.approvalAdmin')}</span>
               </Button>
               <Button 
                 onClick={() => handleDemo('general-info')}
@@ -241,7 +245,7 @@ export default function Login() {
                 disabled={loading || demoLoading !== null}
                 className="border-gray-300 text-gray-700 rounded-lg h-9 md:h-10 text-xs md:text-sm hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {demoLoading === 'general-info' ? 'Logging in...' : 'General Admin'}
+                <span className="notranslate" translate="no">{demoLoading === 'general-info' ? t('login.loggingIn') : t('login.generalAdmin')}</span>
               </Button>
               <Button 
                 onClick={() => handleDemo('customer')}
@@ -249,23 +253,23 @@ export default function Login() {
                 disabled={loading || demoLoading !== null}
                 className="border-gray-300 text-gray-700 rounded-lg h-9 md:h-10 text-xs md:text-sm hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed col-span-2"
               >
-                {demoLoading === 'customer' ? 'Logging in...' : 'Customer Portal'}
+                <span className="notranslate" translate="no">{demoLoading === 'customer' ? t('login.loggingIn') : t('login.customerPortal')}</span>
               </Button>
             </div>
           </div>
 
           <div className="mt-6 pt-6 border-t border-gray-200">
-            <p className="text-center text-sm text-gray-600">
-              Don't have an account?{' '}
-              <button className="font-medium text-primary hover:text-primary-600">
-                Contact Administrator
+            <p className="text-center text-sm text-gray-600 notranslate" translate="no">
+              {t('login.dontHaveAccount')}{' '}
+              <button type="button" className="font-medium text-primary hover:text-primary-600">
+                {t('login.contactAdministrator')}
               </button>
             </p>
           </div>
         </div>
 
-        <p className="text-center text-xs text-gray-500 mt-6">
-          © 2025 Water Tariff Management System. All rights reserved.
+        <p className="text-center text-xs text-gray-500 mt-6 notranslate" translate="no">
+          {t('login.footer')}
         </p>
       </div>
     </div>

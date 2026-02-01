@@ -1,3 +1,5 @@
+import { useLanguage } from "../context/LanguageContext";
+import { getStaticTranslation } from "../constants/staticTranslations";
 import { Button } from "../components/ui/button";
 import {
     Select,
@@ -25,6 +27,8 @@ import { MetricCard } from "../components/common/MetricCard";
 import { MetricStatsCard } from "../components/common/MetricStatsCard";
 
 export default function AdminDashboard() {
+    const { language } = useLanguage();
+    const t = (key: string) => getStaticTranslation(language, key);
     const [animatedConsumers, setAnimatedConsumers] = useState(0);
     const [animatedConsumption, setAnimatedConsumption] = useState(0);
     const [revenueView, setRevenueView] = useState<'monthly' | 'yearly'>('monthly');
@@ -337,12 +341,11 @@ export default function AdminDashboard() {
                 {/* Header - centered on mobile to avoid hamburger overlap */}
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 md:mb-8 items-center text-center md:text-left">
                     <div>
-                        <h1 className="text-xl md:text-[1.75rem] font-semibold text-gray-900 mb-1">
-                            Welcome back, Admin
+                        <h1 className="text-xl md:text-[1.75rem] font-semibold text-gray-900 mb-1 notranslate" translate="no">
+                            {t("pages.adminDashboardTitle")}
                         </h1>
-                        <p className="text-xs md:text-sm text-gray-500">
-                            Here's what's happening with your water tariff
-                            system today.
+                        <p className="text-xs md:text-sm text-gray-500 notranslate" translate="no">
+                            {t("pages.adminDashboardSubtitle")}
                         </p>
                     </div>
                     <div className="flex gap-3">

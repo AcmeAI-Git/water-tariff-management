@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useLanguage } from "../context/LanguageContext";
+import { getStaticTranslation } from "../constants/staticTranslations";
 import { MapView } from "../components/map/MapView";
 import { AreaLayer, type ColorByOption, type AreaClickDetails } from "../components/map/AreaLayer";
 import { RulesetCoverageLayer } from "../components/map/RulesetCoverageLayer";
@@ -21,14 +23,18 @@ import { LoadingSpinner } from "../components/common/LoadingSpinner";
 
 const GEOJSON_URL = "/data/zones_and_areas_combined.geojson";
 
-const COLOR_BY_OPTIONS: { value: ColorByOption; label: string }[] = [
-  { value: "zone_score", label: "Zone score" },
-  { value: "zone_name", label: "Zone" },
-  { value: "tax_zone", label: "Tax zone" },
-  { value: "thana", label: "Thana" },
-  { value: "union", label: "Union" },
-  { value: "mauza", label: "Mauza" },
-];
+function useColorByOptions() {
+  const { language } = useLanguage();
+  const t = (key: string) => getStaticTranslation(language, key);
+  return [
+    { value: "zone_score" as ColorByOption, label: t("pages.zoneScore") },
+    { value: "zone_name" as ColorByOption, label: t("pages.zone") },
+    { value: "tax_zone" as ColorByOption, label: t("pages.taxZone") },
+    { value: "thana" as ColorByOption, label: t("pages.thana") },
+    { value: "union" as ColorByOption, label: t("pages.union") },
+    { value: "mauza" as ColorByOption, label: t("pages.mauza") },
+  ];
+}
 
 /** Palette for Zone (zone_name) legend - must match AreaLayer ZONE_PALETTE order. */
 const ZONE_PALETTE = [
@@ -44,6 +50,9 @@ function isActiveOrPublished(status: string | undefined): boolean {
 }
 
 export default function TariffMap() {
+  const { language } = useLanguage();
+  const t = (key: string) => getStaticTranslation(language, key);
+  const COLOR_BY_OPTIONS = useColorByOptions();
   const [geojson, setGeojson] = useState<FeatureCollection | null>(null);
   const [colorBy, setColorBy] = useState<ColorByOption>("zone_score");
   const [selectedAreaKey, setSelectedAreaKey] = useState<string | null>(null);
@@ -203,7 +212,7 @@ export default function TariffMap() {
   return (
     <div className="flex flex-col h-full">
       <div className="px-6 py-4 border-b border-gray-200 bg-white text-center">
-        <h1 className="text-xl font-semibold text-gray-900">Tariff Map</h1>
+        <h1 className="text-xl font-semibold text-gray-900 notranslate" translate="no">{t("pages.tariffMapTitle")}</h1>
         <p className="text-sm text-gray-500 mt-0.5">
           Dhaka WASA zones and areas. Color by category.
         </p>
@@ -213,7 +222,7 @@ export default function TariffMap() {
         <div className="w-64 shrink-0 flex flex-col gap-5 bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
           <div className="space-y-3">
             <div>
-              <Label className="text-xs text-gray-600">Color by</Label>
+              <Label className="text-xs text-gray-600 notranslate" translate="no">{t("pages.colorBy")}</Label>
               <Select value={colorBy} onValueChange={(v) => setColorBy(v as ColorByOption)}>
                 <SelectTrigger className="mt-1.5 h-9">
                   <SelectValue />
@@ -237,10 +246,10 @@ export default function TariffMap() {
           {/* Legend in sidebar */}
           {((colorBy === "zone_name" || colorBy === "tax_zone") || (colorBy === "zone_score" && activeRuleset)) && (
             <div className="space-y-3 border-t border-gray-200 pt-4">
-              <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Legend</span>
+              <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 notranslate" translate="no">{t("pages.legend")}</span>
               {colorBy === "zone_name" && uniqueZoneNames.length > 0 && (
                 <div>
-                  <span className="text-xs font-semibold text-gray-700">Zone</span>
+                  <span className="text-xs font-semibold text-gray-700 notranslate" translate="no">{t("pages.zone")}</span>
                   <div className="mt-1.5 flex flex-col gap-1">
                     {uniqueZoneNames.map((name, i) => (
                       <div key={name} className="flex items-center gap-2">

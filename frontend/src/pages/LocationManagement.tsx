@@ -1,4 +1,6 @@
 import { useState, useMemo, useRef } from 'react';
+import { useLanguage } from '../context/LanguageContext';
+import { getStaticTranslation } from '../constants/staticTranslations';
 import { Button } from '../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog';
@@ -19,6 +21,8 @@ import type {
 } from '../types';
 
 export function LocationManagement() {
+  const { language } = useLanguage();
+  const t = (key: string) => getStaticTranslation(language, key);
   const [activeTab, setActiveTab] = useState<'wasas' | 'zones' | 'areas'>('wasas');
   
   // WASA states
@@ -649,7 +653,7 @@ export function LocationManagement() {
       <div className="px-4 md:px-8 py-4 md:py-6">
         {/* Header - centered on mobile to avoid hamburger overlap */}
         <div className="mb-6 text-center md:text-left">
-          <h1 className="text-xl md:text-2xl font-bold text-gray-900">Location Management</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900 notranslate" translate="no">{t('pages.locationManagementTitle')}</h1>
           <p className="text-xs md:text-sm text-gray-500 mt-1">Manage WASAs, zones, and areas</p>
         </div>
 

@@ -1,6 +1,8 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Badge } from '../components/ui/badge';
 import { useMemo, useState } from 'react';
+import { useLanguage } from '../context/LanguageContext';
+import { getStaticTranslation } from '../constants/staticTranslations';
 import { api } from '../services/api';
 import { useApiQuery } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
@@ -11,6 +13,8 @@ import { Search, X } from 'lucide-react';
 import type { TariffPolicy, TariffThresholdSlab, TariffCategorySettings, ZoneScoringRuleSet, Admin } from '../types';
 
 export function TariffAdminTariffHistory() {
+  const { language } = useLanguage();
+  const t = (key: string) => getStaticTranslation(language, key);
   const [ruleTypeFilter, setRuleTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -225,7 +229,7 @@ export function TariffAdminTariffHistory() {
       <div className="px-4 md:px-8 py-4 md:py-6">
         {/* Header - centered on mobile to avoid hamburger overlap */}
         <div className="mb-8 text-center md:text-left">
-          <h1 className="text-[28px] font-semibold text-gray-900 mb-1">Tariff History</h1>
+          <h1 className="text-[28px] font-semibold text-gray-900 mb-1 notranslate" translate="no">{t('pages.tariffAdminHistoryTitle')}</h1>
           <p className="text-sm text-gray-500">View all tariff policy changes, volumetric slabs, category settings, and zone scoring rules</p>
         </div>
 
