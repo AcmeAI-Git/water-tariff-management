@@ -59,7 +59,7 @@ export function TariffAdminTariffHistory() {
       
       const policyTypeLabel = policy.tariffType === 'AREA_BASED' ? 'Area Based' :
                               policy.tariffType === 'FIXED' ? 'Fixed' :
-                              policy.tariffType === 'THRESHOLD' ? 'Threshold' : policy.tariffType;
+                              policy.tariffType === 'THRESHOLD' ? 'Volumetric' : policy.tariffType;
       
       records.push({
         id: `policy-${policy.id}`,
@@ -92,7 +92,7 @@ export function TariffAdminTariffHistory() {
       
       records.push({
         id: `threshold-slab-${slab.id}`,
-        ruleType: 'Threshold Slab',
+        ruleType: 'Volumetric Slab',
         details: range,
         newValue: `৳${rate.toFixed(2)}/m³`,
         effectiveFrom: createdAt,
@@ -226,7 +226,7 @@ export function TariffAdminTariffHistory() {
         {/* Header - centered on mobile to avoid hamburger overlap */}
         <div className="mb-8 text-center md:text-left">
           <h1 className="text-[28px] font-semibold text-gray-900 mb-1">Tariff History</h1>
-          <p className="text-sm text-gray-500">View all tariff policy changes, threshold slabs, category settings, and zone scoring rules</p>
+          <p className="text-sm text-gray-500">View all tariff policy changes, volumetric slabs, category settings, and zone scoring rules</p>
         </div>
 
         {/* Filters */}
@@ -249,7 +249,7 @@ export function TariffAdminTariffHistory() {
               options={[
                 { value: 'all', label: 'All Rule Types' },
                 { value: 'Tariff Policy', label: 'Tariff Policy' },
-                { value: 'Threshold Slab', label: 'Threshold Slab' },
+                { value: 'Volumetric Slab', label: 'Volumetric Slab' },
                 { value: 'Category Settings', label: 'Category Settings' },
                 { value: 'Zone Scoring', label: 'Zone Scoring' }
               ]}

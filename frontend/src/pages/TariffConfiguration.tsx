@@ -19,7 +19,7 @@ import { EmptyState } from '../components/zoneScoring/EmptyState';
 import { DeleteConfirmationDialog } from '../components/zoneScoring/DeleteConfirmationDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
 import { TariffCategorySettingsModal } from '../components/modals/TariffCategorySettingsModal';
-import { ThresholdSlabsSection } from '../components/tariff/ThresholdSlabsSection';
+import { VolumetricSlabsSection } from '../components/tariff/VolumetricSlabsSection';
 import type {
   TariffCategorySettings,
   CreateTariffCategorySettingsDto,
@@ -34,7 +34,7 @@ export function TariffConfiguration() {
   const [editingSettings, setEditingSettings] = useState<TariffCategorySettings | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [settingsToDelete, setSettingsToDelete] = useState<TariffCategorySettings | null>(null);
-  const [activeTab, setActiveTab] = useState<'settings' | 'threshold'>('settings');
+  const [activeTab, setActiveTab] = useState<'settings' | 'volumetric'>('settings');
   const [policyConfirmOpen, setPolicyConfirmOpen] = useState(false);
   const [pendingPolicy, setPendingPolicy] = useState<{ id: number; label: string } | null>(null);
 
@@ -75,7 +75,7 @@ export function TariffConfiguration() {
       case 'FIXED':
         return 'Fixed';
       case 'THRESHOLD':
-        return 'Threshold';
+        return 'Volumetric';
       default:
         return type;
     }
@@ -189,7 +189,7 @@ export function TariffConfiguration() {
     if (activePolicy?.tariffType === 'AREA_BASED') {
       setActiveTab('settings');
     } else if (activePolicy?.tariffType === 'THRESHOLD') {
-      setActiveTab('threshold');
+      setActiveTab('volumetric');
     }
     // For FIXED, don't auto-switch - keep current tab
   }, [activePolicy?.tariffType]);
@@ -199,7 +199,7 @@ export function TariffConfiguration() {
 
   // Check if tabs should be enabled
   const isAreaBased = activePolicy?.tariffType === 'AREA_BASED';
-  const isThreshold = activePolicy?.tariffType === 'THRESHOLD';
+  const isVolumetric = activePolicy?.tariffType === 'THRESHOLD';
   const isFixed = activePolicy?.tariffType === 'FIXED';
 
   if (settingsLoading) {
@@ -265,14 +265,14 @@ export function TariffConfiguration() {
               Settings Rulesets
             </button>
             <button
-              onClick={() => setActiveTab('threshold')}
+              onClick={() => setActiveTab('volumetric')}
               className={`pb-3 text-[15px] font-medium border-b-2 transition-colors ${
-                activeTab === 'threshold'
+                activeTab === 'volumetric'
                   ? 'border-[#4C6EF5] text-[#4C6EF5]'
                   : 'border-transparent text-gray-600 hover:text-gray-900'
               }`}
             >
-              Threshold Slabs
+              Volumetric Slabs
             </button>
           </div>
         </div>
@@ -403,15 +403,15 @@ export function TariffConfiguration() {
           </>
         )}
 
-        {/* Threshold Slabs Tab */}
-        {activeTab === 'threshold' && (
+        {/* Volumetric Slabs Tab */}
+        {activeTab === 'volumetric' && (
           <>
-            {!isThreshold && !isFixed ? (
+            {!isVolumetric && !isFixed ? (
               <div className="text-sm text-gray-600">
-                Select <span className="font-medium text-gray-900">Threshold</span> in the Tariff Type dropdown above to manage slabs.
+                Select <span className="font-medium text-gray-900">Volumetric</span> in the Tariff Type dropdown above to manage slabs.
               </div>
             ) : (
-              <ThresholdSlabsSection disabled={!isThreshold && !isFixed} />
+              <VolumetricSlabsSection disabled={!isVolumetric && !isFixed} />
             )}
           </>
         )}

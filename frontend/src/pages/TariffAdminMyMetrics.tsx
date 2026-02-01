@@ -124,7 +124,7 @@ export function TariffAdminMyMetrics() {
             variant="blue"
           />
           <MetricCard
-            label="Active Threshold Slabs"
+            label="Active Volumetric Slabs"
             value={activeSlabs.length}
             variant="green"
             animationDelay={0.05}
@@ -192,11 +192,11 @@ export function TariffAdminMyMetrics() {
           </div>
         </div>
 
-        {/* Current threshold slab structure */}
+        {/* Current volumetric slab structure */}
         {thresholdSlabChartData.length > 0 ? (
           <div>
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Current Threshold Slab Structure
+              Current Volumetric Slab Structure
             </h2>
             <div className="bg-white border-2 border-gray-200 rounded-xl p-6 hover:border-blue-300 hover:shadow-md transition-all duration-300">
               <p className="text-sm text-gray-500 mb-4">
@@ -231,7 +231,7 @@ export function TariffAdminMyMetrics() {
         ) : (
           <div className="bg-white border-2 border-gray-200 rounded-xl p-6 hover:border-gray-300 transition-all duration-300">
             <p className="text-sm text-gray-500 text-center">
-              No active threshold slabs. Configure slabs in Tariff Configuration.
+              No active volumetric slabs. Configure slabs in Tariff Configuration.
             </p>
           </div>
         )}

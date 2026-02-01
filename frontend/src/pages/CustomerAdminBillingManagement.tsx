@@ -420,7 +420,15 @@ export function CustomerAdminBillingManagement() {
                       const consumption = breakdown.consumption || selectedBill.consumption?.consumption || 0;
                       const baseRate = breakdown.baseRate;
                       const zoneScore = breakdown.zoneScore;
-                      const policy = breakdown.policy || 'UNKNOWN';
+                      const policyRaw = breakdown.policy || 'UNKNOWN';
+                      const policyLabel =
+                        policyRaw === 'AREA_BASED'
+                          ? 'Area Based'
+                          : policyRaw === 'FIXED'
+                            ? 'Fixed'
+                            : policyRaw === 'THRESHOLD'
+                              ? 'Volumetric'
+                              : policyRaw.replace(/_/g, ' ');
                       const preTaxTotal = breakdown.preTaxTotal;
                       const taxRate = breakdown.taxRate;
                       const taxAmount = breakdown.taxAmount;
@@ -432,10 +440,10 @@ export function CustomerAdminBillingManagement() {
                             <span className="text-gray-600">Water Consumption</span>
                             <span className="font-medium text-gray-900">{consumption.toFixed(2)} m³</span>
                           </div>
-                          {policy && (
+                          {policyRaw && (
                             <div className="flex flex-col sm:flex-row sm:justify-between gap-1 text-sm">
                               <span className="text-gray-600">Policy</span>
-                              <span className="font-medium text-gray-900">{policy.replace('_', ' ')}</span>
+                              <span className="font-medium text-gray-900">{policyLabel}</span>
                             </div>
                           )}
                           {baseRate != null && (
