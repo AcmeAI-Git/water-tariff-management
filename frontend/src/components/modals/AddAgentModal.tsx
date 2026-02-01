@@ -3,6 +3,8 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Dropdown } from "../ui/Dropdown";
 import { X } from "lucide-react";
+import { useLanguage } from "../../context/LanguageContext";
+import { getStaticTranslation } from "../../constants/staticTranslations";
 
 interface Agent {
   name: string;
@@ -112,16 +114,18 @@ export function AddAgentModal({ open, onClose, onSave, editMode = false, agent =
     return true;
   };
 
+  const { language } = useLanguage();
+  const t = (key: string) => getStaticTranslation(language, key);
   if (!open) return null;
   
-  const defaultModalTitle = editMode ? "Edit Agent" : "Add New Agent";
+  const defaultModalTitle = editMode ? t('modals.editAgent') : t('pages.addNewAgent');
   const finalModalTitle = modalTitle || defaultModalTitle;
-  const defaultSubmitButtonText = editMode ? "Save Changes" : "Add Agent";
+  const defaultSubmitButtonText = editMode ? t('modals.saveChanges') : t('modals.addAgent');
   const finalSubmitButtonText = submitButtonText || defaultSubmitButtonText;
   
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg relative animate-in fade-in-0 zoom-in-95 duration-200">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg relative animate-in fade-in-0 zoom-in-95 duration-200 notranslate" translate="no">
         {/* Header */}
         <div className="px-6 pt-6 pb-4 border-b border-gray-100">
           <div className="flex items-center justify-between">
@@ -143,7 +147,7 @@ export function AddAgentModal({ open, onClose, onSave, editMode = false, agent =
             {/* Role Selection - At the Top */}
             <div className="space-y-2">
               <label className="text-sm font-bold text-gray-700 block">
-                Role <span className="text-red-500">*</span>
+                {t('common.role')} <span className="text-red-500">*</span>
               </label>
               <Dropdown 
                 options={roleOptions.length > 0 ? roleOptions : [
@@ -154,7 +158,7 @@ export function AddAgentModal({ open, onClose, onSave, editMode = false, agent =
                 ]} 
                 value={form.role} 
                 onChange={v => handleChange("role", v)} 
-                placeholder="Select role" 
+                placeholder={t('modals.selectRole')} 
                 className="w-full"
                 disabled={!!roleFixed}
               />
@@ -163,15 +167,15 @@ export function AddAgentModal({ open, onClose, onSave, editMode = false, agent =
             {/* Personal Information Section */}
             <div className="space-y-4">
               <div className="pb-2 border-b border-gray-100">
-                <h3 className="text-sm font-semibold text-gray-800">Personal Information</h3>
+                <h3 className="text-sm font-semibold text-gray-800">{t('modals.personalInformation')}</h3>
               </div>
               <div className="space-y-3">
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-gray-700">
-                    Full Name <span className="text-red-500">*</span>
+                    {t('pages.fullName')} <span className="text-red-500">*</span>
                   </label>
                   <Input 
-                    placeholder="Enter full name" 
+                    placeholder={t('modals.enterFullName')} 
                     value={form.name} 
                     onChange={e => handleChange("name", e.target.value)} 
                     required 
@@ -180,11 +184,11 @@ export function AddAgentModal({ open, onClose, onSave, editMode = false, agent =
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-gray-700">
-                    Email Address <span className="text-red-500">*</span>
+                    {t('modals.emailAddress')} <span className="text-red-500">*</span>
                   </label>
                   <Input 
                     type="email" 
-                    placeholder="Enter email address" 
+                    placeholder={t('modals.enterEmailAddress')} 
                     value={form.email} 
                     onChange={e => handleChange("email", e.target.value)} 
                     required 
@@ -193,10 +197,10 @@ export function AddAgentModal({ open, onClose, onSave, editMode = false, agent =
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-gray-700">
-                    Phone Number <span className="text-red-500">*</span>
+                    {t('modals.phoneNumber')} <span className="text-red-500">*</span>
                   </label>
                   <Input 
-                    placeholder="Enter phone number" 
+                    placeholder={t('modals.enterPhoneNumber')} 
                     value={form.phone || ""} 
                     onChange={e => handleChange("phone", e.target.value)} 
                     required 
@@ -210,7 +214,7 @@ export function AddAgentModal({ open, onClose, onSave, editMode = false, agent =
             {(showWasa || showZoneArea) && (
               <div className="space-y-4">
                 <div className="pb-2 border-b border-gray-100">
-                  <h3 className="text-sm font-semibold text-gray-800">Location Information</h3>
+                  <h3 className="text-sm font-semibold text-gray-800">{t('modals.locationInformation')}</h3>
                 </div>
                 <div className="space-y-3">
                   {showWasa && (
@@ -222,7 +226,7 @@ export function AddAgentModal({ open, onClose, onSave, editMode = false, agent =
                         options={wasaOptions} 
                         value={form.wasa || ""} 
                         onChange={v => handleChange("wasa", v)} 
-                        placeholder="Select WASA" 
+                        placeholder={t('modals.selectWasa')} 
                         className="w-full" 
                       />
                     </div>
@@ -232,20 +236,20 @@ export function AddAgentModal({ open, onClose, onSave, editMode = false, agent =
                       {zoneAreaAsNumbers ? (
                         <>
                           <div className="space-y-1.5">
-                            <label className="text-sm font-medium text-gray-700">Zone ID</label>
+                            <label className="text-sm font-medium text-gray-700">{t('modals.zoneIdLabel')}</label>
                             <Input 
                               type="number" 
-                              placeholder="Zone ID" 
+                              placeholder={t('modals.zoneIdLabel')} 
                               value={form.zone || ""} 
                               onChange={e => handleChange("zone", e.target.value)} 
                               className="w-full" 
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-sm font-medium text-gray-700">Area ID</label>
+                            <label className="text-sm font-medium text-gray-700">{t('modals.areaIdLabel')}</label>
                             <Input 
                               type="number" 
-                              placeholder="Area ID" 
+                              placeholder={t('modals.areaIdLabel')} 
                               value={form.area || ""} 
                               onChange={e => handleChange("area", e.target.value)} 
                               className="w-full" 
@@ -255,22 +259,22 @@ export function AddAgentModal({ open, onClose, onSave, editMode = false, agent =
                       ) : (
                         <>
                           <div className="space-y-1.5">
-                            <label className="text-sm font-medium text-gray-700">Zone</label>
+                            <label className="text-sm font-medium text-gray-700">{t('pages.zone')}</label>
                             <Dropdown 
                               options={zoneOptions} 
                               value={form.zone || ""} 
                               onChange={v => handleChange("zone", v)} 
-                              placeholder="Select zone" 
+                              placeholder={t('modals.selectZone')} 
                               className="w-full" 
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-sm font-medium text-gray-700">Area</label>
+                            <label className="text-sm font-medium text-gray-700">{t('modals.area')}</label>
                             <Dropdown 
                               options={areaOptions} 
                               value={form.area || ""} 
                               onChange={v => handleChange("area", v)} 
-                              placeholder="Select area" 
+                              placeholder={t('modals.selectArea')} 
                               className="w-full" 
                             />
                           </div>
@@ -287,12 +291,12 @@ export function AddAgentModal({ open, onClose, onSave, editMode = false, agent =
               <div className="space-y-3">
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-gray-700">
-                      Password <span className="text-red-500">*</span>
-                      <span className="text-xs text-gray-500 font-normal ml-1">(min 6 characters)</span>
+                      {t('modals.passwordLabel')} <span className="text-red-500">*</span>
+                      <span className="text-xs text-gray-500 font-normal ml-1">{t('modals.passwordMinChars')}</span>
                     </label>
                     <Input 
                       type="password" 
-                      placeholder="Enter password" 
+                      placeholder={t('modals.enterPassword')} 
                       value={form.password || ""} 
                       onChange={e => handleChange("password", e.target.value)} 
                       required 
@@ -302,11 +306,11 @@ export function AddAgentModal({ open, onClose, onSave, editMode = false, agent =
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-gray-700">
-                      Confirm Password <span className="text-red-500">*</span>
+                      {t('modals.confirmPassword')} <span className="text-red-500">*</span>
                     </label>
                     <Input 
                       type="password" 
-                      placeholder="Confirm password" 
+                      placeholder={t('modals.confirmPasswordPlaceholder')} 
                       value={form.confirm || ""} 
                       onChange={e => handleChange("confirm", e.target.value)} 
                       required 
@@ -327,7 +331,7 @@ export function AddAgentModal({ open, onClose, onSave, editMode = false, agent =
                 onClick={onDelete}
                 className="border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400"
               >
-                Remove
+                {t('modals.remove')}
               </Button>
             )}
             <div className={`flex gap-3 ${editMode && onDelete ? 'ml-auto' : 'w-full justify-end'}`}>
@@ -336,7 +340,7 @@ export function AddAgentModal({ open, onClose, onSave, editMode = false, agent =
                 onClick={onClose}
                 className="min-w-[100px]"
               >
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button 
                 className="bg-primary hover:bg-primary/90 text-white disabled:opacity-50 disabled:cursor-not-allowed min-w-[120px] shadow-sm" 

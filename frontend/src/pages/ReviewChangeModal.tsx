@@ -2,6 +2,8 @@ import { X } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import type { ScoringParam } from '../types';
+import { useLanguage } from '../context/LanguageContext';
+import { getStaticTranslation } from '../constants/staticTranslations';
 
 interface ReviewChangeModalProps {
   request: {
@@ -19,6 +21,8 @@ interface ReviewChangeModalProps {
 }
 
 export function ReviewChangeModal({ request, onClose, onApprove, onReject, isLoading = false }: ReviewChangeModalProps) {
+  const { language } = useLanguage();
+  const t = (key: string) => getStaticTranslation(language, key);
   const handleApprove = () => {
     onApprove(request.id);
   };
@@ -98,7 +102,7 @@ export function ReviewChangeModal({ request, onClose, onApprove, onReject, isLoa
       return (
         <div className="space-y-4">
           <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
-            <p className="text-sm text-yellow-700">No data available to display</p>
+            <p className="text-sm text-yellow-700">{t('modals.noDataAvailableDisplay')}</p>
           </div>
         </div>
       );
@@ -158,21 +162,21 @@ export function ReviewChangeModal({ request, onClose, onApprove, onReject, isLoa
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-4">
                 <div>
-                  <p className="text-xs text-gray-600">Customer</p>
+                  <p className="text-xs text-gray-600">{t('modals.customer')}</p>
                   <p className="text-sm font-semibold text-gray-900">
-                    {isValidObject(newData) && newData.customerName ? String(newData.customerName) : 'Unknown'}
+                    {isValidObject(newData) && newData.customerName ? String(newData.customerName) : t('modals.unknown')}
                   </p>
                 </div>
                 {isValidObject(newData) && newData.meterNo && String(newData.meterNo) !== 'N/A' ? (
                   <div className="border-l border-blue-300 pl-4">
-                    <p className="text-xs text-gray-600">Meter</p>
+                    <p className="text-xs text-gray-600">{t('modals.meter')}</p>
                     <p className="text-sm font-semibold text-gray-900">{String(newData.meterNo)}</p>
                   </div>
                 ) : null}
               </div>
               {isValidObject(newData) && newData.consumptionId ? (
                 <div className="text-right">
-                  <p className="text-xs text-gray-600">Record ID</p>
+                  <p className="text-xs text-gray-600">{t('modals.recordId')}</p>
                   <p className="text-sm font-medium text-gray-700">#{String(newData.consumptionId)}</p>
                 </div>
               ) : null}
@@ -186,25 +190,25 @@ export function ReviewChangeModal({ request, onClose, onApprove, onReject, isLoa
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {isValidObject(newData) && newData.billMonth ? (
                   <div>
-                    <p className="text-xs text-gray-600 mb-0.5">Bill Month</p>
+                    <p className="text-xs text-gray-600 mb-0.5">{t('modals.billMonthLabel')}</p>
                     <p className="text-sm font-semibold text-gray-900">{formatBillMonth(newData.billMonth)}</p>
                   </div>
                 ) : null}
                 {isValidObject(newData) && newData.currentReading !== undefined ? (
                   <div>
-                    <p className="text-xs text-gray-600 mb-0.5">Current</p>
+                    <p className="text-xs text-gray-600 mb-0.5">{t('modals.currentLabel')}</p>
                     <p className="text-sm font-semibold text-gray-900">{formatNumber(newData.currentReading)} m³</p>
                   </div>
                 ) : null}
                 {isValidObject(newData) && newData.previousReading !== undefined ? (
                   <div>
-                    <p className="text-xs text-gray-600 mb-0.5">Previous</p>
+                    <p className="text-xs text-gray-600 mb-0.5">{t('modals.previousLabel')}</p>
                     <p className="text-sm font-semibold text-gray-900">{formatNumber(newData.previousReading)} m³</p>
                   </div>
                 ) : null}
                 {isValidObject(newData) && newData.consumption !== undefined ? (
                   <div>
-                    <p className="text-xs text-gray-600 mb-0.5">Consumption</p>
+                    <p className="text-xs text-gray-600 mb-0.5">{t('modals.consumptionLabel')}</p>
                     <p className="text-sm font-bold text-green-700">{formatNumber(newData.consumption)} m³</p>
                   </div>
                 ) : null}
@@ -214,58 +218,58 @@ export function ReviewChangeModal({ request, onClose, onApprove, onReject, isLoa
             // Modified record - compact side by side
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                <p className="text-xs font-semibold text-gray-700 mb-2">Old Reading</p>
+                <p className="text-xs font-semibold text-gray-700 mb-2">{t('modals.oldReading')}</p>
                 <div className="space-y-1.5">
                   {isValidObject(request.oldData) && request.oldData.billMonth ? (
                     <div className="flex justify-between text-xs">
-                      <span className="text-gray-600">Month:</span>
+                      <span className="text-gray-600">{t('modals.monthLabel')}</span>
                       <span className="font-medium text-gray-900">{formatBillMonth(request.oldData.billMonth)}</span>
                     </div>
                   ) : null}
                   {isValidObject(request.oldData) && request.oldData.currentReading !== undefined ? (
                     <div className="flex justify-between text-xs">
-                      <span className="text-gray-600">Current:</span>
+                      <span className="text-gray-600">{t('modals.currentLabel')}:</span>
                       <span className="font-medium text-gray-900">{formatNumber(request.oldData.currentReading)} m³</span>
                     </div>
                   ) : null}
                   {isValidObject(request.oldData) && request.oldData.previousReading !== undefined ? (
                     <div className="flex justify-between text-xs">
-                      <span className="text-gray-600">Previous:</span>
+                      <span className="text-gray-600">{t('modals.previousLabel')}:</span>
                       <span className="font-medium text-gray-900">{formatNumber(request.oldData.previousReading)} m³</span>
                     </div>
                   ) : null}
                   {isValidObject(request.oldData) && request.oldData.consumption !== undefined ? (
                     <div className="flex justify-between text-xs pt-1 border-t border-gray-200">
-                      <span className="text-gray-600">Consumption:</span>
+                      <span className="text-gray-600">{t('modals.consumptionLabel')}:</span>
                       <span className="font-medium text-gray-900">{formatNumber(request.oldData.consumption)} m³</span>
                     </div>
                   ) : null}
                 </div>
               </div>
               <div className="bg-green-50 rounded-lg p-3 border border-green-200">
-                <p className="text-xs font-semibold text-gray-700 mb-2">New Reading</p>
+                <p className="text-xs font-semibold text-gray-700 mb-2">{t('modals.newReading')}</p>
                 <div className="space-y-1.5">
                   {isValidObject(newData) && newData.billMonth ? (
                     <div className="flex justify-between text-xs">
-                      <span className="text-gray-600">Month:</span>
+                      <span className="text-gray-600">{t('modals.monthLabel')}</span>
                       <span className="font-semibold text-green-700">{formatBillMonth(newData.billMonth)}</span>
                     </div>
                   ) : null}
                   {isValidObject(newData) && newData.currentReading !== undefined ? (
                     <div className="flex justify-between text-xs">
-                      <span className="text-gray-600">Current:</span>
+                      <span className="text-gray-600">{t('modals.currentLabel')}:</span>
                       <span className="font-semibold text-green-700">{formatNumber(newData.currentReading)} m³</span>
                     </div>
                   ) : null}
                   {isValidObject(newData) && newData.previousReading !== undefined ? (
                     <div className="flex justify-between text-xs">
-                      <span className="text-gray-600">Previous:</span>
+                      <span className="text-gray-600">{t('modals.previousLabel')}:</span>
                       <span className="font-semibold text-green-700">{formatNumber(newData.previousReading)} m³</span>
                     </div>
                   ) : null}
                   {isValidObject(newData) && newData.consumption !== undefined ? (
                     <div className="flex justify-between text-xs pt-1 border-t border-green-200">
-                      <span className="text-gray-600">Consumption:</span>
+                      <span className="text-gray-600">{t('modals.consumptionLabel')}:</span>
                       <span className="font-bold text-green-700">{formatNumber(newData.consumption)} m³</span>
                     </div>
                   ) : null}
@@ -278,10 +282,10 @@ export function ReviewChangeModal({ request, onClose, onApprove, onReject, isLoa
           {isValidObject(newData) && (newData.submittedBy || newData.createdAt) ? (
             <div className="flex items-center justify-between text-xs text-gray-600 bg-gray-50 rounded-lg px-3 py-2 border border-gray-200">
               {newData.submittedBy ? (
-                <span>Submitted by <span className="font-medium text-gray-900">{String(newData.submittedBy)}</span></span>
+                <span>{t('modals.submittedBy')} <span className="font-medium text-gray-900">{String(newData.submittedBy)}</span></span>
               ) : null}
               {newData.createdAt ? (
-                <span>on <span className="font-medium text-gray-900">{formatDate(newData.createdAt)}</span></span>
+                <span>{t('modals.on')} <span className="font-medium text-gray-900">{formatDate(newData.createdAt)}</span></span>
               ) : null}
             </div>
           ) : null}
@@ -294,7 +298,7 @@ export function ReviewChangeModal({ request, onClose, onApprove, onReject, isLoa
       return (
         <div className="space-y-4">
           <div>
-            <h4 className="text-sm font-semibold text-gray-700 mb-3">Customer Information</h4>
+            <h4 className="text-sm font-semibold text-gray-700 mb-3">{t('modals.customerInformation')}</h4>
             <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
               {safeObjectEntries(newData).map(([key, value]) => {
                 const formattedValue = formatValue(key, value);
@@ -323,7 +327,7 @@ export function ReviewChangeModal({ request, onClose, onApprove, onReject, isLoa
         <div className="space-y-4">
           {/* Basic Info */}
           <div>
-            <h4 className="text-sm font-semibold text-gray-700 mb-3">Ruleset Information</h4>
+            <h4 className="text-sm font-semibold text-gray-700 mb-3">{t('modals.rulesetInformation')}</h4>
             <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
               {safeObjectEntries(newData).filter(([key]) => key !== 'scoringParams').map(([key, value]) => {
                 const formattedValue = formatValue(key, value);
@@ -345,22 +349,22 @@ export function ReviewChangeModal({ request, onClose, onApprove, onReject, isLoa
           {scoringParams.length > 0 && (
             <div>
               <h4 className="text-sm font-semibold text-gray-700 mb-3">
-                Scoring Parameters ({scoringParams.length})
+                {t('modals.scoringParametersCount')} ({scoringParams.length})
               </h4>
               <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                 <div className="max-h-96 overflow-y-auto">
                   <Table>
                     <TableHeader className="sticky top-0 bg-gray-50">
                       <TableRow>
-                        <TableHead className="text-xs font-semibold text-gray-700">Area</TableHead>
-                        <TableHead className="text-xs font-semibold text-gray-700">Land+Home Rate</TableHead>
-                        <TableHead className="text-xs font-semibold text-gray-700">Land Rate</TableHead>
-                        <TableHead className="text-xs font-semibold text-gray-700">Land Tax Rate</TableHead>
-                        <TableHead className="text-xs font-semibold text-gray-700">Building Tax (≤120sqm)</TableHead>
-                        <TableHead className="text-xs font-semibold text-gray-700">Building Tax (≤200sqm)</TableHead>
-                        <TableHead className="text-xs font-semibold text-gray-700">Building Tax (&gt;200sqm)</TableHead>
-                        <TableHead className="text-xs font-semibold text-gray-700">High Income %</TableHead>
-                        <TableHead className="text-xs font-semibold text-gray-700">GeoMean</TableHead>
+                        <TableHead className="text-xs font-semibold text-gray-700">{t('modals.area')}</TableHead>
+                        <TableHead className="text-xs font-semibold text-gray-700">{t('modals.landHomeRate')}</TableHead>
+                        <TableHead className="text-xs font-semibold text-gray-700">{t('modals.landRate')}</TableHead>
+                        <TableHead className="text-xs font-semibold text-gray-700">{t('modals.landTaxRate')}</TableHead>
+                        <TableHead className="text-xs font-semibold text-gray-700">{t('modals.buildingTaxUpto120')}</TableHead>
+                        <TableHead className="text-xs font-semibold text-gray-700">{t('modals.buildingTaxUpto200')}</TableHead>
+                        <TableHead className="text-xs font-semibold text-gray-700">{t('modals.buildingTaxAbove200')}</TableHead>
+                        <TableHead className="text-xs font-semibold text-gray-700">{t('modals.highIncomePct')}</TableHead>
+                        <TableHead className="text-xs font-semibold text-gray-700">{t('modals.geoMean')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -398,16 +402,16 @@ export function ReviewChangeModal({ request, onClose, onApprove, onReject, isLoa
       return (
         <div className="space-y-4">
           <div>
-            <h4 className="text-sm font-semibold text-gray-700 mb-3">Old Data</h4>
+            <h4 className="text-sm font-semibold text-gray-700 mb-3">{t('modals.oldData')}</h4>
             <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-              <p className="text-sm text-gray-500 italic">None - New Record</p>
+              <p className="text-sm text-gray-500 italic">{t('modals.noneNewRecord')}</p>
             </div>
           </div>
           <div>
-            <h4 className="text-sm font-semibold text-gray-700 mb-3">New Data</h4>
+            <h4 className="text-sm font-semibold text-gray-700 mb-3">{t('modals.newData')}</h4>
             <div className="bg-green-50 rounded-lg p-4 border border-green-200">
               {safeObjectEntries(newData).length === 0 ? (
-                <p className="text-sm text-gray-500 italic">No data fields available</p>
+                <p className="text-sm text-gray-500 italic">{t('modals.noDataFieldsAvailable')}</p>
               ) : (
                 safeObjectEntries(newData).map(([key, value]) => {
                   const formattedValue = formatValue(key, value);
@@ -425,7 +429,7 @@ export function ReviewChangeModal({ request, onClose, onApprove, onReject, isLoa
                       {isScoringParams && (
                         <div className="mt-2 pl-4 text-xs text-gray-500">
                           <details className="cursor-pointer">
-                            <summary className="text-gray-600 hover:text-gray-800">View parameters ({value.length})</summary>
+                            <summary className="text-gray-600 hover:text-gray-800">{t('modals.viewParameters')} ({value.length})</summary>
                             <div className="mt-2 space-y-1 max-h-60 overflow-y-auto">
                               {(value as Array<ScoringParam & { areaName?: string }>).slice(0, 10).map((param, idx: number) => (
                                 <div key={idx} className="text-xs bg-white p-2 rounded border border-gray-200">
@@ -438,7 +442,7 @@ export function ReviewChangeModal({ request, onClose, onApprove, onReject, isLoa
                               {value.length > 10 && (
                                 <details className="mt-2 cursor-pointer">
                                   <summary className="text-gray-600 hover:text-gray-800 font-medium">
-                                    ... and {value.length - 10} more (click to expand)
+                                    ... {t('modals.andNMoreExpand').replace('N', String(value.length - 10))}
                                   </summary>
                                   <div className="mt-2 space-y-1">
                                     {(value as Array<ScoringParam & { areaName?: string }>).slice(10).map((param, idx: number) => (
@@ -474,7 +478,7 @@ export function ReviewChangeModal({ request, onClose, onApprove, onReject, isLoa
     return (
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <h4 className="text-sm font-semibold text-gray-700 mb-3">Old Data</h4>
+          <h4 className="text-sm font-semibold text-gray-700 mb-3">{t('modals.oldData')}</h4>
           <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 space-y-2">
             {Array.from(allKeys).map((key) => {
               const oldValue = isValidObject(request.oldData) ? request.oldData[key] : undefined;
@@ -500,7 +504,7 @@ export function ReviewChangeModal({ request, onClose, onApprove, onReject, isLoa
           </div>
         </div>
         <div>
-          <h4 className="text-sm font-semibold text-gray-700 mb-3">New Data</h4>
+          <h4 className="text-sm font-semibold text-gray-700 mb-3">{t('modals.newData')}</h4>
           <div className="bg-green-50 rounded-lg p-4 border border-green-200 space-y-2">
             {Array.from(allKeys).map((key) => {
               const oldValue = isValidObject(request.oldData) ? request.oldData[key] : undefined;
@@ -533,15 +537,15 @@ export function ReviewChangeModal({ request, onClose, onApprove, onReject, isLoa
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between notranslate" translate="no">
           <div>
             <div className="flex items-center gap-3">
-              <h2 className="text-xl font-semibold text-gray-900">Review Pending Change</h2>
+              <h2 className="text-xl font-semibold text-gray-900">{t('modals.reviewPendingChange')}</h2>
               <span className="px-2.5 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-md">
                 {request.module}
               </span>
             </div>
-            <p className="text-sm text-gray-500 mt-0.5">Request ID: {request.id}</p>
+            <p className="text-sm text-gray-500 mt-0.5">{t('modals.requestId')} {request.id}</p>
           </div>
           <button
             onClick={onClose}
@@ -556,12 +560,12 @@ export function ReviewChangeModal({ request, onClose, onApprove, onReject, isLoa
 
           {/* Record Details */}
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Record Details</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('modals.recordDetails')}</h3>
             {isLoading ? (
               <div className="bg-gray-50 rounded-lg p-8 border border-gray-200 flex items-center justify-center">
                 <div className="text-center">
                   <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#4C6EF5] mb-2"></div>
-                  <p className="text-sm text-gray-600">Loading record data...</p>
+                  <p className="text-sm text-gray-600">{t('modals.loadingRecordData')}</p>
                 </div>
               </div>
             ) : (
@@ -577,19 +581,19 @@ export function ReviewChangeModal({ request, onClose, onApprove, onReject, isLoa
             variant="outline"
             className="border-gray-300 text-gray-700 hover:bg-gray-50"
           >
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button
             onClick={handleReject}
             className="bg-red-50 text-red-700 border border-red-200 hover:bg-red-100"
           >
-            Reject
+            {t('pages.reject')}
           </Button>
           <Button
             onClick={handleApprove}
             className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white"
           >
-            Approve
+            {t('pages.approve')}
           </Button>
         </div>
       </div>

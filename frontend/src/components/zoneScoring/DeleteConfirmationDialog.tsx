@@ -1,5 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 import { Button } from '../ui/button';
+import { useLanguage } from '../../context/LanguageContext';
+import { getStaticTranslation } from '../../constants/staticTranslations';
 
 interface DeleteConfirmationDialogProps {
   isOpen: boolean;
@@ -24,6 +26,8 @@ export function DeleteConfirmationDialog({
   confirmLabel = 'Delete',
   cancelLabel = 'Cancel',
 }: DeleteConfirmationDialogProps) {
+  const { language } = useLanguage();
+  const t = (key: string) => getStaticTranslation(language, key);
   const handleConfirm = async () => {
     await onConfirm();
     onClose();
@@ -31,7 +35,7 @@ export function DeleteConfirmationDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-md" aria-describedby={undefined}>
+      <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-md notranslate" aria-describedby={undefined} translate="no">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold text-gray-900">
             {title}
@@ -43,7 +47,7 @@ export function DeleteConfirmationDialog({
             {itemName && (
               <span className="font-medium text-gray-900"> "{itemName}"</span>
             )}
-            ? This action cannot be undone.
+            {t('modals.deleteConfirmCannotUndo')}
           </p>
         </div>
         <DialogFooter>
@@ -59,7 +63,7 @@ export function DeleteConfirmationDialog({
             disabled={isPending}
             className="bg-red-600 hover:bg-red-700 text-white rounded-lg h-10 px-6 disabled:opacity-50"
           >
-            {isPending ? 'Deleting...' : confirmLabel}
+            {isPending ? t('modals.deleting') : confirmLabel}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -7,6 +7,8 @@ import { Dropdown } from '../ui/Dropdown';
 import { HierarchicalLocationSelector } from '../common/HierarchicalLocationSelector';
 import { Download, Upload } from 'lucide-react';
 import type { Wasa, Zone, Area } from '../../types';
+import { useLanguage } from '../../context/LanguageContext';
+import { getStaticTranslation } from '../../constants/staticTranslations';
 
 export interface CustomerMeterFormData {
   name: string;
@@ -66,6 +68,8 @@ export function CustomerMeterModal({
   isParsingCSV = false,
   showBulkImport = false,
 }: CustomerMeterModalProps) {
+  const { language } = useLanguage();
+  const t = (key: string) => getStaticTranslation(language, key);
   const handleInputChange = (field: keyof CustomerMeterFormData, value: string) => {
     onFormDataChange(field, value);
   };
@@ -87,12 +91,12 @@ export function CustomerMeterModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[95vw] sm:w-full max-w-[700px] max-h-[95vh] h-[90vh] sm:h-[85vh] bg-white flex flex-col overflow-hidden m-4 sm:m-0" aria-describedby={undefined}>
         {/* Header */}
-        <div className="px-4 sm:px-6 pt-4 sm:pt-6 border-b border-gray-200 flex-shrink-0">
+        <div className="px-4 sm:px-6 pt-4 sm:pt-6 border-b border-gray-200 flex-shrink-0 notranslate" translate="no">
           <DialogTitle className="text-lg sm:text-xl font-semibold text-gray-900 pb-3">
-            {mode === 'add' ? 'Add New Customer' : 'Edit Customer'}
+            {mode === 'add' ? t('modals.addNewCustomer') : t('modals.editCustomer')}
           </DialogTitle>
           <DialogDescription className="sr-only">
-            {mode === 'add' ? 'Fill in the form to add a new customer' : 'Update customer information'}
+            {mode === 'add' ? t('modals.fillFormAddCustomer') : t('modals.updateCustomerInfo')}
           </DialogDescription>
         </div>
         
@@ -101,9 +105,9 @@ export function CustomerMeterModal({
           {/* Bulk Import Section - Only show in add mode */}
           {mode === 'add' && showBulkImport && onDownloadTemplate && onCSVUpload && csvFileInputRef && (
             <div className="space-y-3 pb-4 border-b border-gray-200">
-              <h3 className="text-base font-semibold text-gray-900">Bulk Import</h3>
+              <h3 className="text-base font-semibold text-gray-900">{t('modals.bulkImport')}</h3>
               <p className="text-sm text-gray-600">
-                Import multiple customers at once using a CSV file
+                {t('modals.importMultipleCSV')}
               </p>
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <Button
@@ -113,7 +117,7 @@ export function CustomerMeterModal({
                   className="border-gray-300 text-gray-700 rounded-lg h-10 px-4 flex items-center justify-center gap-2 bg-white hover:bg-gray-50"
                 >
                   <Download size={16} />
-                  Download Template
+                  {t('modals.downloadTemplate')}
                 </Button>
                 <input
                   ref={csvFileInputRef}
@@ -131,7 +135,7 @@ export function CustomerMeterModal({
                   className="border-gray-300 text-gray-700 rounded-lg h-10 px-4 flex items-center justify-center gap-2 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Upload size={16} />
-                  {isParsingCSV ? 'Parsing...' : 'Upload CSV'}
+                  {isParsingCSV ? t('modals.parsing') : t('modals.uploadCSV')}
                 </Button>
               </div>
             </div>
@@ -139,18 +143,18 @@ export function CustomerMeterModal({
           
           {/* Customer Information Section */}
           <div className="space-y-4">
-            <h3 className="text-base font-semibold text-gray-900">Customer Information</h3>
+            <h3 className="text-base font-semibold text-gray-900">{t('modals.customerInformation')}</h3>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="name" className="text-sm font-medium text-gray-700">
-                  Customer Name *
+                  {t('modals.customerNameLabel')}
                 </Label>
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
-                  placeholder="Enter customer name"
+                  placeholder={t('modals.enterCustomerName')}
                   maxLength={255}
                   className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                   required
@@ -159,14 +163,14 @@ export function CustomerMeterModal({
 
               <div className="space-y-2">
                 <Label htmlFor="inspCode" className="text-sm font-medium text-gray-700">
-                  Inspection Code *
+                  {t('modals.inspectionCode')}
                 </Label>
                 <Input
                   id="inspCode"
                   type="number"
                   value={formData.inspCode}
                   onChange={(e) => handleInputChange('inspCode', e.target.value)}
-                  placeholder="Enter inspection code"
+                  placeholder={t('modals.enterInspectionCode')}
                   className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                   required
                 />
@@ -175,13 +179,13 @@ export function CustomerMeterModal({
 
             <div className="space-y-2">
               <Label htmlFor="address" className="text-sm font-medium text-gray-700">
-                Address *
+                {t('modals.addressLabel')}
               </Label>
               <Textarea
                 id="address"
                 value={formData.address}
                 onChange={(e) => handleInputChange('address', e.target.value)}
-                placeholder="Enter complete address"
+                placeholder={t('modals.enterCompleteAddress')}
                 className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500 min-h-[80px]"
                 required
               />
@@ -190,7 +194,7 @@ export function CustomerMeterModal({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="accountType" className="text-sm font-medium text-gray-700">
-                  Account Type *
+                  {t('modals.accountType')}
                 </Label>
                 <Dropdown
                   options={[
@@ -199,14 +203,14 @@ export function CustomerMeterModal({
                   ]}
                   value={formData.accountType}
                   onChange={(value) => handleInputChange('accountType', value)}
-                  placeholder="Select account type"
+                  placeholder={t('modals.selectAccountType')}
                   className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="customerCategory" className="text-sm font-medium text-gray-700">
-                  Customer Category *
+                  {t('modals.customerCategoryLabel')}
                 </Label>
                 <Dropdown
                   options={[
@@ -216,7 +220,7 @@ export function CustomerMeterModal({
                   ]}
                   value={formData.customerCategory}
                   onChange={(value) => handleInputChange('customerCategory', value)}
-                  placeholder="Select category"
+                  placeholder={t('pages.selectCategory')}
                   className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                 />
               </div>
@@ -225,7 +229,7 @@ export function CustomerMeterModal({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="waterStatus" className="text-sm font-medium text-gray-700">
-                  Water Status *
+                  {t('modals.waterStatusLabel')}
                 </Label>
                 <Dropdown
                   options={[
@@ -237,14 +241,14 @@ export function CustomerMeterModal({
                   ]}
                   value={formData.waterStatus}
                   onChange={(value) => handleInputChange('waterStatus', value)}
-                  placeholder="Select water status"
+                  placeholder={t('modals.selectWaterStatus')}
                   className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="sewerStatus" className="text-sm font-medium text-gray-700">
-                  Sewer Status *
+                  {t('modals.sewerStatusLabel')}
                 </Label>
                 <Dropdown
                   options={[
@@ -254,7 +258,7 @@ export function CustomerMeterModal({
                   ]}
                   value={formData.sewerStatus}
                   onChange={(value) => handleInputChange('sewerStatus', value)}
-                  placeholder="Select sewer status"
+                  placeholder={t('modals.selectSewerStatus')}
                   className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                 />
               </div>
@@ -277,7 +281,7 @@ export function CustomerMeterModal({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="landSizeDecimal" className="text-sm font-medium text-gray-700">
-                  Land Size (sq ft)
+                  {t('modals.landSizeSqFt')}
                 </Label>
                 <Input
                   id="landSizeDecimal"
@@ -286,14 +290,14 @@ export function CustomerMeterModal({
                   min="0"
                   value={formData.landSizeDecimal}
                   onChange={(e) => handleInputChange('landSizeDecimal', e.target.value)}
-                  placeholder="Enter land size"
+                  placeholder={t('modals.enterLandSize')}
                   className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="numberOfStories" className="text-sm font-medium text-gray-700">
-                  Number of Stories
+                  {t('modals.numberOfStories')}
                 </Label>
                 <Input
                   id="numberOfStories"
@@ -301,14 +305,14 @@ export function CustomerMeterModal({
                   min="0"
                   value={formData.numberOfStories}
                   onChange={(e) => handleInputChange('numberOfStories', e.target.value)}
-                  placeholder="Enter number of stories"
+                  placeholder={t('modals.enterNumberOfStories')}
                   className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="numberOfFlats" className="text-sm font-medium text-gray-700">
-                  Number of Flats
+                  {t('modals.numberOfFlats')}
                 </Label>
                 <Input
                   id="numberOfFlats"
@@ -316,7 +320,7 @@ export function CustomerMeterModal({
                   min="0"
                   value={formData.numberOfFlats}
                   onChange={(e) => handleInputChange('numberOfFlats', e.target.value)}
-                  placeholder="Enter number of flats"
+                  placeholder={t('modals.enterNumberOfFlats')}
                   className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                 />
               </div>
@@ -326,19 +330,19 @@ export function CustomerMeterModal({
           {/* Meter Information Section - Conditionally Rendered */}
           {formData.waterStatus === 'Metered' && (
             <div className="space-y-4 pt-4 border-t border-gray-200">
-              <h3 className="text-base font-semibold text-gray-900">Meter Information</h3>
+              <h3 className="text-base font-semibold text-gray-900">{t('modals.meterInformation')}</h3>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="meterNo" className="text-sm font-medium text-gray-700">
-                    Meter Number *
+                    {t('modals.meterNumber')}
                   </Label>
                   <Input
                     id="meterNo"
                     type="number"
                     value={formData.meterNo}
                     onChange={(e) => handleInputChange('meterNo', e.target.value)}
-                    placeholder="Enter meter number"
+                    placeholder={t('modals.enterMeterNumber')}
                     className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                     required
                   />
@@ -346,7 +350,7 @@ export function CustomerMeterModal({
 
                 <div className="space-y-2">
                   <Label htmlFor="meterStatus" className="text-sm font-medium text-gray-700">
-                    Meter Status *
+                    {t('modals.meterStatusLabel')}
                   </Label>
                   <Dropdown
                     options={[
@@ -357,7 +361,7 @@ export function CustomerMeterModal({
                     ]}
                     value={formData.meterStatus}
                     onChange={(value) => handleInputChange('meterStatus', value)}
-                    placeholder="Select meter status"
+                    placeholder={t('modals.selectMeterStatus')}
                     className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                   />
                 </div>
@@ -366,13 +370,13 @@ export function CustomerMeterModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="sizeOfDia" className="text-sm font-medium text-gray-700">
-                    Size of Diameter *
+                    {t('modals.sizeOfDiameter')}
                   </Label>
                   <Input
                     id="sizeOfDia"
                     value={formData.sizeOfDia}
                     onChange={(e) => handleInputChange('sizeOfDia', e.target.value)}
-                    placeholder="e.g., 15mm, 20mm"
+                    placeholder={t('modals.sizeOfDiameterPlaceholder')}
                     className="bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
                     required
                   />
@@ -380,7 +384,7 @@ export function CustomerMeterModal({
 
                 <div className="space-y-2">
                   <Label htmlFor="meterInstallationDate" className="text-sm font-medium text-gray-700">
-                    Installation Date
+                    {t('modals.installationDate')}
                   </Label>
                   <Input
                     id="meterInstallationDate"
@@ -402,7 +406,7 @@ export function CustomerMeterModal({
             onClick={onCancel}
             className="w-full sm:w-auto border-gray-300 text-gray-700 rounded-lg h-10 px-5 bg-white hover:bg-gray-50"
           >
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button
             type="submit"
@@ -411,10 +415,10 @@ export function CustomerMeterModal({
             className="w-full sm:w-auto bg-primary hover:bg-primary-600 text-white rounded-lg h-10 px-5 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting 
-              ? (mode === 'add' ? 'Registering...' : 'Saving...') 
+              ? (mode === 'add' ? t('modals.registering') : t('modals.saving')) 
               : formData.waterStatus === 'Metered' 
-                ? (mode === 'add' ? 'Register Customer & Meter' : 'Save Customer & Meter')
-                : (mode === 'add' ? 'Register Customer' : 'Save Customer')
+                ? (mode === 'add' ? t('modals.registerCustomerMeter') : t('modals.saveCustomerMeter'))
+                : (mode === 'add' ? t('modals.registerCustomer') : t('modals.saveCustomer'))
             }
           </Button>
         </DialogFooter>

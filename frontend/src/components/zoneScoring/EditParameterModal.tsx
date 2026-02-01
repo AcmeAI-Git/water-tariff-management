@@ -3,6 +3,8 @@ import { Button } from '../ui/button';
 import type { ScoringParam, ZoneScoringRuleSet } from '../../types';
 import { calculatePercentages } from '../../utils/zoneScoringUtils';
 import { ScoringParameterFormFields } from './ScoringParameterFormFields';
+import { useLanguage } from '../../context/LanguageContext';
+import { getStaticTranslation } from '../../constants/staticTranslations';
 
 interface EditParameterModalProps {
   isOpen: boolean;
@@ -25,6 +27,8 @@ export function EditParameterModal({
   calculatedParams,
   onSave,
 }: EditParameterModalProps) {
+  const { language } = useLanguage();
+  const t = (key: string) => getStaticTranslation(language, key);
   const handleSave = async () => {
     if (!editingParamValues || !activeRuleSet || !editingParam) return;
     
@@ -44,12 +48,12 @@ export function EditParameterModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-4xl max-h-[90vh] flex flex-col p-0 gap-0" aria-describedby={undefined}>
+      <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-4xl max-h-[90vh] flex flex-col p-0 gap-0 notranslate" aria-describedby={undefined} translate="no">
         <DialogHeader className="flex-shrink-0 px-6 pt-6 pb-4">
           <DialogTitle className="text-xl font-semibold text-gray-900">
-            Edit Zone Scoring Parameter
+            {t('modals.editZoneScoringParameter')}
             <span className="text-base font-normal text-gray-600 ml-2">
-              - {editingParam.area?.name || `Area ${editingParam.areaId}`}
+              - {editingParam.area?.name || `${t('modals.area')} ${editingParam.areaId}`}
             </span>
           </DialogTitle>
         </DialogHeader>
@@ -72,13 +76,13 @@ export function EditParameterModal({
             onClick={onClose}
             className="border-gray-300 text-gray-700 rounded-lg h-10 px-6 bg-white hover:bg-gray-50"
           >
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button
             onClick={handleSave}
             className="bg-[#4C6EF5] hover:bg-[#3B5EE5] text-white rounded-lg h-10 px-6"
           >
-            Save Changes
+            {t('modals.saveChanges')}
           </Button>
         </DialogFooter>
       </DialogContent>

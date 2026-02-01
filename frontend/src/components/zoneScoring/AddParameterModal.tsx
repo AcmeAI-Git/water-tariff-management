@@ -5,6 +5,8 @@ import type { Area, CreateScoringParamDto, ScoringParam, Zone, Wasa } from '../.
 import { initializeScoringParam } from '../../utils/zoneScoringUtils';
 import { ScoringParameterFormFields } from './ScoringParameterFormFields';
 import { HierarchicalLocationSelector } from '../common/HierarchicalLocationSelector';
+import { useLanguage } from '../../context/LanguageContext';
+import { getStaticTranslation } from '../../constants/staticTranslations';
 
 interface AddParameterModalProps {
   isOpen: boolean;
@@ -65,12 +67,15 @@ export function AddParameterModal({
     setNewParam({ ...newParam, areaId: value ? parseInt(value) : 0 });
   };
 
+  const { language } = useLanguage();
+  const t = (key: string) => getStaticTranslation(language, key);
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg w-full max-w-[calc(100%-2rem)] sm:max-w-4xl max-h-[90vh] flex flex-col p-0 gap-0" aria-describedby={undefined}>
+      <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg w-full max-w-[calc(100%-2rem)] sm:max-w-4xl max-h-[90vh] flex flex-col p-0 gap-0 notranslate" aria-describedby={undefined} translate="no">
         <DialogHeader className="flex-shrink-0 px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4">
           <DialogTitle className="text-lg sm:text-xl font-semibold text-gray-900">
-            Add Scoring Parameter
+            {t('modals.addScoringParameter')}
           </DialogTitle>
         </DialogHeader>
         <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 sm:px-6 sm:py-4 space-y-4">
@@ -87,10 +92,10 @@ export function AddParameterModal({
             onAreaChange={handleAreaChange}
             required={true}
             showArea={true}
-            wasaPlaceholder="Filter by WASA"
-            zonePlaceholder="Filter by zone"
-            areaPlaceholder="Select an area"
-            areaLabel="Area"
+            wasaPlaceholder={t('modals.filterByWasa')}
+            zonePlaceholder={t('modals.filterByZone')}
+            areaPlaceholder={t('modals.selectAnArea')}
+            areaLabel={t('modals.area')}
           />
 
           <ScoringParameterFormFields
