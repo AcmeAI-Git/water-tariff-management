@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useLanguage } from "../context/LanguageContext";
+import { getStaticTranslation } from "../constants/staticTranslations";
 import { MapView } from "../components/map/MapView";
-import { ZoneLayer } from "../components/map/ZoneLayer";
 import { AreaLayer, type ColorByOption, type AreaClickDetails } from "../components/map/AreaLayer";
 import { RulesetCoverageLayer } from "../components/map/RulesetCoverageLayer";
 import { Popup } from "react-leaflet";
-import { Info } from "lucide-react";
-import { Checkbox } from "../components/ui/checkbox";
 import { Label } from "../components/ui/label";
 import {
   Select,
@@ -18,34 +17,44 @@ import {
 } from "../components/ui/select";
 import { useApiQuery } from "../hooks/useApiQuery";
 import { api } from "../services/api";
-import type { FeatureCollection } from "geojson";
-import type { ZoneScoringRuleSet, Area, ZoneScore } from "../types";
+import type { FeatureCollection, Polygon, Feature } from "geojson";
+import type { ZoneScoringRuleSet, Area, ZoneScore, Zone } from "../types";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
 
 const GEOJSON_URL = "/data/zones_and_areas_combined.geojson";
 
-const COLOR_BY_OPTIONS: { value: ColorByOption; label: string }[] = [
-  { value: "zone_name", label: "Zone" },
-  { value: "tax_zone", label: "Tax zone" },
-  { value: "zone_score", label: "Zone score" },
-  { value: "thana", label: "Thana" },
-  { value: "union", label: "Union" },
-  { value: "mauza", label: "Mauza" },
+function useColorByOptions() {
+  const { language } = useLanguage();
+  const t = (key: string) => getStaticTranslation(language, key);
+  return [
+    { value: "zone_score" as ColorByOption, label: t("pages.zoneScore") },
+    { value: "zone_name" as ColorByOption, label: t("pages.zone") },
+    { value: "tax_zone" as ColorByOption, label: t("pages.taxZone") },
+    { value: "thana" as ColorByOption, label: t("pages.thana") },
+    { value: "union" as ColorByOption, label: t("pages.union") },
+    { value: "mauza" as ColorByOption, label: t("pages.mauza") },
+  ];
+}
+
+/** Palette for Zone (zone_name) legend - must match AreaLayer ZONE_PALETTE order. */
+const ZONE_PALETTE = [
+  "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7",
+  "#DDA15E", "#6C5CE7", "#A29BFE", "#FD79A8", "#FDCB6E",
 ];
 
-function isApprovedOrPublished(status: string | undefined): boolean {
+/** Only rulesets with status 'active' or 'published' are the current active ruleset (used for zone score map). */
+function isActiveOrPublished(status: string | undefined): boolean {
   if (!status) return false;
   const s = status.toLowerCase();
-  return s === "approved" || s === "published" || s === "active";
+  return s === "active" || s === "published";
 }
 
 export default function TariffMap() {
+  const { language } = useLanguage();
+  const t = (key: string) => getStaticTranslation(language, key);
+  const COLOR_BY_OPTIONS = useColorByOptions();
   const [geojson, setGeojson] = useState<FeatureCollection | null>(null);
-  const [zoneLayerOn, setZoneLayerOn] = useState(true);
-  const [areaLayerOn, setAreaLayerOn] = useState(true);
-  const [coverageLayerOn, setCoverageLayerOn] = useState(false);
-  const [colorBy, setColorBy] = useState<ColorByOption>("tax_zone");
-  const [rulesetId, setRulesetId] = useState<string>("");
+  const [colorBy, setColorBy] = useState<ColorByOption>("zone_score");
   const [selectedAreaKey, setSelectedAreaKey] = useState<string | null>(null);
   const [selectedAreaDetails, setSelectedAreaDetails] = useState<AreaClickDetails | null>(null);
 
@@ -54,14 +63,8 @@ export default function TariffMap() {
     () => api.zoneScoring.getAll()
   );
   const rulesets = (rulesetsData ?? []) as ZoneScoringRuleSet[];
-  const activeRulesets = rulesets.filter((r) => isApprovedOrPublished(r.status));
-
-  const { data: selectedRulesetData } = useApiQuery<ZoneScoringRuleSet | null>(
-    ["zone-scoring", rulesetId],
-    () => (rulesetId ? api.zoneScoring.getById(parseInt(rulesetId, 10)) : Promise.resolve(null)),
-    { enabled: !!rulesetId }
-  );
-  const selectedRuleset = rulesetId ? (selectedRulesetData as ZoneScoringRuleSet | undefined) ?? null : null;
+  const activeRulesets = rulesets.filter((r) => isActiveOrPublished(r.status));
+  const activeRuleset = colorBy === "zone_score" ? (activeRulesets[0] ?? null) : null;
 
   const { data: areasData } = useApiQuery<Area[]>(
     ["areas"],
@@ -69,17 +72,127 @@ export default function TariffMap() {
   );
   const areas = (areasData ?? []) as Area[];
 
-  // Zone scores from API: only when ruleset coverage layer is on and a ruleset is selected (active rules only in dropdown)
+  const { data: zonesData } = useApiQuery<Zone[]>(
+    ["zones"],
+    () => api.zones.getAll(),
+    { enabled: colorBy === "zone_score" && areas.length > 0 }
+  );
+  const zones = (zonesData ?? []) as Zone[];
+  const zoneById = useMemo(() => {
+    const m = new Map<number, Zone>();
+    for (const z of zones) m.set(Number(z.id), z);
+    return m;
+  }, [zones]);
+
   const { data: zoneScoresData } = useApiQuery<ZoneScore[]>(
     ["zone-scoring-scores"],
     () => api.zoneScoring.getScores(),
-    { enabled: coverageLayerOn && !!rulesetId }
+    { enabled: colorBy === "zone_score" && !!activeRuleset }
   );
   const zoneScores = (zoneScoresData ?? []) as ZoneScore[];
   const zoneScoresForRuleset =
-    rulesetId && coverageLayerOn
-      ? zoneScores.filter((s) => s.ruleSetId === parseInt(rulesetId, 10))
+    colorBy === "zone_score" && activeRuleset
+      ? zoneScores.filter((s) => Number(s.ruleSetId) === Number(activeRuleset.id))
       : [];
+
+  /** When coloring by zone_score: use static geojson as base and enrich with API zone scores (so tax_zone/thana/union stay from static). Otherwise use static geojson. */
+  const areaGeojsonForMap = useMemo((): FeatureCollection | null => {
+    if (colorBy === "zone_score" && geojson?.features) {
+      const scoreByAreaId = new Map<number, number>();
+      for (const s of zoneScoresForRuleset) {
+        const n = parseFloat(s.score);
+        if (!Number.isNaN(n)) scoreByAreaId.set(Number(s.areaId), n);
+      }
+      // API area by (zone, name) -> score for matching static features
+      const apiByKey = new Map<string, number>();
+      for (const area of areas) {
+        const zone = area.zone ?? zoneById.get(Number(area.zoneId));
+        const zoneName = (zone?.name ?? "").trim();
+        const zoneNo = (zone?.zoneNo ?? "").trim();
+        const name = (area.name ?? "").trim();
+        const score = scoreByAreaId.get(Number(area.id));
+        if (score === undefined) continue;
+        apiByKey.set(`${zoneName}\t${name}`, score);
+        apiByKey.set(`${zoneNo}\t${name}`, score);
+        apiByKey.set(`${zoneName.toLowerCase()}\t${name.toLowerCase()}`, score);
+        apiByKey.set(`${zoneNo}\t${name.toLowerCase()}`, score);
+      }
+      const getScore = (zonePart: string, mauzaPart: string): number | undefined =>
+        apiByKey.get(`${zonePart}\t${mauzaPart}`) ?? apiByKey.get(`${zonePart}\t${mauzaPart.toLowerCase()}`);
+
+      type StaticAreaProps = { type?: string; zone_name?: string; zone_no?: string; mauza?: string; tax_zone?: string; thana?: string; union?: string; geocode?: string };
+      const enrichedFeatures = geojson.features
+        .filter((f): f is Feature<Polygon, StaticAreaProps> =>
+          f.type === "Feature" && (f.properties as StaticAreaProps)?.type === "area"
+        )
+        .map((f) => {
+          const p = f.properties as StaticAreaProps;
+          const zoneName = (p.zone_name ?? "").trim();
+          const zoneNo = (p.zone_no ?? "").trim();
+          const mauza = (p.mauza ?? "").trim();
+          const score =
+            getScore(zoneName, mauza) ?? getScore(zoneNo, mauza) ?? getScore(zoneName.toLowerCase(), mauza.toLowerCase()) ?? getScore(zoneNo, mauza.toLowerCase());
+          return {
+            ...f,
+            properties: {
+              ...p,
+              type: "area" as const,
+              zone_score: score !== undefined ? score : undefined,
+            },
+          };
+        });
+
+      // Append API-only areas (no matching static feature) so they still appear
+      const staticKeys = new Set<string>();
+      for (const f of geojson.features) {
+        if (f.type !== "Feature" || (f.properties as StaticAreaProps)?.type !== "area") continue;
+        const p = f.properties as StaticAreaProps;
+        const z = (p.zone_name ?? p.zone_no ?? "").trim();
+        const m = (p.mauza ?? "").trim();
+        if (z || m) staticKeys.add(`${z}\t${m}`);
+      }
+      for (const area of areas) {
+        if (!area.geojson?.coordinates?.length) continue;
+        const zone = area.zone ?? zoneById.get(Number(area.zoneId));
+        const zoneName = (zone?.name ?? "").trim();
+        const name = (area.name ?? "").trim();
+        if (staticKeys.has(`${zoneName}\t${name}`)) continue;
+        const score = scoreByAreaId.get(Number(area.id));
+        enrichedFeatures.push({
+          type: "Feature",
+          geometry: area.geojson as Polygon,
+          properties: {
+            type: "area",
+            zone_name: zone?.name,
+            zone_score: score !== undefined ? score : undefined,
+            geocode: String(area.id),
+            mauza: area.name,
+            tax_zone: undefined,
+            thana: undefined,
+            union: undefined,
+          },
+        });
+      }
+      return { type: "FeatureCollection", features: enrichedFeatures };
+    }
+    return geojson;
+  }, [colorBy, geojson, areas, zoneScoresForRuleset, zoneById]);
+
+  const uniqueZoneNames = useMemo(() => {
+    if (!areaGeojsonForMap?.features || colorBy !== "zone_name") return [];
+    const seen = new Set<string>();
+    const order: string[] = [];
+    for (const f of areaGeojsonForMap.features) {
+      if (f.type !== "Feature" || (f.properties as { type?: string })?.type !== "area") continue;
+      const p = f.properties as { zone_name?: string; zone_no?: string };
+      const v = (p.zone_name ?? p.zone_no ?? "").trim() || "—";
+      if (!seen.has(v)) {
+        seen.add(v);
+        order.push(v);
+      }
+    }
+    return order.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  }, [areaGeojsonForMap, colorBy]);
 
   useEffect(() => {
     let cancelled = false;
@@ -99,46 +212,17 @@ export default function TariffMap() {
   return (
     <div className="flex flex-col h-full">
       <div className="px-6 py-4 border-b border-gray-200 bg-white text-center">
-        <h1 className="text-xl font-semibold text-gray-900">Tariff Map</h1>
+        <h1 className="text-xl font-semibold text-gray-900 notranslate" translate="no">{t("pages.tariffMapTitle")}</h1>
         <p className="text-sm text-gray-500 mt-0.5">
-          Dhaka WASA zones and areas. Toggle layers and color by category.
+          Dhaka WASA zones and areas. Color by category.
         </p>
       </div>
 
       <div className="flex-1 flex gap-4 p-4 min-h-0">
         <div className="w-64 shrink-0 flex flex-col gap-5 bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-          {/* Zone layer */}
-          <div>
-            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Layers</span>
-            <label
-              htmlFor="layer-zone"
-              className="mt-2 flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2 hover:bg-gray-50"
-            >
-              <Checkbox
-                id="layer-zone"
-                checked={zoneLayerOn}
-                onCheckedChange={(c) => setZoneLayerOn(!!c)}
-              />
-              <span className="text-sm font-medium text-gray-800">Zone boundaries</span>
-            </label>
-          </div>
-
-          {/* Areas: checkbox + color by */}
           <div className="space-y-3">
-            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Areas</span>
-            <label
-              htmlFor="layer-area"
-              className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2 hover:bg-gray-50"
-            >
-              <Checkbox
-                id="layer-area"
-                checked={areaLayerOn}
-                onCheckedChange={(c) => setAreaLayerOn(!!c)}
-              />
-              <span className="text-sm font-medium text-gray-800">Show areas</span>
-            </label>
-            <div className="pl-8">
-              <Label className="text-xs text-gray-600">Color by</Label>
+            <div>
+              <Label className="text-xs text-gray-600 notranslate" translate="no">{t("pages.colorBy")}</Label>
               <Select value={colorBy} onValueChange={(v) => setColorBy(v as ColorByOption)}>
                 <SelectTrigger className="mt-1.5 h-9">
                   <SelectValue />
@@ -151,109 +235,82 @@ export default function TariffMap() {
                   ))}
                 </SelectContent>
               </Select>
+              {colorBy === "zone_score" && (
+                <p className="mt-2 text-xs text-gray-500">
+                  Shows the currently active ruleset.
+                </p>
+              )}
             </div>
           </div>
 
-          {/* Ruleset coverage: checkbox + ruleset dropdown */}
-          <div className="space-y-3">
-            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Ruleset coverage</span>
-            <label
-              htmlFor="layer-coverage"
-              className={`flex items-center gap-3 rounded-lg px-2 py-2 ${rulesetId ? "cursor-pointer hover:bg-gray-50" : "cursor-not-allowed opacity-70"}`}
-            >
-              <Checkbox
-                id="layer-coverage"
-                checked={coverageLayerOn}
-                onCheckedChange={(c) => setCoverageLayerOn(!!c)}
-                disabled={!rulesetId}
-              />
-              <span className="text-sm font-medium text-gray-800">Show coverage</span>
-            </label>
-            <div className="pl-8">
-              <Label className="text-xs text-gray-600">Applied tariff ruleset</Label>
-              <Select value={rulesetId || "none"} onValueChange={(v) => setRulesetId(v === "none" ? "" : v)}>
-                <SelectTrigger className="mt-1.5 h-9">
-                  <SelectValue placeholder="Select ruleset" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {activeRulesets.length === 0 ? (
-                    <SelectItem value="empty" disabled>No approved/published rulesets</SelectItem>
-                  ) : (
-                    activeRulesets.map((r) => (
-                      <SelectItem key={r.id} value={String(r.id)}>
-                        {r.title ?? `Ruleset #${r.id}`}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-              <p className="mt-1 text-xs text-gray-500">Approved/published only</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex-1 min-h-[400px] rounded-lg border border-gray-200 overflow-hidden bg-gray-100 relative">
-          {/* Legend overlay: top-right, semi-transparent */}
-          {(areaLayerOn && colorBy === "tax_zone") || (coverageLayerOn && rulesetId) ? (
-            <div className="absolute top-3 right-3 z-[1000] flex flex-col gap-3 rounded-lg border border-gray-200/80 bg-white/90 px-3 py-2.5 shadow-md backdrop-blur-sm">
-              {areaLayerOn && colorBy === "tax_zone" && (
+          {/* Legend in sidebar */}
+          {((colorBy === "zone_name" || colorBy === "tax_zone") || (colorBy === "zone_score" && activeRuleset)) && (
+            <div className="space-y-3 border-t border-gray-200 pt-4">
+              <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 notranslate" translate="no">{t("pages.legend")}</span>
+              {colorBy === "zone_name" && uniqueZoneNames.length > 0 && (
+                <div>
+                  <span className="text-xs font-semibold text-gray-700 notranslate" translate="no">{t("pages.zone")}</span>
+                  <div className="mt-1.5 flex flex-col gap-1">
+                    {uniqueZoneNames.map((name, i) => (
+                      <div key={name} className="flex items-center gap-2">
+                        <div
+                          className="h-3 w-3 shrink-0 rounded border border-gray-300"
+                          style={{ backgroundColor: ZONE_PALETTE[i % ZONE_PALETTE.length] }}
+                        />
+                        <span className="text-xs text-gray-700 truncate" title={name}>{name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {colorBy === "tax_zone" && (
                 <div>
                   <span className="text-xs font-semibold text-gray-700">Tax zone</span>
                   <div className="mt-1.5 flex flex-col gap-1">
                     <div className="flex items-center gap-2">
-                      <div className="h-3 w-3 rounded border border-[#C92A2A]" style={{ backgroundColor: "#C92A2A" }} />
+                      <div className="h-3 w-3 shrink-0 rounded border border-[#C92A2A]" style={{ backgroundColor: "#C92A2A" }} />
                       <span className="text-xs text-gray-700">High</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="h-3 w-3 rounded border border-[#E67700]" style={{ backgroundColor: "#E67700" }} />
+                      <div className="h-3 w-3 shrink-0 rounded border border-[#E67700]" style={{ backgroundColor: "#E67700" }} />
                       <span className="text-xs text-gray-700">Medium</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="h-3 w-3 rounded border border-[#2B8A3E]" style={{ backgroundColor: "#2B8A3E" }} />
+                      <div className="h-3 w-3 shrink-0 rounded border border-[#2B8A3E]" style={{ backgroundColor: "#2B8A3E" }} />
                       <span className="text-xs text-gray-700">Low</span>
                     </div>
                   </div>
                 </div>
               )}
-              {coverageLayerOn && rulesetId && (
-                <div className={areaLayerOn && colorBy === "tax_zone" ? "border-t border-gray-200 pt-2" : ""}>
+              {colorBy === "zone_score" && activeRuleset && (
+                <div>
                   <span className="text-xs font-semibold text-gray-700">Coverage</span>
                   <div className="mt-1.5 flex flex-col gap-1">
                     <div className="flex items-center gap-2">
-                      <div className="h-3 w-3 rounded border border-[#1B5E20]" style={{ backgroundColor: "rgba(43,138,62,0.6)" }} />
+                      <div className="h-3 w-3 shrink-0 rounded border border-[#1B5E20]" style={{ backgroundColor: "rgba(43,138,62,0.6)" }} />
                       <span className="text-xs text-gray-700">Covered</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="h-3 w-3 rounded border border-[#7F8C8D]" style={{ backgroundColor: "rgba(149,165,166,0.35)" }} />
+                      <div className="h-3 w-3 shrink-0 rounded border border-[#7F8C8D]" style={{ backgroundColor: "rgba(149,165,166,0.35)" }} />
                       <span className="text-xs text-gray-700">Not covered</span>
                     </div>
                   </div>
                 </div>
               )}
             </div>
-          ) : null}
-
-          {/* Zone score note: bottom overlay when "Zone score" is selected */}
-          {colorBy === "zone_score" && (
-            <div className="absolute bottom-3 left-3 right-3 z-[1000] flex items-start gap-2 rounded-lg border border-amber-200/90 bg-amber-50/95 px-3 py-2.5 shadow-md backdrop-blur-sm">
-              <Info className="mt-0.5 size-4 shrink-0 text-amber-600" aria-hidden />
-              <p className="text-xs font-medium leading-snug text-amber-900">
-                Zone scores are only shown when clicking areas defined in an active zone scoring ruleset. Turn on <strong>Ruleset coverage</strong> and select a ruleset to see scores on the map.
-              </p>
-            </div>
           )}
+        </div>
 
+        <div className="flex-1 min-h-[400px] rounded-lg border border-gray-200 overflow-hidden bg-gray-100 relative">
           {!geojson && (
             <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-[1000]">
               <LoadingSpinner />
             </div>
           )}
           <MapView className="h-full min-h-[400px]">
-            <ZoneLayer geojson={geojson} visible={zoneLayerOn} />
             <AreaLayer
-              geojson={geojson}
-              visible={areaLayerOn}
+              geojson={areaGeojsonForMap}
+              visible={true}
               colorBy={colorBy}
               selectedAreaKey={selectedAreaKey}
               onAreaClick={(key, details) => {
@@ -323,9 +380,9 @@ export default function TariffMap() {
             )}
             <RulesetCoverageLayer
               areas={areas}
-              ruleset={selectedRuleset}
+              ruleset={activeRuleset}
               zoneScores={zoneScoresForRuleset}
-              visible={coverageLayerOn && !!rulesetId}
+              visible={colorBy === "zone_score" && !!activeRuleset}
             />
           </MapView>
         </div>

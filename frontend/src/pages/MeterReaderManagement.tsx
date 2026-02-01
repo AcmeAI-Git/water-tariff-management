@@ -1,3 +1,5 @@
+import { useLanguage } from "../context/LanguageContext";
+import { getStaticTranslation } from "../constants/staticTranslations";
 import { Button } from "../components/ui/button";
 import {
     Table,
@@ -34,6 +36,8 @@ interface EditingMeterReader extends DisplayAdmin {
 }
 
 export default function MeterReaderManagement() {
+    const { language } = useLanguage();
+    const t = (key: string) => getStaticTranslation(language, key);
     const [searchTerm, setSearchTerm] = useState("");
     const [showModal, setShowModal] = useState(false);
     const [editMode, setEditMode] = useState(false);
@@ -215,8 +219,8 @@ export default function MeterReaderManagement() {
                 {/* Header - centered on mobile to avoid hamburger overlap */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 md:mb-8 items-center text-center sm:text-left">
                     <div>
-                        <h1 className="text-xl md:text-[1.75rem] font-semibold text-gray-900 mb-1">
-                            Meter Reader Management
+                        <h1 className="text-xl md:text-[1.75rem] font-semibold text-gray-900 mb-1 notranslate" translate="no">
+                            {t("pages.meterReaderManagementTitle")}
                         </h1>
                         <p className="text-xs md:text-sm text-gray-500">
                             Manage all meter readers who handle meter readings

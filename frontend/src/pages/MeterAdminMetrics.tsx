@@ -1,11 +1,15 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useMemo } from 'react';
+import { useLanguage } from '../context/LanguageContext';
+import { getStaticTranslation } from '../constants/staticTranslations';
 import { api } from '../services/api';
 import { useApiQuery } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { MetricCard } from '../components/common/MetricCard';
 
 export function MeterAdminMetrics() {
+  const { language } = useLanguage();
+  const t = (key: string) => getStaticTranslation(language, key);
   // Fetch consumption entries
   const { data: consumptions = [], isLoading: consumptionsLoading } = useApiQuery(
     ['consumption'],
@@ -73,7 +77,7 @@ export function MeterAdminMetrics() {
       <div className="px-4 md:px-8 py-4 md:py-6">
         {/* Header - centered on mobile to avoid hamburger overlap */}
         <div className="mb-6 md:mb-8 text-center md:text-left">
-          <h1 className="text-xl md:text-[1.75rem] font-semibold text-gray-900 mb-1">My Monthly Metrics</h1>
+          <h1 className="text-xl md:text-[1.75rem] font-semibold text-gray-900 mb-1 notranslate" translate="no">{t('pages.myMonthlyMetricsTitle')}</h1>
           <p className="text-xs md:text-sm text-gray-500">Track your data entry performance</p>
         </div>
 

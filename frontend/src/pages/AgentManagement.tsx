@@ -1,3 +1,5 @@
+import { useLanguage } from "../context/LanguageContext";
+import { getStaticTranslation } from "../constants/staticTranslations";
 import { Button } from "../components/ui/button";
 import {
     Table,
@@ -33,6 +35,8 @@ interface EditingAgent extends DisplayAdmin {
 }
 
 export function AgentManagement() {
+    const { language } = useLanguage();
+    const t = (key: string) => getStaticTranslation(language, key);
     const [searchTerm, setSearchTerm] = useState("");
     const [showModal, setShowModal] = useState(false);
     const [editMode, setEditMode] = useState(false);
@@ -225,19 +229,18 @@ export function AgentManagement() {
                 {/* Header - centered on mobile to avoid hamburger overlap */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 md:mb-8 items-center text-center sm:text-left">
                     <div>
-                        <h1 className="text-xl md:text-[1.75rem] font-semibold text-gray-900 mb-1">
-                            Agent Management
+                        <h1 className="text-xl md:text-[1.75rem] font-semibold text-gray-900 mb-1 notranslate" translate="no">
+                            {t("pages.agentManagementTitle")}
                         </h1>
-                        <p className="text-xs md:text-sm text-gray-500">
-                            Manage other system administrators (Tariff, Customer,
-                            Super Admins)
+                        <p className="text-xs md:text-sm text-gray-500 notranslate" translate="no">
+                            {t("pages.agentManagementSubtitle")}
                         </p>
                     </div>
                     <Button
                         className="bg-primary hover:bg-primary-600 text-white px-4 md:px-6 rounded-lg shadow-sm text-sm md:text-base w-full sm:w-auto"
                         onClick={() => setShowModal(true)}
                     >
-                        + Add New Agent
+                        <span className="notranslate" translate="no">+ {t("pages.addNewAgent")}</span>
                     </Button>
                 </div>
 
@@ -250,7 +253,7 @@ export function AgentManagement() {
                         />
                         <Input
                             type="text"
-                            placeholder="Search Agents..."
+                            placeholder={t("pages.searchAgents")}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="pl-10 bg-white border-gray-300 rounded-lg h-11 focus:ring-2 focus:ring-primary/20 focus:border-blue-500"
@@ -263,25 +266,25 @@ export function AgentManagement() {
                     <Table>
                         <TableHeader>
                             <TableRow className="border-gray-200 bg-gray-50">
-                                <TableHead className="text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">
-                                    Full Name
+                                <TableHead className="text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap notranslate" translate="no">
+                                    {t("pages.fullName")}
                                 </TableHead>
-                                <TableHead className="text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">
-                                    Email
+                                <TableHead className="text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap notranslate" translate="no">
+                                    {t("common.email")}
                                 </TableHead>
-                                <TableHead className="text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">
-                                    Role
+                                <TableHead className="text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap notranslate" translate="no">
+                                    {t("common.role")}
                                 </TableHead>
-                                <TableHead className="text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">
-                                    Actions
+                                <TableHead className="text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap notranslate" translate="no">
+                                    {t("common.actions")}
                                 </TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {filteredAdmins.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={4} className="text-center text-gray-500 py-6 md:py-8 text-sm">
-                                        No agents found
+                                    <TableCell colSpan={4} className="text-center text-gray-500 py-6 md:py-8 text-sm notranslate" translate="no">
+                                        {t("pages.noAgentsFound")}
                                     </TableCell>
                                 </TableRow>
                             ) : (

@@ -165,7 +165,7 @@ const RouterIndex = () => {
         {/* Tariff Admin routes - only accessible by tariff-admin role */}
         <Route 
           path="/tariff-admin" 
-          element={<Navigate to="/tariff-admin/config" replace />}
+          element={<Navigate to="/tariff-admin/map" replace />}
         />
         <Route 
           path="/tariff-admin/config" 
@@ -234,7 +234,7 @@ const RouterIndex = () => {
         <Route 
           path="/tariff-admin/map" 
           element={
-            <ProtectedRoute allowedRoles={['tariff-admin']}>
+            <ProtectedRoute allowedRoles={['admin', 'tariff-admin', 'customer-admin', 'approval-admin', 'general-info']}>
               <TariffMap />
             </ProtectedRoute>
           } 

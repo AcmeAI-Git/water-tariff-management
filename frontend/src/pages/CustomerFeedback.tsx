@@ -5,18 +5,22 @@ import { Textarea } from '../components/ui/textarea';
 import { Dropdown } from '../components/ui/Dropdown';
 import { MessageSquare, Send } from 'lucide-react';
 import { toast } from 'sonner';
-
-const FEEDBACK_CATEGORIES = [
-  { value: 'billing', label: 'Billing Issue' },
-  { value: 'service', label: 'Service Complaint' },
-  { value: 'general', label: 'General Feedback' },
-  { value: 'technical', label: 'Technical Issue' },
-];
+import { useLanguage } from '../context/LanguageContext';
+import { getStaticTranslation } from '../constants/staticTranslations';
 
 export default function CustomerFeedback() {
+  const { language } = useLanguage();
+  const t = (key: string) => getStaticTranslation(language, key);
   const [category, setCategory] = useState('');
   const [message, setMessage] = useState('');
   const [submitted, setSubmitted] = useState(false);
+
+  const FEEDBACK_CATEGORIES = [
+    { value: 'billing', label: t('pages.billingIssue') },
+    { value: 'service', label: t('pages.serviceComplaint') },
+    { value: 'general', label: t('pages.generalFeedback') },
+    { value: 'technical', label: t('pages.technicalIssue') },
+  ];
 
   // Get logged-in customer
   const customerUserStr = localStorage.getItem('customerUser');
@@ -35,11 +39,11 @@ export default function CustomerFeedback() {
 
   const handleSubmit = () => {
     if (!category) {
-      toast.error('Please select a category');
+      toast.error(t('pages.pleaseSelectCategory'));
       return;
     }
     if (!message.trim()) {
-      toast.error('Please enter your feedback message');
+      toast.error(t('pages.pleaseEnterMessage'));
       return;
     }
 
@@ -60,7 +64,7 @@ export default function CustomerFeedback() {
     window.location.href = mailtoLink;
 
     setSubmitted(true);
-    toast.success('Opening email client...');
+    toast.success(t('pages.openingEmail'));
     
     // Reset form after a delay
     setTimeout(() => {
@@ -75,8 +79,8 @@ export default function CustomerFeedback() {
       <div className="px-4 md:px-8 py-4 md:py-6">
         {/* Header - centered on mobile to avoid hamburger overlap */}
         <div className="mb-6 md:mb-8 text-center md:text-left">
-          <h1 className="text-xl md:text-2xl font-semibold text-gray-900 mb-1">Feedback</h1>
-          <p className="text-sm text-gray-500">Share your feedback or report an issue</p>
+          <h1 className="text-xl md:text-2xl font-semibold text-gray-900 mb-1 notranslate" translate="no">{t('pages.feedbackTitle')}</h1>
+          <p className="text-sm text-gray-500 notranslate" translate="no">{t('pages.feedbackSubtitle')}</p>
         </div>
 
         {/* Feedback Form - Admin-style card */}
@@ -86,34 +90,34 @@ export default function CustomerFeedback() {
             <MessageSquare className="text-primary" size={24} />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">Submit Feedback</h2>
+            <h2 className="text-lg font-semibold text-gray-900 notranslate" translate="no">{t('pages.sendFeedback')}</h2>
             <p className="text-sm text-gray-500">We value your input</p>
           </div>
         </div>
 
         <div className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="category" className="text-sm font-medium text-gray-700">
-              Category *
+            <Label htmlFor="category" className="text-sm font-medium text-gray-700 notranslate" translate="no">
+              {t('pages.selectCategory')}
             </Label>
             <Dropdown
               options={FEEDBACK_CATEGORIES}
               value={category}
               onChange={setCategory}
-              placeholder="Select a category"
+              placeholder={t('pages.selectCategory')}
               className="bg-gray-50 border-gray-300 rounded-lg"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="message" className="text-sm font-medium text-gray-700">
-              Message *
+            <Label htmlFor="message" className="text-sm font-medium text-gray-700 notranslate" translate="no">
+              {t('pages.yourMessage')}
             </Label>
             <Textarea
               id="message"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Please describe your feedback or issue in detail..."
+              placeholder={t('pages.pleaseEnterMessage')}
               className="bg-gray-50 border-gray-300 rounded-lg min-h-[200px]"
               rows={8}
             />
@@ -136,7 +140,7 @@ export default function CustomerFeedback() {
             className="w-full bg-primary hover:bg-primary-600 text-white h-11"
           >
             <Send size={18} className="mr-2" />
-            Send Feedback
+            <span className="notranslate" translate="no">{t('pages.sendFeedback')}</span>
           </Button>
         </div>
         </div>

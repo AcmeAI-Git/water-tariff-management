@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "../components/ui/tooltip";
 import { Toaster as Sonner } from "../components/ui/sonner";
 import { BrowserRouter } from "react-router-dom";
+import { LanguageProvider } from "../context/LanguageContext";
 import type { ReactNode } from "react";
 
 const queryClient = new QueryClient({
@@ -18,7 +19,9 @@ export const AppProviders = ({ children }: { children: ReactNode }) => {
         <QueryClientProvider client={queryClient}>
             <TooltipProvider>
                 <Sonner position="top-center" />
-                <BrowserRouter>{children}</BrowserRouter>
+                <BrowserRouter>
+                    <LanguageProvider>{children}</LanguageProvider>
+                </BrowserRouter>
             </TooltipProvider>
         </QueryClientProvider>
     );

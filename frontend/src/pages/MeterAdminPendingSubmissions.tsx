@@ -2,11 +2,15 @@ import { Button } from '../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { X } from 'lucide-react';
 import { useMemo } from 'react';
+import { useLanguage } from '../context/LanguageContext';
+import { getStaticTranslation } from '../constants/staticTranslations';
 import { api } from '../services/api';
 import { useApiQuery, useApiMutation, useAdminId } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 
 export function MeterAdminPendingSubmissions() {
+  const { language } = useLanguage();
+  const t = (key: string) => getStaticTranslation(language, key);
   const adminId = useAdminId();
 
   // Fetch pending consumption entries (filtered by approvalStatus=Pending)
@@ -131,7 +135,7 @@ export function MeterAdminPendingSubmissions() {
       <div className="px-4 md:px-8 py-4 md:py-6">
         {/* Header - centered on mobile to avoid hamburger overlap */}
         <div className="mb-6 md:mb-8 text-center md:text-left">
-          <h1 className="text-xl md:text-[1.75rem] font-semibold text-gray-900 mb-1">Pending Submissions</h1>
+          <h1 className="text-xl md:text-[1.75rem] font-semibold text-gray-900 mb-1 notranslate" translate="no">{t('pages.meterAdminPendingTitle')}</h1>
           <p className="text-xs md:text-sm text-gray-500">View all pending meter readings awaiting approval</p>
         </div>
 

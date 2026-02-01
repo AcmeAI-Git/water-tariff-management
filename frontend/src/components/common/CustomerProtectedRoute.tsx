@@ -16,8 +16,8 @@ export function CustomerProtectedRoute({ children }: CustomerProtectedRouteProps
   const customerUserStr = localStorage.getItem('customerUser');
   
   if (!isAuthenticated || !customerUserStr) {
-    // Redirect to customer login if not authenticated
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    // Redirect to customer portal login (not admin /login)
+    return <Navigate to="/customer/login" state={{ from: location }} replace />;
   }
   
   // Parse customer user data
@@ -25,18 +25,18 @@ export function CustomerProtectedRoute({ children }: CustomerProtectedRouteProps
   try {
     customerUser = JSON.parse(customerUserStr);
   } catch {
-    // Invalid customer data, redirect to login
+    // Invalid customer data, redirect to customer login
     localStorage.removeItem('customerUser');
     localStorage.removeItem('isCustomerAuthenticated');
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/customer/login" state={{ from: location }} replace />;
   }
   
   // User needs either id or account (backend uses account UUID)
   if (!customerUser || (!customerUser.id && !customerUser.account)) {
-    // Invalid user data, redirect to login
+    // Invalid user data, redirect to customer login
     localStorage.removeItem('customerUser');
     localStorage.removeItem('isCustomerAuthenticated');
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/customer/login" state={{ from: location }} replace />;
   }
   
   return <>{children}</>;

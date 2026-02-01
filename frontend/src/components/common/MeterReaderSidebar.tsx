@@ -5,6 +5,8 @@ import {
     Clock,
     LogOut,
 } from "lucide-react";
+import { useLanguage } from "../../context/LanguageContext";
+import { getStaticTranslation } from "../../constants/staticTranslations";
 
 interface MeterReaderSidebarProps {
     activePage: string;
@@ -15,19 +17,13 @@ export function MeterReaderSidebar({
     activePage,
     onNavigate,
 }: MeterReaderSidebarProps) {
+    const { language } = useLanguage();
+    const t = (key: string) => getStaticTranslation(language, key);
     const menuItems = [
-        { id: "meter-reader-entry", label: "Meter Data Entry", icon: Gauge },
-        {
-            id: "meter-reader-pending",
-            label: "Pending Submissions",
-            icon: Clock,
-        },
-        {
-            id: "meter-reader-submitted",
-            label: "Submission History",
-            icon: FileCheck,
-        },
-        { id: "meter-reader-metrics", label: "My Metrics", icon: TrendingUp },
+        { id: "meter-reader-entry", label: t("nav.meterDataEntry"), icon: Gauge },
+        { id: "meter-reader-pending", label: t("nav.pendingSubmissions"), icon: Clock },
+        { id: "meter-reader-submitted", label: t("nav.submissionHistory"), icon: FileCheck },
+        { id: "meter-reader-metrics", label: t("nav.myMetrics"), icon: TrendingUp },
     ];
 
     return (
@@ -35,11 +31,11 @@ export function MeterReaderSidebar({
             {/* Header */}
             <div className="px-6 py-6 border-b border-gray-200">
                 <div className="flex items-center gap-3">
-                    <span className="text-lg font-semibold text-gray-900">
-                        Water Tariff
+                    <span className="text-lg font-semibold text-gray-900 notranslate" translate="no">
+                        {t("common.appTitle")}
                     </span>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Meter Reader Portal</p>
+                <p className="text-xs text-gray-500 mt-1 notranslate" translate="no">{t("portals.meterReaderPortal")}</p>
             </div>
 
             {/* Navigation */}
@@ -58,7 +54,7 @@ export function MeterReaderSidebar({
                                 }`}
                             >
                                 <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-                                <span className="text-[0.9375rem] font-medium">
+                                <span className="text-[0.9375rem] font-medium notranslate" translate="no">
                                     {item.label}
                                 </span>
                             </button>
@@ -77,8 +73,8 @@ export function MeterReaderSidebar({
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-red-50 hover:text-red-600 transition-all"
                 >
                     <LogOut size={20} strokeWidth={2} />
-                    <span className="text-[0.9375rem] font-medium">
-                        Log Out
+                    <span className="text-[0.9375rem] font-medium notranslate" translate="no">
+                        {t("common.logOut")}
                     </span>
                 </button>
             </div>

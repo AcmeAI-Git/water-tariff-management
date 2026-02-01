@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { useLanguage } from '../context/LanguageContext';
+import { getStaticTranslation } from '../constants/staticTranslations';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -11,6 +13,8 @@ import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../components/ui/dialog';
 
 export function CustomerAdminBillingManagement() {
+  const { language } = useLanguage();
+  const t = (key: string) => getStaticTranslation(language, key);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedBill, setSelectedBill] = useState<any>(null);
@@ -123,7 +127,7 @@ export function CustomerAdminBillingManagement() {
       <div className="px-4 md:px-8 py-4 md:py-6">
         {/* Header - centered on mobile to avoid hamburger overlap */}
         <div className="mb-6 md:mb-8 text-center md:text-left">
-          <h1 className="text-xl md:text-[1.75rem] font-semibold text-gray-900 mb-1">Billing Management</h1>
+          <h1 className="text-xl md:text-[1.75rem] font-semibold text-gray-900 mb-1 notranslate" translate="no">{t('pages.customerAdminBillingTitle')}</h1>
           <p className="text-xs md:text-sm text-gray-500">View and manage customer water bills</p>
         </div>
 
@@ -420,7 +424,15 @@ export function CustomerAdminBillingManagement() {
                       const consumption = breakdown.consumption || selectedBill.consumption?.consumption || 0;
                       const baseRate = breakdown.baseRate;
                       const zoneScore = breakdown.zoneScore;
-                      const policy = breakdown.policy || 'UNKNOWN';
+                      const policyRaw = breakdown.policy || 'UNKNOWN';
+                      const policyLabel =
+                        policyRaw === 'AREA_BASED'
+                          ? 'Area Based'
+                          : policyRaw === 'FIXED'
+                            ? 'Fixed'
+                            : policyRaw === 'THRESHOLD'
+                              ? 'Volumetric'
+                              : policyRaw.replace(/_/g, ' ');
                       const preTaxTotal = breakdown.preTaxTotal;
                       const taxRate = breakdown.taxRate;
                       const taxAmount = breakdown.taxAmount;
@@ -432,10 +444,10 @@ export function CustomerAdminBillingManagement() {
                             <span className="text-gray-600">Water Consumption</span>
                             <span className="font-medium text-gray-900">{consumption.toFixed(2)} m³</span>
                           </div>
-                          {policy && (
+                          {policyRaw && (
                             <div className="flex flex-col sm:flex-row sm:justify-between gap-1 text-sm">
                               <span className="text-gray-600">Policy</span>
-                              <span className="font-medium text-gray-900">{policy.replace('_', ' ')}</span>
+                              <span className="font-medium text-gray-900">{policyLabel}</span>
                             </div>
                           )}
                           {baseRate != null && (

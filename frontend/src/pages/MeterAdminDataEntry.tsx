@@ -3,6 +3,8 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Plus, Search } from 'lucide-react';
 import { useState } from 'react';
+import { useLanguage } from '../context/LanguageContext';
+import { getStaticTranslation } from '../constants/staticTranslations';
 import { api } from '../services/api';
 import { useApiQuery, useApiMutation, useAdminId } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
@@ -11,6 +13,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import type { User, Consumption, CreateConsumptionDto } from '../types';
 
 export function MeterAdminDataEntry() {
+  const { language } = useLanguage();
+  const t = (key: string) => getStaticTranslation(language, key);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentReading, setCurrentReading] = useState('');
   const [billMonth, setBillMonth] = useState('');
@@ -281,15 +285,6 @@ export function MeterAdminDataEntry() {
       }
     }
 
-    // Cannot create consumption for an inactive customer
-    if (verifiedUser) {
-      const status = (verifiedUser as { activeStatus?: string; status?: string }).activeStatus ?? verifiedUser.status ?? '';
-      if (status && String(status).toLowerCase() === 'inactive') {
-        toast.error('Cannot create a consumption record for an inactive customer. Please activate the customer first.');
-        return;
-      }
-    }
-
     // Proceed with creation
     await createOrUpdateConsumption(billMonthDate, currentReadingNum, previousReading, null);
   };
@@ -310,12 +305,7 @@ export function MeterAdminDataEntry() {
           previousReading: previousReading > 0 ? previousReading : undefined,
         });
       } else {
-        // Create new consumption - block inactive customers
-        const status = (verifiedUser as { activeStatus?: string; status?: string }).activeStatus ?? verifiedUser!.status ?? '';
-        if (status && String(status).toLowerCase() === 'inactive') {
-          toast.error('Cannot create a consumption record for an inactive customer. Please activate the customer first.');
-          return;
-        }
+        // Create new consumption
         const userAccount = verifiedUser!.account;
         if (!userAccount || typeof userAccount !== 'string') {
           toast.error('User account UUID not found. Please verify the customer.');
@@ -402,7 +392,7 @@ export function MeterAdminDataEntry() {
       <div className="px-4 md:px-8 py-4 md:py-6">
         {/* Header - centered on mobile to avoid hamburger overlap */}
         <div className="mb-6 md:mb-8 text-center md:text-left">
-          <h1 className="text-xl md:text-[1.75rem] font-semibold text-gray-900 mb-1">Meter Data Entry</h1>
+          <h1 className="text-xl md:text-[1.75rem] font-semibold text-gray-900 mb-1 notranslate" translate="no">{t('pages.meterAdminDataEntryTitle')}</h1>
         </div>
 
         {/* Entry Section */}

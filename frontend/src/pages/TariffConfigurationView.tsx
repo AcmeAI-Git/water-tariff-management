@@ -93,8 +93,8 @@ export function TariffConfigurationView() {
     <div className="min-h-screen bg-[#f8f9fb] overflow-x-hidden w-full">
       <div className="px-4 md:px-8 py-4 md:py-6 w-full max-w-full">
         <PageHeader
-          title={`Settings Ruleset #${settingsData.id}`}
-          description="Configure settings parameters and manage categories"
+          title={settingsData.title ? `Settings: ${settingsData.title}` : `Settings Ruleset #${settingsData.id}`}
+          description={settingsData.description || 'Configure settings parameters and manage categories'}
           showBackButton={true}
           backUrl="/tariff-admin/config"
         />

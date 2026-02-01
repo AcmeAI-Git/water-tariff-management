@@ -1,4 +1,6 @@
 import { useMemo } from 'react';
+import { useLanguage } from '../context/LanguageContext';
+import { getStaticTranslation } from '../constants/staticTranslations';
 import { api } from '../services/api';
 import { useApiQuery } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
@@ -19,6 +21,8 @@ type UserShape = {
 type BillShape = { status?: string; totalBill?: number | string };
 
 export function CustomerAdminMetrics() {
+  const { language } = useLanguage();
+  const t = (key: string) => getStaticTranslation(language, key);
   const { data: users = [], isLoading: usersLoading } = useApiQuery(
     ['users'],
     () => api.users.getAll()
@@ -78,7 +82,7 @@ export function CustomerAdminMetrics() {
     <div className="min-h-screen bg-app">
       <div className="px-4 md:px-8 py-4 md:py-6">
         <div className="mb-8 text-center md:text-left">
-          <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1">My Metrics</h1>
+          <h1 className="text-[1.75rem] font-semibold text-gray-900 mb-1 notranslate" translate="no">{t('pages.customerAdminMetricsTitle')}</h1>
           <p className="text-sm text-gray-500">Customers and billing in your area</p>
         </div>
 

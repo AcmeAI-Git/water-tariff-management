@@ -139,7 +139,14 @@ export function AreaLayer({ geojson, visible, colorBy, selectedAreaKey = null, o
         values.add(v);
       }
     });
-    const uniqueValues = key === "zone_score" ? [] : Array.from(values) as string[];
+    const uniqueValues =
+      key === "zone_score"
+        ? []
+        : (key === "zone_name"
+            ? (Array.from(values) as string[]).sort((a, b) =>
+                String(a).localeCompare(String(b), undefined, { numeric: true })
+              )
+            : (Array.from(values) as string[]));
     const numericRange =
       key === "zone_score" && isFinite(minScore) && isFinite(maxScore)
         ? { min: minScore, max: maxScore }
@@ -174,7 +181,11 @@ export function AreaLayer({ geojson, visible, colorBy, selectedAreaKey = null, o
         const props = feature.properties as AreaFeatureProperties;
         const key = getAreaFeatureKey(props);
         const name = props.mauza || props.zone_name || "Area";
-        layer.bindTooltip(name, { sticky: false, direction: "top" });
+        const scorePart =
+          props.zone_score != null && !Number.isNaN(props.zone_score)
+            ? ` · Zone score: ${Number(props.zone_score).toFixed(2)}`
+            : "";
+        layer.bindTooltip(`${name}${scorePart}`, { sticky: false, direction: "top" });
         if (onAreaClick) {
           layer.on("click", (e: { latlng: { lat: number; lng: number } }) => {
             onAreaClick(key, {

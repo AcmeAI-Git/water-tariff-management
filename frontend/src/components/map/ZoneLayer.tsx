@@ -53,10 +53,7 @@ export function ZoneLayer({ geojson, visible }: ZoneLayerProps) {
       style={(feature) => zoneStyle(feature as GeoJSON.Feature<GeoJSON.Polygon, ZoneFeatureProperties>)}
       onEachFeature={(feature, layer) => {
         const props = feature.properties as ZoneFeatureProperties;
-        layer.bindTooltip(
-          `${props.zone_name ?? "Zone"}${props.zone_score != null ? ` (score: ${props.zone_score})` : ""}`,
-          { sticky: true }
-        );
+        layer.bindTooltip(props.zone_name ?? "Zone", { sticky: true });
       }}
     />
   );

@@ -1,4 +1,6 @@
-import { Users, BarChart3, LogOut, FileText } from "lucide-react";
+import { Users, BarChart3, LogOut, FileText, Map } from "lucide-react";
+import { useLanguage } from "../../context/LanguageContext";
+import { getStaticTranslation } from "../../constants/staticTranslations";
 
 interface CustomerAdminSidebarProps {
     activePage: string;
@@ -9,19 +11,13 @@ export function CustomerAdminSidebar({
     activePage,
     onNavigate,
 }: CustomerAdminSidebarProps) {
+    const { language } = useLanguage();
+    const t = (key: string) => getStaticTranslation(language, key);
     const menuItems = [
-        {
-            id: "customer-admin-customers",
-            label: "Customer Management",
-            icon: Users,
-        },
-        {
-            id: "customer-admin-billing",
-            label: "Billing Management",
-            icon: FileText,
-        },
-        // { id: "customer-admin-pending", label: "Submission History", icon: Clock }, // Hidden like Tariff History
-        { id: "customer-admin-metrics", label: "My Metrics", icon: BarChart3 },
+        { id: "customer-admin-tariff-map", label: t("nav.tariffMap"), icon: Map },
+        { id: "customer-admin-customers", label: t("nav.customerManagement"), icon: Users },
+        { id: "customer-admin-billing", label: t("nav.billingManagement"), icon: FileText },
+        { id: "customer-admin-metrics", label: t("nav.myMetrics"), icon: BarChart3 },
     ];
 
     return (
@@ -29,12 +25,12 @@ export function CustomerAdminSidebar({
             {/* Header */}
             <div className="px-6 py-6 border-b border-gray-200">
                 <div className="flex items-center gap-3">
-                    <span className="text-lg font-semibold text-gray-900">
-                        Water Tariff
+                    <span className="text-lg font-semibold text-gray-900 notranslate" translate="no">
+                        {t("common.appTitle")}
                     </span>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
-                    Customer Admin Portal
+                <p className="text-xs text-gray-500 mt-1 notranslate" translate="no">
+                    {t("portals.customerAdminPortal")}
                 </p>
             </div>
 
@@ -54,7 +50,7 @@ export function CustomerAdminSidebar({
                                 }`}
                             >
                                 <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-                                <span className="text-[0.9375rem] font-medium">
+                                <span className="text-[0.9375rem] font-medium notranslate" translate="no">
                                     {item.label}
                                 </span>
                             </button>
@@ -73,8 +69,8 @@ export function CustomerAdminSidebar({
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-red-50 hover:text-red-600 transition-all"
                 >
                     <LogOut size={20} strokeWidth={2} />
-                    <span className="text-[0.9375rem] font-medium">
-                        Log Out
+                    <span className="text-[0.9375rem] font-medium notranslate" translate="no">
+                        {t("common.logOut")}
                     </span>
                 </button>
             </div>

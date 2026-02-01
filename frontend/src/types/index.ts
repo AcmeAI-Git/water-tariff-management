@@ -631,6 +631,8 @@ export interface UpdateTariffCategoryDto {
 // Tariff Category Settings Types
 export interface TariffCategorySettings {
   id: number;
+  title?: string;
+  description?: string;
   productionCost: number;
   baseRate: number;
   currentTariff: number;
@@ -647,6 +649,8 @@ export interface TariffCategorySettings {
 }
 
 export interface CreateTariffCategorySettingsDto {
+  title: string;
+  description?: string;
   productionCost: number;
   baseRate: number;
   currentTariff: number;
@@ -660,6 +664,8 @@ export interface CreateTariffCategorySettingsDto {
 }
 
 export interface UpdateTariffCategorySettingsDto {
+  title?: string;
+  description?: string;
   productionCost?: number;
   baseRate?: number;
   currentTariff?: number;

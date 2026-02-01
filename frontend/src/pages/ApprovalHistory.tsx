@@ -1,6 +1,8 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Badge } from '../components/ui/badge';
 import { useMemo, useState } from 'react';
+import { useLanguage } from '../context/LanguageContext';
+import { getStaticTranslation } from '../constants/staticTranslations';
 import { api } from '../services/api';
 import { useApiQuery, useAdminId } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
@@ -21,6 +23,8 @@ interface ApprovalHistoryItem {
 }
 
 export function ApprovalHistory() {
+  const { language } = useLanguage();
+  const t = (key: string) => getStaticTranslation(language, key);
   const [moduleFilter, setModuleFilter] = useState<string>('all');
   const [decisionFilter, setDecisionFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -267,7 +271,7 @@ export function ApprovalHistory() {
         <div className="mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 items-center text-center md:text-left">
             <div>
-              <h1 className="text-[28px] font-semibold text-gray-900 mb-1">My Approval History</h1>
+              <h1 className="text-[28px] font-semibold text-gray-900 mb-1 notranslate" translate="no">{t('pages.myApprovalHistoryTitle')}</h1>
               <p className="text-sm text-gray-500">A log of all items you have approved or rejected</p>
             </div>
             <div className="flex items-center gap-6 text-sm">

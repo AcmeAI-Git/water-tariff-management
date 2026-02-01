@@ -1,7 +1,9 @@
-import { FileCheck, History, LogOut } from 'lucide-react';
+import { FileCheck, History, LogOut, Map } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useLanguage } from '../../context/LanguageContext';
+import { getStaticTranslation } from '../../constants/staticTranslations';
 
 interface ApprovalAdminSidebarProps {
   activePage?: string;
@@ -11,8 +13,11 @@ interface ApprovalAdminSidebarProps {
 export function ApprovalAdminSidebar({ activePage, onNavigate }: ApprovalAdminSidebarProps) {
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { language } = useLanguage();
+  const t = (key: string) => getStaticTranslation(language, key);
 
   const routeMap: Record<string, string> = {
+    'tariff-map': '/tariff-admin/map',
     'approval-queue': '/approval-admin/queue',
     'my-history': '/approval-admin/history',
   };
@@ -34,7 +39,7 @@ export function ApprovalAdminSidebar({ activePage, onNavigate }: ApprovalAdminSi
       } catch {
         // Ignore query client errors
       }
-      toast('Logged out');
+      toast(t('common.loggedOut'));
       navigate('/login');
       return;
     }
@@ -44,8 +49,9 @@ export function ApprovalAdminSidebar({ activePage, onNavigate }: ApprovalAdminSi
   };
 
   const menuItems = [
-    { id: 'approval-queue', label: 'Approval Queue', icon: FileCheck },
-    { id: 'my-history', label: 'My History', icon: History },
+    { id: 'tariff-map', label: t('nav.tariffMap'), icon: Map },
+    { id: 'approval-queue', label: t('nav.approvalQueue'), icon: FileCheck },
+    { id: 'my-history', label: t('nav.myHistory'), icon: History },
   ];
 
   return (
@@ -53,12 +59,12 @@ export function ApprovalAdminSidebar({ activePage, onNavigate }: ApprovalAdminSi
       {/* Header */}
       <div className="px-6 py-6 border-b border-gray-200">
         <div className="flex items-center gap-3">
-          <span className="text-lg font-semibold text-gray-900">
-            Water Tariff
+          <span className="text-lg font-semibold text-gray-900 notranslate" translate="no">
+            {t('common.appTitle')}
           </span>
         </div>
-        <p className="text-xs text-gray-500 mt-1">
-          Approval Admin Portal
+        <p className="text-xs text-gray-500 mt-1 notranslate" translate="no">
+          {t('portals.approvalAdminPortal')}
         </p>
       </div>
 
@@ -78,7 +84,7 @@ export function ApprovalAdminSidebar({ activePage, onNavigate }: ApprovalAdminSi
                 }`}
               >
                 <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-                <span className="text-[0.9375rem] font-medium">{item.label}</span>
+                <span className="text-[0.9375rem] font-medium notranslate" translate="no">{item.label}</span>
               </button>
               {index < menuItems.length - 1 && (
                 <div className="border-b border-gray-400 mx-4"></div>
@@ -95,7 +101,7 @@ export function ApprovalAdminSidebar({ activePage, onNavigate }: ApprovalAdminSi
           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-red-50 hover:text-red-600 transition-all"
         >
           <LogOut size={20} strokeWidth={2} />
-          <span className="text-[0.9375rem] font-medium">Log Out</span>
+          <span className="text-[0.9375rem] font-medium notranslate" translate="no">{t('common.logOut')}</span>
         </button>
       </div>
     </div>

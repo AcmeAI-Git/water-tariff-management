@@ -65,14 +65,14 @@ export function getRouteForRole(roleName: string): string {
   const routeKey = getRouteKeyFromRoleName(roleName);
   
   const routeMap: Record<string, string> = {
-    admin: '/admin/dashboard',
+    admin: '/tariff-admin/map',
     'meter-admin': '/meter-reader/entry',
     'meter-reader': '/meter-reader/entry',
-    'customer-admin': '/customer-admin/customers',
-    'tariff-admin': '/tariff-admin/config',
-    'approval-admin': '/approval-admin/queue',
-    'general-info': '/general-admin/dashboard',
-    'general-admin': '/general-admin/dashboard',
+    'customer-admin': '/tariff-admin/map',
+    'tariff-admin': '/tariff-admin/map',
+    'approval-admin': '/tariff-admin/map',
+    'general-info': '/tariff-admin/map',
+    'general-admin': '/tariff-admin/map',
   };
   
   return routeMap[routeKey] || '/admin/dashboard';

@@ -2,6 +2,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Button } from '../components/ui/button';
 import { Eye } from 'lucide-react';
 import { useState, useMemo } from 'react';
+import { useLanguage } from '../context/LanguageContext';
+import { getStaticTranslation } from '../constants/staticTranslations';
 import { ReviewChangeModal } from './ReviewChangeModal';
 import { api } from '../services/api';
 import { useApiQuery, useApiMutation, useAdminId } from '../hooks/useApiQuery';
@@ -28,6 +30,8 @@ interface ApprovalQueueItem {
 }
 
 export function ApprovalQueue() {
+  const { language } = useLanguage();
+  const t = (key: string) => getStaticTranslation(language, key);
   const [selectedRequest, setSelectedRequest] = useState<ApprovalQueueItem | null>(null);
   const [isLoadingRecordData, setIsLoadingRecordData] = useState(false);
   const adminId = useAdminId();
@@ -749,7 +753,7 @@ export function ApprovalQueue() {
         <div className="mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 items-center text-center md:text-left">
             <div>
-              <h1 className="text-xl md:text-[28px] font-semibold text-gray-900 mb-1">Approval Queue</h1>
+              <h1 className="text-xl md:text-[28px] font-semibold text-gray-900 mb-1 notranslate" translate="no">{t('pages.approvalQueueTitle')}</h1>
               <p className="text-xs md:text-sm text-gray-500">All pending changes from other admins</p>
             </div>
             <div className="flex items-center gap-4 md:gap-6 text-sm flex-wrap justify-center md:justify-start">

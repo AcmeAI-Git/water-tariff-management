@@ -6,6 +6,8 @@ import { Dropdown } from '../ui/Dropdown';
 import { useState, useEffect } from 'react';
 import type { TariffCategory, CreateTariffCategoryDto, UpdateTariffCategoryDto, TariffCategorySettings, CustomerCategory } from '../../types';
 import { CUSTOMER_CATEGORIES } from '../../types';
+import { useLanguage } from '../../context/LanguageContext';
+import { getStaticTranslation } from '../../constants/staticTranslations';
 
 interface TariffCategoryModalProps {
   isOpen: boolean;
@@ -92,6 +94,8 @@ export function TariffCategoryModal({
     onSubmit(submitData);
   };
 
+  const { language } = useLanguage();
+  const t = (key: string) => getStaticTranslation(language, key);
   const isFormValid = 
     formData.slNo.trim() !== '' &&
     formData.name.trim() !== '' &&
@@ -101,10 +105,10 @@ export function TariffCategoryModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white" aria-describedby={undefined}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white notranslate" aria-describedby={undefined} translate="no">
         <DialogHeader>
           <DialogTitle>
-            {mode === 'create' ? 'Create Tariff Category' : 'Edit Tariff Category'}
+            {mode === 'create' ? t('modals.createTariffCategory') : t('modals.editTariffCategory')}
           </DialogTitle>
         </DialogHeader>
 
@@ -114,7 +118,7 @@ export function TariffCategoryModal({
             <div className="grid grid-cols-2 gap-4 items-start">
               <div className="flex flex-col space-y-2">
                 <Label htmlFor="slNo" className="text-sm font-medium text-gray-700 min-h-[2.5rem] flex items-start">
-                  Serial Number *
+                  {t('modals.serialNumber')}
                 </Label>
                 <Input
                   id="slNo"
@@ -122,7 +126,7 @@ export function TariffCategoryModal({
                   min="1"
                   value={formData.slNo}
                   onChange={(e) => handleInputChange('slNo', e.target.value)}
-                  placeholder="Enter serial number"
+                  placeholder={t('modals.enterSerialNumber')}
                   className="bg-gray-50 border-gray-300"
                   required
                 />
@@ -130,13 +134,13 @@ export function TariffCategoryModal({
 
               <div className="flex flex-col space-y-2">
                 <Label htmlFor="category" className="text-sm font-medium text-gray-700 min-h-[2.5rem] flex items-start">
-                  Category *
+                  {t('modals.categoryLabel')}
                 </Label>
                 <Dropdown
                   options={CUSTOMER_CATEGORIES.map(c => ({ value: c, label: c }))}
                   value={formData.category}
                   onChange={(value) => handleInputChange('category', value as CustomerCategory)}
-                  placeholder="Select category"
+                  placeholder={t('pages.selectCategory')}
                   className="bg-gray-50 border-gray-300"
                 />
               </div>
@@ -144,13 +148,13 @@ export function TariffCategoryModal({
 
             <div className="space-y-2">
               <Label htmlFor="name" className="text-sm font-medium text-gray-700">
-                Name *
+                {t('modals.nameLabel')}
               </Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
-                placeholder="Enter category name"
+                placeholder={t('modals.enterCategoryName')}
                 className="bg-gray-50 border-gray-300"
                 required
               />
@@ -160,7 +164,7 @@ export function TariffCategoryModal({
             {!defaultSettingsId && (
               <div className="space-y-2">
                 <Label htmlFor="settingsId" className="text-sm font-medium text-gray-700">
-                  Settings *
+                  {t('modals.settingsLabel')}
                 </Label>
                 <Dropdown
                   options={settings.map(s => ({
@@ -169,7 +173,7 @@ export function TariffCategoryModal({
                   }))}
                   value={formData.settingsId}
                   onChange={(value) => handleInputChange('settingsId', value)}
-                  placeholder="Select settings"
+                  placeholder={t('modals.selectSettings')}
                   className="bg-gray-50 border-gray-300"
                 />
               </div>
@@ -178,12 +182,12 @@ export function TariffCategoryModal({
 
           {/* Range Fields */}
           <div className="space-y-4 pt-4 border-t border-gray-200">
-            <h3 className="text-sm font-semibold text-gray-700">Range Information (Optional)</h3>
+            <h3 className="text-sm font-semibold text-gray-700">{t('modals.rangeInfoOptional')}</h3>
             
             <div className="grid grid-cols-2 gap-4 items-start">
               <div className="flex flex-col space-y-2">
                 <Label htmlFor="lowerRange" className="text-sm font-medium text-gray-700 min-h-[2.5rem] flex items-start">
-                  Lower Range (sq ft)
+                  {t('modals.lowerRangeSqFt')}
                 </Label>
                 <Input
                   id="lowerRange"
@@ -192,7 +196,7 @@ export function TariffCategoryModal({
                   min="0"
                   value={formData.lowerRange}
                   onChange={(e) => handleInputChange('lowerRange', e.target.value)}
-                  placeholder="e.g., 2500"
+                  placeholder={t('modals.lowerRangePlaceholder')}
                   className="bg-gray-50 border-gray-300"
                   disabled={!!formData.rangeDescription}
                   readOnly={!!formData.rangeDescription}
@@ -201,7 +205,7 @@ export function TariffCategoryModal({
 
               <div className="flex flex-col space-y-2">
                 <Label htmlFor="upperRange" className="text-sm font-medium text-gray-700 min-h-[2.5rem] flex items-start">
-                  Upper Range (sq ft)
+                  {t('modals.upperRangeSqFt')}
                 </Label>
                 <Input
                   id="upperRange"
@@ -210,7 +214,7 @@ export function TariffCategoryModal({
                   min="0"
                   value={formData.upperRange}
                   onChange={(e) => handleInputChange('upperRange', e.target.value)}
-                  placeholder="e.g., 1000"
+                  placeholder={t('modals.upperRangePlaceholder')}
                   className="bg-gray-50 border-gray-300"
                   disabled={!!formData.rangeDescription}
                   readOnly={!!formData.rangeDescription}
@@ -220,13 +224,13 @@ export function TariffCategoryModal({
 
             <div className="space-y-2">
               <Label htmlFor="rangeDescription" className="text-sm font-medium text-gray-700">
-                Range Description
+                {t('modals.rangeDescription')}
               </Label>
               <Input
                 id="rangeDescription"
                 value={formData.rangeDescription}
                 onChange={(e) => handleInputChange('rangeDescription', e.target.value)}
-                placeholder="e.g., Tin shed"
+                placeholder={t('modals.rangeDescriptionPlaceholder')}
                 className="bg-gray-50 border-gray-300"
               />
             </div>
@@ -241,14 +245,14 @@ export function TariffCategoryModal({
               onClick={onClose}
               disabled={isSubmitting}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               type="submit"
               disabled={!isFormValid || isSubmitting}
               className="bg-primary hover:bg-primary-600 text-white"
             >
-              {isSubmitting ? (mode === 'create' ? 'Creating...' : 'Saving...') : (mode === 'create' ? 'Create' : 'Save')}
+              {isSubmitting ? (mode === 'create' ? t('modals.creating') : t('modals.saving')) : (mode === 'create' ? t('modals.create') : t('common.save'))}
             </Button>
           </DialogFooter>
         </form>

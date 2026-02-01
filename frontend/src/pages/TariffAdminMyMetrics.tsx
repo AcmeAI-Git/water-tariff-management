@@ -1,6 +1,8 @@
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useLanguage } from '../context/LanguageContext';
+import { getStaticTranslation } from '../constants/staticTranslations';
 import { api } from '../services/api';
 import { useApiQuery, useAdminId } from '../hooks/useApiQuery';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
@@ -12,6 +14,8 @@ type PolicyWithDate = TariffPolicy & { createdAt?: string };
 type SlabWithDate = TariffThresholdSlab & { createdAt?: string };
 
 export function TariffAdminMyMetrics() {
+  const { language } = useLanguage();
+  const t = (key: string) => getStaticTranslation(language, key);
   const adminId = useAdminId();
 
   // Use same APIs as Tariff History: tariff-policy, tariff-threshold-slabs, tariff-category-settings
@@ -110,7 +114,7 @@ export function TariffAdminMyMetrics() {
     <div className="min-h-screen bg-[#f8f9fb]">
       <div className="px-4 md:px-8 py-4 md:py-6">
         <div className="mb-8 text-center md:text-left">
-          <h1 className="text-[28px] font-semibold text-gray-900 mb-1">My Monthly Metrics</h1>
+          <h1 className="text-[28px] font-semibold text-gray-900 mb-1 notranslate" translate="no">{t('pages.myMonthlyMetricsTitle')}</h1>
           <p className="text-sm text-gray-500">
             Track your tariff management performance and system overview
           </p>
@@ -124,7 +128,7 @@ export function TariffAdminMyMetrics() {
             variant="blue"
           />
           <MetricCard
-            label="Active Threshold Slabs"
+            label="Active Volumetric Slabs"
             value={activeSlabs.length}
             variant="green"
             animationDelay={0.05}
@@ -192,11 +196,11 @@ export function TariffAdminMyMetrics() {
           </div>
         </div>
 
-        {/* Current threshold slab structure */}
+        {/* Current volumetric slab structure */}
         {thresholdSlabChartData.length > 0 ? (
           <div>
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Current Threshold Slab Structure
+              Current Volumetric Slab Structure
             </h2>
             <div className="bg-white border-2 border-gray-200 rounded-xl p-6 hover:border-blue-300 hover:shadow-md transition-all duration-300">
               <p className="text-sm text-gray-500 mb-4">
@@ -231,7 +235,7 @@ export function TariffAdminMyMetrics() {
         ) : (
           <div className="bg-white border-2 border-gray-200 rounded-xl p-6 hover:border-gray-300 transition-all duration-300">
             <p className="text-sm text-gray-500 text-center">
-              No active threshold slabs. Configure slabs in Tariff Configuration.
+              No active volumetric slabs. Configure slabs in Tariff Configuration.
             </p>
           </div>
         )}

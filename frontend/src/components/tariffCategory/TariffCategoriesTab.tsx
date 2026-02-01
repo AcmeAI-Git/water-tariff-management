@@ -197,7 +197,7 @@ export function TariffCategoriesTab({ settingsId }: TariffCategoriesTabProps) {
   const formatRange = (category: TariffCategory): string => {
     if (category.lowerRange !== undefined && category.upperRange !== undefined) {
       if (category.lowerRange === category.upperRange) {
-        // Single threshold - could be "> X" or "<= X"
+        // Single volumetric - could be "> X" or "<= X"
         return `${category.lowerRange} sq ft`;
       }
       return `${category.lowerRange} - ${category.upperRange} sq ft`;

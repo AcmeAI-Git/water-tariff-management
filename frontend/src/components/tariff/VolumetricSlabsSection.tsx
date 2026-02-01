@@ -23,14 +23,14 @@ import type {
   UpdateTariffThresholdSlabDto,
 } from '../../types';
 
-interface ThresholdSlabsSectionProps {
+interface VolumetricSlabsSectionProps {
   disabled?: boolean;
 }
 
 // Very high number to represent "unlimited" instead of null (per backend requirement)
 const UNLIMITED_UPPER_LIMIT = 99999999;
 
-export function ThresholdSlabsSection({ disabled = false }: ThresholdSlabsSectionProps) {
+export function VolumetricSlabsSection({ disabled = false }: VolumetricSlabsSectionProps) {
   const queryClient = useQueryClient();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -65,8 +65,8 @@ export function ThresholdSlabsSection({ disabled = false }: ThresholdSlabsSectio
   const createMutation = useApiMutation(
     (data: CreateTariffThresholdSlabDto) => api.tariffThresholdSlabs.create(data),
     {
-      successMessage: 'Threshold slab created successfully',
-      errorMessage: 'Failed to create threshold slab',
+      successMessage: 'Volumetric slab created successfully',
+      errorMessage: 'Failed to create volumetric slab',
       invalidateQueries: [['tariff-threshold-slabs']],
       onSuccess: () => {
         setIsCreateModalOpen(false);
@@ -79,8 +79,8 @@ export function ThresholdSlabsSection({ disabled = false }: ThresholdSlabsSectio
     ({ id, data }: { id: number; data: UpdateTariffThresholdSlabDto }) =>
       api.tariffThresholdSlabs.update(id, data),
     {
-      successMessage: 'Threshold slab updated successfully',
-      errorMessage: 'Failed to update threshold slab',
+      successMessage: 'Volumetric slab updated successfully',
+      errorMessage: 'Failed to update volumetric slab',
       invalidateQueries: [['tariff-threshold-slabs']],
       onSuccess: () => {
         setIsEditModalOpen(false);
@@ -93,8 +93,8 @@ export function ThresholdSlabsSection({ disabled = false }: ThresholdSlabsSectio
   const deleteMutation = useApiMutation(
     (id: number) => api.tariffThresholdSlabs.delete(id),
     {
-      successMessage: 'Threshold slab deleted successfully',
-      errorMessage: 'Failed to delete threshold slab',
+      successMessage: 'Volumetric slab deleted successfully',
+      errorMessage: 'Failed to delete volumetric slab',
       invalidateQueries: [['tariff-threshold-slabs']],
       onSuccess: () => {
         setSlabToDelete(null);
@@ -376,7 +376,7 @@ export function ThresholdSlabsSection({ disabled = false }: ThresholdSlabsSectio
   if (disabled) {
     return (
       <div className="text-sm text-gray-600">
-        Select <span className="font-medium text-gray-900">Threshold</span> above to manage slabs.
+        Select <span className="font-medium text-gray-900">Volumetric</span> above to manage slabs.
       </div>
     );
   }
@@ -456,9 +456,9 @@ export function ThresholdSlabsSection({ disabled = false }: ThresholdSlabsSectio
                     <TableCell colSpan={5} className="py-10">
                       <div className="flex flex-col items-center justify-center gap-2 text-amber-700">
                         <AlertTriangle className="h-5 w-5" />
-                        <div className="text-sm font-medium">No threshold slabs found</div>
+                        <div className="text-sm font-medium">No volumetric slabs found</div>
                         <div className="text-xs text-amber-700/80">
-                          Create slabs to enable threshold-based billing.
+                          Create slabs to enable volumetric-based billing.
                         </div>
                       </div>
                     </TableCell>
@@ -526,9 +526,9 @@ export function ThresholdSlabsSection({ disabled = false }: ThresholdSlabsSectio
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
         <DialogContent className="sm:max-w-[500px]" aria-describedby={undefined}>
           <DialogHeader>
-            <DialogTitle>Create Threshold Slab</DialogTitle>
+            <DialogTitle>Create Volumetric Slab</DialogTitle>
             <DialogDescription>
-              Define a consumption range and rate for threshold-based billing
+              Define a consumption range and rate for volumetric-based billing
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -633,9 +633,9 @@ export function ThresholdSlabsSection({ disabled = false }: ThresholdSlabsSectio
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
         <DialogContent className="sm:max-w-[500px]" aria-describedby={undefined}>
           <DialogHeader>
-            <DialogTitle>Edit Threshold Slab</DialogTitle>
+            <DialogTitle>Edit Volumetric Slab</DialogTitle>
             <DialogDescription>
-              Update the consumption range and rate for this threshold slab
+              Update the consumption range and rate for this volumetric slab
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -743,7 +743,7 @@ export function ThresholdSlabsSection({ disabled = false }: ThresholdSlabsSectio
           setSlabToDelete(null);
         }}
         onConfirm={confirmDelete}
-        title="Delete Threshold Slab"
+        title="Delete Volumetric Slab"
         description="Are you sure you want to delete"
         itemName={
           slabToDelete
@@ -757,9 +757,9 @@ export function ThresholdSlabsSection({ disabled = false }: ThresholdSlabsSectio
         isOpen={deleteAllDialogOpen}
         onClose={() => setDeleteAllDialogOpen(false)}
         onConfirm={handleDeleteAll}
-        title="Delete All Threshold Slabs"
+        title="Delete All Volumetric Slabs"
         description="Are you sure you want to delete all"
-        itemName={`${allSlabs.length} threshold slab${allSlabs.length !== 1 ? 's' : ''}`}
+        itemName={`${allSlabs.length} volumetric slab${allSlabs.length !== 1 ? 's' : ''}`}
         isPending={isDeletingAll}
         confirmLabel="Delete All"
       />

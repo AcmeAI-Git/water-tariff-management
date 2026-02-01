@@ -39,14 +39,14 @@ interface RulesetCoverageLayerProps {
 export function RulesetCoverageLayer({ areas, ruleset, zoneScores, visible }: RulesetCoverageLayerProps) {
   const coveredIds = useMemo(() => {
     if (!ruleset?.scoringParams) return new Set<number>();
-    return new Set(ruleset.scoringParams.map((p) => p.areaId));
+    return new Set(ruleset.scoringParams.map((p) => Number(p.areaId)));
   }, [ruleset]);
 
   const scoreByAreaId = useMemo(() => {
     const map = new Map<number, number>();
     for (const s of zoneScores) {
       const n = parseFloat(s.score);
-      if (!Number.isNaN(n)) map.set(s.areaId, n);
+      if (!Number.isNaN(n)) map.set(Number(s.areaId), n);
     }
     return map;
   }, [zoneScores]);
@@ -64,8 +64,9 @@ export function RulesetCoverageLayer({ areas, ruleset, zoneScores, visible }: Ru
     >[] = [];
     for (const area of areas) {
       if (!area.geojson?.coordinates?.length) continue;
-      const covered = coveredIds.has(area.id);
-      const score = scoreByAreaId.get(area.id) ?? null;
+      const areaIdNum = Number(area.id);
+      const covered = coveredIds.has(areaIdNum);
+      const score = scoreByAreaId.get(areaIdNum) ?? null;
       features.push({
         type: "Feature",
         properties: {
@@ -88,6 +89,7 @@ export function RulesetCoverageLayer({ areas, ruleset, zoneScores, visible }: Ru
   return (
     <GeoJSON
       data={featureCollection as GeoJSONType}
+      pathOptions={{ interactive: false }}
       style={(feature) => {
         const props = feature?.properties as {
           covered?: boolean;

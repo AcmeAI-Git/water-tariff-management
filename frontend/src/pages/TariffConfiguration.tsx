@@ -19,7 +19,7 @@ import { EmptyState } from '../components/zoneScoring/EmptyState';
 import { DeleteConfirmationDialog } from '../components/zoneScoring/DeleteConfirmationDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
 import { TariffCategorySettingsModal } from '../components/modals/TariffCategorySettingsModal';
-import { ThresholdSlabsSection } from '../components/tariff/ThresholdSlabsSection';
+import { VolumetricSlabsSection } from '../components/tariff/VolumetricSlabsSection';
 import type {
   TariffCategorySettings,
   CreateTariffCategorySettingsDto,
@@ -34,7 +34,7 @@ export function TariffConfiguration() {
   const [editingSettings, setEditingSettings] = useState<TariffCategorySettings | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [settingsToDelete, setSettingsToDelete] = useState<TariffCategorySettings | null>(null);
-  const [activeTab, setActiveTab] = useState<'settings' | 'threshold'>('settings');
+  const [activeTab, setActiveTab] = useState<'settings' | 'volumetric'>('settings');
   const [policyConfirmOpen, setPolicyConfirmOpen] = useState(false);
   const [pendingPolicy, setPendingPolicy] = useState<{ id: number; label: string } | null>(null);
 
@@ -62,8 +62,8 @@ export function TariffConfiguration() {
   const activatePolicyMutation = useApiMutation(
     (id: number) => api.tariffPolicy.activate(id),
     {
-      successMessage: 'Tariff policy activated successfully',
-      errorMessage: 'Failed to activate tariff policy',
+      successMessage: 'Tariff type activated successfully',
+      errorMessage: 'Failed to activate tariff type',
       invalidateQueries: [['tariff-policy', 'active']], // Only invalidate active, not all policies
     }
   );
@@ -75,7 +75,7 @@ export function TariffConfiguration() {
       case 'FIXED':
         return 'Fixed';
       case 'THRESHOLD':
-        return 'Threshold';
+        return 'Volumetric';
       default:
         return type;
     }
@@ -189,7 +189,7 @@ export function TariffConfiguration() {
     if (activePolicy?.tariffType === 'AREA_BASED') {
       setActiveTab('settings');
     } else if (activePolicy?.tariffType === 'THRESHOLD') {
-      setActiveTab('threshold');
+      setActiveTab('volumetric');
     }
     // For FIXED, don't auto-switch - keep current tab
   }, [activePolicy?.tariffType]);
@@ -199,7 +199,7 @@ export function TariffConfiguration() {
 
   // Check if tabs should be enabled
   const isAreaBased = activePolicy?.tariffType === 'AREA_BASED';
-  const isThreshold = activePolicy?.tariffType === 'THRESHOLD';
+  const isVolumetric = activePolicy?.tariffType === 'THRESHOLD';
   const isFixed = activePolicy?.tariffType === 'FIXED';
 
   if (settingsLoading) {
@@ -219,12 +219,12 @@ export function TariffConfiguration() {
           showBackButton={false}
         />
 
-        {/* Tariff Policy dropdown */}
+        {/* Tariff Type dropdown */}
         <div className="mt-6 mb-6">
           <Label className="text-lg font-semibold text-gray-900 block mb-3">
-            Tariff Policy
+            Tariff Type
           </Label>
-          <p className="text-sm text-gray-600 mb-3">Set active tariff policy</p>
+          <p className="text-sm text-gray-600 mb-3">Set active tariff type</p>
           <Select
             value={activePolicy?.id?.toString() ?? ''}
             onValueChange={(value) => {
@@ -239,7 +239,7 @@ export function TariffConfiguration() {
             disabled={activatePolicyMutation.isPending}
           >
             <SelectTrigger className="w-full bg-white border-gray-300">
-              <SelectValue placeholder="Select tariff policy" />
+              <SelectValue placeholder="Select tariff type" />
             </SelectTrigger>
             <SelectContent>
               {allPolicies.map((policy) => (
@@ -265,14 +265,14 @@ export function TariffConfiguration() {
               Settings Rulesets
             </button>
             <button
-              onClick={() => setActiveTab('threshold')}
+              onClick={() => setActiveTab('volumetric')}
               className={`pb-3 text-[15px] font-medium border-b-2 transition-colors ${
-                activeTab === 'threshold'
+                activeTab === 'volumetric'
                   ? 'border-[#4C6EF5] text-[#4C6EF5]'
                   : 'border-transparent text-gray-600 hover:text-gray-900'
               }`}
             >
-              Threshold Slabs
+              Volumetric Slabs
             </button>
           </div>
         </div>
@@ -282,7 +282,7 @@ export function TariffConfiguration() {
           <>
             {!isAreaBased && !isFixed ? (
               <div className="text-sm text-gray-600">
-                Select <span className="font-medium text-gray-900">Area Based</span> in the Tariff Policy dropdown above to manage settings and categories.
+                Select <span className="font-medium text-gray-900">Area Based</span> in the Tariff Type dropdown above to manage settings and categories.
               </div>
             ) : (
               <>
@@ -312,7 +312,9 @@ export function TariffConfiguration() {
                         <Table>
                           <TableHeader>
                             <TableRow className="border-gray-200 bg-gray-50">
-                              <TableHead className="text-sm font-semibold text-gray-700 text-center whitespace-nowrap min-w-[100px]">Settings ID</TableHead>
+                              <TableHead className="text-sm font-semibold text-gray-700 text-center whitespace-nowrap min-w-[80px]">ID</TableHead>
+                              <TableHead className="text-sm font-semibold text-gray-700 whitespace-nowrap min-w-[120px]">Title</TableHead>
+                              <TableHead className="text-sm font-semibold text-gray-700 whitespace-nowrap min-w-[180px]">Description</TableHead>
                               <TableHead className="text-sm font-semibold text-gray-700 text-center whitespace-nowrap min-w-[100px]">Categories</TableHead>
                               <TableHead className="text-sm font-semibold text-gray-700 text-right whitespace-nowrap min-w-[140px]">Actions</TableHead>
                             </TableRow>
@@ -324,8 +326,16 @@ export function TariffConfiguration() {
                                 className="border-gray-100 cursor-pointer hover:bg-gray-50"
                                 onClick={() => navigate(`/tariff-admin/config/${setting.id}`)}
                               >
-                                <TableCell className="text-sm font-medium text-gray-900 text-center whitespace-nowrap">
+                                <TableCell className="text-sm text-gray-600 text-center whitespace-nowrap">
                                   {setting.id}
+                                </TableCell>
+                                <TableCell className="text-sm font-medium text-gray-900 whitespace-nowrap">
+                                  {setting.title || `Ruleset #${setting.id}`}
+                                </TableCell>
+                                <TableCell className="text-sm text-gray-600">
+                                  <div className="max-w-md truncate" title={setting.description || undefined}>
+                                    {setting.description || <span className="text-gray-400 italic">—</span>}
+                                  </div>
                                 </TableCell>
                                 <TableCell className="text-sm text-gray-600 text-center whitespace-nowrap">
                                   {categoryCounts[setting.id] || 0}
@@ -393,15 +403,15 @@ export function TariffConfiguration() {
           </>
         )}
 
-        {/* Threshold Slabs Tab */}
-        {activeTab === 'threshold' && (
+        {/* Volumetric Slabs Tab */}
+        {activeTab === 'volumetric' && (
           <>
-            {!isThreshold && !isFixed ? (
+            {!isVolumetric && !isFixed ? (
               <div className="text-sm text-gray-600">
-                Select <span className="font-medium text-gray-900">Threshold</span> in the Tariff Policy dropdown above to manage slabs.
+                Select <span className="font-medium text-gray-900">Volumetric</span> in the Tariff Type dropdown above to manage slabs.
               </div>
             ) : (
-              <ThresholdSlabsSection disabled={!isThreshold && !isFixed} />
+              <VolumetricSlabsSection disabled={!isVolumetric && !isFixed} />
             )}
           </>
         )}
@@ -430,17 +440,17 @@ export function TariffConfiguration() {
           />
         )}
 
-        {/* Tariff Policy change confirmation */}
+        {/* Tariff Type change confirmation */}
         <Dialog open={policyConfirmOpen} onOpenChange={(open) => { if (!open) { setPolicyConfirmOpen(false); setPendingPolicy(null); } }}>
           <DialogContent className="bg-white border border-gray-200 rounded-xl shadow-lg max-w-md" aria-describedby={undefined}>
             <DialogHeader>
               <DialogTitle className="text-xl font-semibold text-gray-900">
-                Change tariff policy
+                Change tariff type
               </DialogTitle>
             </DialogHeader>
             <div className="py-4">
               <p className="text-sm text-gray-600">
-                Set the active tariff policy to <span className="font-medium text-gray-900">{pendingPolicy?.label ?? ''}</span>?
+                Set the active tariff type to <span className="font-medium text-gray-900">{pendingPolicy?.label ?? ''}</span>?
               </p>
             </div>
             <DialogFooter>
