@@ -181,7 +181,11 @@ export function AreaLayer({ geojson, visible, colorBy, selectedAreaKey = null, o
         const props = feature.properties as AreaFeatureProperties;
         const key = getAreaFeatureKey(props);
         const name = props.mauza || props.zone_name || "Area";
-        layer.bindTooltip(name, { sticky: false, direction: "top" });
+        const scorePart =
+          props.zone_score != null && !Number.isNaN(props.zone_score)
+            ? ` · Zone score: ${Number(props.zone_score).toFixed(2)}`
+            : "";
+        layer.bindTooltip(`${name}${scorePart}`, { sticky: false, direction: "top" });
         if (onAreaClick) {
           layer.on("click", (e: { latlng: { lat: number; lng: number } }) => {
             onAreaClick(key, {

@@ -2,11 +2,9 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { MapView } from "../components/map/MapView";
-import { ZoneLayer } from "../components/map/ZoneLayer";
 import { AreaLayer, type ColorByOption, type AreaClickDetails } from "../components/map/AreaLayer";
 import { RulesetCoverageLayer } from "../components/map/RulesetCoverageLayer";
 import { Popup } from "react-leaflet";
-import { Checkbox } from "../components/ui/checkbox";
 import { Label } from "../components/ui/label";
 import {
   Select,
@@ -17,8 +15,8 @@ import {
 } from "../components/ui/select";
 import { useApiQuery } from "../hooks/useApiQuery";
 import { api } from "../services/api";
-import type { FeatureCollection } from "geojson";
-import type { ZoneScoringRuleSet, Area, ZoneScore } from "../types";
+import type { FeatureCollection, Polygon, Feature } from "geojson";
+import type { ZoneScoringRuleSet, Area, ZoneScore, Zone } from "../types";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
 
 const GEOJSON_URL = "/data/zones_and_areas_combined.geojson";
@@ -47,8 +45,6 @@ function isActiveOrPublished(status: string | undefined): boolean {
 
 export default function TariffMap() {
   const [geojson, setGeojson] = useState<FeatureCollection | null>(null);
-  const [zoneLayerOn, setZoneLayerOn] = useState(true);
-  const [areaLayerOn, setAreaLayerOn] = useState(true);
   const [colorBy, setColorBy] = useState<ColorByOption>("zone_score");
   const [selectedAreaKey, setSelectedAreaKey] = useState<string | null>(null);
   const [selectedAreaDetails, setSelectedAreaDetails] = useState<AreaClickDetails | null>(null);
@@ -67,6 +63,18 @@ export default function TariffMap() {
   );
   const areas = (areasData ?? []) as Area[];
 
+  const { data: zonesData } = useApiQuery<Zone[]>(
+    ["zones"],
+    () => api.zones.getAll(),
+    { enabled: colorBy === "zone_score" && areas.length > 0 }
+  );
+  const zones = (zonesData ?? []) as Zone[];
+  const zoneById = useMemo(() => {
+    const m = new Map<number, Zone>();
+    for (const z of zones) m.set(Number(z.id), z);
+    return m;
+  }, [zones]);
+
   const { data: zoneScoresData } = useApiQuery<ZoneScore[]>(
     ["zone-scoring-scores"],
     () => api.zoneScoring.getScores(),
@@ -75,14 +83,97 @@ export default function TariffMap() {
   const zoneScores = (zoneScoresData ?? []) as ZoneScore[];
   const zoneScoresForRuleset =
     colorBy === "zone_score" && activeRuleset
-      ? zoneScores.filter((s) => s.ruleSetId === activeRuleset.id)
+      ? zoneScores.filter((s) => Number(s.ruleSetId) === Number(activeRuleset.id))
       : [];
 
+  /** When coloring by zone_score: use static geojson as base and enrich with API zone scores (so tax_zone/thana/union stay from static). Otherwise use static geojson. */
+  const areaGeojsonForMap = useMemo((): FeatureCollection | null => {
+    if (colorBy === "zone_score" && geojson?.features) {
+      const scoreByAreaId = new Map<number, number>();
+      for (const s of zoneScoresForRuleset) {
+        const n = parseFloat(s.score);
+        if (!Number.isNaN(n)) scoreByAreaId.set(Number(s.areaId), n);
+      }
+      // API area by (zone, name) -> score for matching static features
+      const apiByKey = new Map<string, number>();
+      for (const area of areas) {
+        const zone = area.zone ?? zoneById.get(Number(area.zoneId));
+        const zoneName = (zone?.name ?? "").trim();
+        const zoneNo = (zone?.zoneNo ?? "").trim();
+        const name = (area.name ?? "").trim();
+        const score = scoreByAreaId.get(Number(area.id));
+        if (score === undefined) continue;
+        apiByKey.set(`${zoneName}\t${name}`, score);
+        apiByKey.set(`${zoneNo}\t${name}`, score);
+        apiByKey.set(`${zoneName.toLowerCase()}\t${name.toLowerCase()}`, score);
+        apiByKey.set(`${zoneNo}\t${name.toLowerCase()}`, score);
+      }
+      const getScore = (zonePart: string, mauzaPart: string): number | undefined =>
+        apiByKey.get(`${zonePart}\t${mauzaPart}`) ?? apiByKey.get(`${zonePart}\t${mauzaPart.toLowerCase()}`);
+
+      type StaticAreaProps = { type?: string; zone_name?: string; zone_no?: string; mauza?: string; tax_zone?: string; thana?: string; union?: string; geocode?: string };
+      const enrichedFeatures = geojson.features
+        .filter((f): f is Feature<Polygon, StaticAreaProps> =>
+          f.type === "Feature" && (f.properties as StaticAreaProps)?.type === "area"
+        )
+        .map((f) => {
+          const p = f.properties as StaticAreaProps;
+          const zoneName = (p.zone_name ?? "").trim();
+          const zoneNo = (p.zone_no ?? "").trim();
+          const mauza = (p.mauza ?? "").trim();
+          const score =
+            getScore(zoneName, mauza) ?? getScore(zoneNo, mauza) ?? getScore(zoneName.toLowerCase(), mauza.toLowerCase()) ?? getScore(zoneNo, mauza.toLowerCase());
+          return {
+            ...f,
+            properties: {
+              ...p,
+              type: "area" as const,
+              zone_score: score !== undefined ? score : undefined,
+            },
+          };
+        });
+
+      // Append API-only areas (no matching static feature) so they still appear
+      const staticKeys = new Set<string>();
+      for (const f of geojson.features) {
+        if (f.type !== "Feature" || (f.properties as StaticAreaProps)?.type !== "area") continue;
+        const p = f.properties as StaticAreaProps;
+        const z = (p.zone_name ?? p.zone_no ?? "").trim();
+        const m = (p.mauza ?? "").trim();
+        if (z || m) staticKeys.add(`${z}\t${m}`);
+      }
+      for (const area of areas) {
+        if (!area.geojson?.coordinates?.length) continue;
+        const zone = area.zone ?? zoneById.get(Number(area.zoneId));
+        const zoneName = (zone?.name ?? "").trim();
+        const name = (area.name ?? "").trim();
+        if (staticKeys.has(`${zoneName}\t${name}`)) continue;
+        const score = scoreByAreaId.get(Number(area.id));
+        enrichedFeatures.push({
+          type: "Feature",
+          geometry: area.geojson as Polygon,
+          properties: {
+            type: "area",
+            zone_name: zone?.name,
+            zone_score: score !== undefined ? score : undefined,
+            geocode: String(area.id),
+            mauza: area.name,
+            tax_zone: undefined,
+            thana: undefined,
+            union: undefined,
+          },
+        });
+      }
+      return { type: "FeatureCollection", features: enrichedFeatures };
+    }
+    return geojson;
+  }, [colorBy, geojson, areas, zoneScoresForRuleset, zoneById]);
+
   const uniqueZoneNames = useMemo(() => {
-    if (!geojson?.features || colorBy !== "zone_name") return [];
+    if (!areaGeojsonForMap?.features || colorBy !== "zone_name") return [];
     const seen = new Set<string>();
     const order: string[] = [];
-    for (const f of geojson.features) {
+    for (const f of areaGeojsonForMap.features) {
       if (f.type !== "Feature" || (f.properties as { type?: string })?.type !== "area") continue;
       const p = f.properties as { zone_name?: string; zone_no?: string };
       const v = (p.zone_name ?? p.zone_no ?? "").trim() || "—";
@@ -92,7 +183,7 @@ export default function TariffMap() {
       }
     }
     return order.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-  }, [geojson, colorBy]);
+  }, [areaGeojsonForMap, colorBy]);
 
   useEffect(() => {
     let cancelled = false;
@@ -114,41 +205,13 @@ export default function TariffMap() {
       <div className="px-6 py-4 border-b border-gray-200 bg-white text-center">
         <h1 className="text-xl font-semibold text-gray-900">Tariff Map</h1>
         <p className="text-sm text-gray-500 mt-0.5">
-          Dhaka WASA zones and areas. Toggle layers and color by category.
+          Dhaka WASA zones and areas. Color by category.
         </p>
       </div>
 
       <div className="flex-1 flex gap-4 p-4 min-h-0">
         <div className="w-64 shrink-0 flex flex-col gap-5 bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-          {/* Zone layer */}
-          <div>
-            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Layers</span>
-            <label
-              htmlFor="layer-zone"
-              className="mt-2 flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2 hover:bg-gray-50"
-            >
-              <Checkbox
-                id="layer-zone"
-                checked={zoneLayerOn}
-                onCheckedChange={(c) => setZoneLayerOn(!!c)}
-              />
-              <span className="text-sm font-medium text-gray-800">Zone boundaries</span>
-            </label>
-          </div>
-
-          {/* Show areas + color by */}
           <div className="space-y-3">
-            <label
-              htmlFor="layer-area"
-              className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2 hover:bg-gray-50"
-            >
-              <Checkbox
-                id="layer-area"
-                checked={areaLayerOn}
-                onCheckedChange={(c) => setAreaLayerOn(!!c)}
-              />
-              <span className="text-sm font-medium text-gray-800">Show areas</span>
-            </label>
             <div>
               <Label className="text-xs text-gray-600">Color by</Label>
               <Select value={colorBy} onValueChange={(v) => setColorBy(v as ColorByOption)}>
@@ -172,10 +235,10 @@ export default function TariffMap() {
           </div>
 
           {/* Legend in sidebar */}
-          {((areaLayerOn && (colorBy === "zone_name" || colorBy === "tax_zone")) || (colorBy === "zone_score" && activeRuleset)) && (
+          {((colorBy === "zone_name" || colorBy === "tax_zone") || (colorBy === "zone_score" && activeRuleset)) && (
             <div className="space-y-3 border-t border-gray-200 pt-4">
               <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Legend</span>
-              {areaLayerOn && colorBy === "zone_name" && uniqueZoneNames.length > 0 && (
+              {colorBy === "zone_name" && uniqueZoneNames.length > 0 && (
                 <div>
                   <span className="text-xs font-semibold text-gray-700">Zone</span>
                   <div className="mt-1.5 flex flex-col gap-1">
@@ -191,7 +254,7 @@ export default function TariffMap() {
                   </div>
                 </div>
               )}
-              {areaLayerOn && colorBy === "tax_zone" && (
+              {colorBy === "tax_zone" && (
                 <div>
                   <span className="text-xs font-semibold text-gray-700">Tax zone</span>
                   <div className="mt-1.5 flex flex-col gap-1">
@@ -236,10 +299,9 @@ export default function TariffMap() {
             </div>
           )}
           <MapView className="h-full min-h-[400px]">
-            <ZoneLayer geojson={geojson} visible={zoneLayerOn} />
             <AreaLayer
-              geojson={geojson}
-              visible={areaLayerOn}
+              geojson={areaGeojsonForMap}
+              visible={true}
               colorBy={colorBy}
               selectedAreaKey={selectedAreaKey}
               onAreaClick={(key, details) => {
